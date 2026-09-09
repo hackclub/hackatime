@@ -151,7 +151,8 @@ class HeartbeatExportJob < ApplicationJob
 
       stats.each do |week, projects|
         projects.each do |project, duration|
-          csv << [week, project, duration]
+          safe_project = project.to_s.gsub(/\A([=+\-@\t\r])/, "'\1")
+          csv << [week, safe_project, duration]
         end
       end
     end
