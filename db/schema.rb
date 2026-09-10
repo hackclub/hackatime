@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_03_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -691,6 +691,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
     t.text "leaderboard_shadowban_reason"
     t.boolean "leaderboard_shadowbanned", default: false, null: false
     t.bigint "leaderboard_shadowbanned_by_id"
+    t.text "poison_reason"
+    t.datetime "poisoned_at"
+    t.datetime "poisoned_until"
     t.text "profile_bio"
     t.string "profile_bluesky_url"
     t.string "profile_discord_url"
@@ -719,6 +722,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
     t.index ["hca_id"], name: "index_users_on_hca_id"
     t.index ["leaderboard_shadowbanned"], name: "index_users_on_leaderboard_shadowbanned", where: "(leaderboard_shadowbanned = true)"
     t.index ["leaderboard_shadowbanned_by_id"], name: "index_users_on_leaderboard_shadowbanned_by_id"
+    t.index ["poisoned_until"], name: "index_users_on_poisoned_until", where: "(poisoned_until IS NOT NULL)"
     t.index ["slack_uid"], name: "index_users_on_slack_uid", unique: true
     t.index ["slack_username"], name: "index_users_on_slack_username_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["timezone", "trust_level"], name: "index_users_on_timezone_trust_level"

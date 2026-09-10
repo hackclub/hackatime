@@ -9,8 +9,15 @@ module Api
 
       before_action :authenticate_admin!
       before_action :set_paper_trail_whodunnit
+      around_action :allow_poisoned_heartbeats
 
       private
+
+      def allow_poisoned_heartbeats(&block)
+        return yield unless ActiveModel::Type::Boolean.new.cast(params[:include_poison])
+
+        Heartbeat.including_poison(&block)
+      end
 
       def authenticate_admin!
         authenticate_or_request_with_http_token do |token, _|

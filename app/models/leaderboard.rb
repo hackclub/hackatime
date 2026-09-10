@@ -7,6 +7,8 @@ class Leaderboard < ApplicationRecord
 
   enum :period_type, { daily: 0, last_7_days: 2 }
 
+  REBUILDABLE_PERIODS = %i[daily last_7_days].freeze
+
   def finished_generating? = finished_generating_at.present?
   def period_end_date = start_date
 

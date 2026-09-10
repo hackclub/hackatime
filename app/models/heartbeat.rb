@@ -5,6 +5,7 @@ class Heartbeat < ApplicationRecord
 
   include Heartbeatable
   include TimeRangeFilterable
+  include HeartbeatPoisoning
 
   time_range_filterable_field :time
 
