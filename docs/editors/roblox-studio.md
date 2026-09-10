@@ -61,7 +61,7 @@ If you see an **ERR\_NETWORK** message, it means the plugin can't connect to Hac
 3.  Ensure that **"hackatime.hackclub.com"** is enabled.
 
     ![Screenshot showing Game Settings with Security tab open and Allow HTTP Requests highlighted](./images/roblox-game-settings-security.png)
-    *Open Plugin Managment*
+    *Open Plugin Management*
 
     ![Screenshot showing Allow HTTP Requests enabled](./images/roblox-allow-http-requests.png)
     *Allow HTTP requests*
