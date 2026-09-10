@@ -429,6 +429,29 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal [ "Python", "Python" ], heartbeats.pluck(:language)
   end
 
+  test "direct heartbeat ingest preserves an unrecognized language resolved from the last-language placeholder" do
+    user = create(:user)
+    now = Time.current.to_f
+    user.heartbeats.create!(
+      entity: "historical.asm", project: "demo", language: "RGBDS Assembly",
+      category: "coding", source_type: :direct_entry, time: now - 10, type: "file"
+    )
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "src/second.py",
+        project: "demo",
+        language: "<<LAST_LANGUAGE>>",
+        time: now,
+        type: "file"
+      } ]
+    )
+
+    assert_equal "RGBDS Assembly", user.heartbeats.order(:id).last.language
+  end
+
   test "direct heartbeat ingest normalizes millisecond-scaled epoch times" do
     user = create(:user)
     sane_time = Time.current.to_f
@@ -810,6 +833,40 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
       end
     end
     assert_equal 1, calls
+  end
+
+  test "direct heartbeat ingest replaces unrecognized client languages with extension detection" do
+    user = User.create!(timezone: "UTC")
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "src/main.asm",
+        language: "RGBDS Assembly",
+        time: Time.current.to_f,
+        type: "file"
+      } ]
+    )
+
+    assert_equal "Assembly", user.heartbeats.sole.language
+  end
+
+  test "direct heartbeat ingest preserves recognized client languages" do
+    user = User.create!(timezone: "UTC")
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "src/main.rb",
+        language: "Python",
+        time: Time.current.to_f,
+        type: "file"
+      } ]
+    )
+
+    assert_equal "Python", user.heartbeats.sole.language
   end
 
   test "import heartbeat ingest deduplicates imported heartbeats and schedules dashboard rollup refresh" do
