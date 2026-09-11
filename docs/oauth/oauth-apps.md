@@ -140,6 +140,8 @@ All endpoints below require a valid OAuth access token in the `Authorization: Be
 
 ### GET /api/v1/authenticated/me
 
+**Required scope:** `profile`
+
 Returns information about the authenticated user.
 
 **Response:**
@@ -158,6 +160,8 @@ Returns information about the authenticated user.
 ```
 
 ### GET /api/v1/authenticated/hours
+
+**Required scope:** `read`
 
 Returns total coding time for a date range.
 
@@ -180,6 +184,8 @@ Returns total coding time for a date range.
 
 ### GET /api/v1/authenticated/streak
 
+**Required scope:** `read`
+
 Returns the user's current coding streak.
 
 **Response:**
@@ -191,6 +197,8 @@ Returns the user's current coding streak.
 ```
 
 ### GET /api/v1/authenticated/projects
+
+**Required scope:** `read`
 
 Returns the user's projects with time totals.
 
@@ -217,6 +225,8 @@ Returns the user's projects with time totals.
 ```
 
 ### GET /api/v1/authenticated/heartbeats/latest
+
+**Required scope:** `read`
 
 Returns the user's most recent heartbeat.
 
@@ -246,6 +256,8 @@ If the user has no heartbeats (excluding setup test entries), the endpoint retur
 ```
 
 ### GET /api/v1/authenticated/api_keys
+
+This endpoint does not require a specific OAuth scope beyond a valid access token.
 
 Returns the user's Hackatime API key (creates one if none exists).
 
