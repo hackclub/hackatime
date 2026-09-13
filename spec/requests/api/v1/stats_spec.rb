@@ -66,6 +66,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
     get('Get newly-banned user counts') do
       tags 'Stats'
       description 'Returns the number of distinct users whose trust level was newly set to "red" (banned/convicted) over the last day, week, and month.'
+      security []
       produces 'application/json'
 
       response(200, 'successful') do
@@ -89,6 +90,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
     get('Get user heartbeat spans') do
       tags 'Stats'
       description 'Returns heartbeat spans for a user, useful for visualizations. Accessible anonymously when the target user has public stats lookup enabled; otherwise the requester must be the user (authenticated via the User API Key).'
+      security [ {}, { Bearer: [] }, { ApiKeyAuth: [] } ]
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID. The literal value "my" resolves the user from the Authorization Bearer token.'
@@ -160,6 +162,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
     get('Get user trust factor') do
       tags 'Stats'
       description 'Returns the (masked) trust level and value for a user. Only the public-facing levels are ever returned: blue (0, unscored), red (1, convicted), green (2, trusted). The internal "yellow" (suspected) level is masked to blue and never exposed.'
+      security [ {}, { Bearer: [] }, { ApiKeyAuth: [] } ]
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'
@@ -187,6 +190,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
     get('Get user project names') do
       tags 'Stats'
       description 'Returns a list of project names for a user from the last 30 days. Accessible anonymously when the target user has public stats lookup enabled.'
+      security [ {}, { Bearer: [] }, { ApiKeyAuth: [] } ]
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'
@@ -225,6 +229,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
     get('Get user project details') do
       tags 'Stats'
       description 'Returns details for a specific project. Accessible anonymously when the target user has public stats lookup enabled.'
+      security [ {}, { Bearer: [] }, { ApiKeyAuth: [] } ]
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'
@@ -299,6 +304,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
     get('Get details for multiple projects') do
       tags 'Stats'
       description 'Returns details for multiple projects, or all projects in a time range. Accessible anonymously when the target user has public stats lookup enabled.'
+      security [ {}, { Bearer: [] }, { ApiKeyAuth: [] } ]
       produces 'application/json'
 
       parameter name: :username, in: :path, type: :string, description: 'Username, Slack ID, or User ID'
