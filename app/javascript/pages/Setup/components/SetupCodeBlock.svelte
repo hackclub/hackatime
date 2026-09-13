@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Button from "../../../components/Button.svelte";
+
   interface Props {
     code: string;
   }
@@ -21,11 +23,12 @@
     class="overflow-x-auto p-4 pr-24 font-mono text-sm break-all whitespace-pre-wrap text-cyan"><code
       >{code}</code
     ></pre>
-  <button
+  <Button
+    unstyled
     type="button"
     onclick={copy}
     class="absolute top-3 right-3 rounded-lg border border-darkless bg-dark px-3 py-1.5 text-sm font-medium text-secondary hover:text-surface-content"
   >
     {copied ? "Copied!" : "Copy"}
-  </button>
+  </Button>
 </div>
