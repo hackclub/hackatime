@@ -36,7 +36,7 @@ Next, you'll need to install the Hackatime plugin directly within Roblox Studio:
 
 Now, you'll connect the plugin to your Hackatime account using your unique API key:
 
-1.  Get your API key by visiting [hackatime.hackclub.com/my/wakatime_setup](https://hackatime.hackclub.com/setup). It will look something like this: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
+1.  Get your API key by visiting [https://hackatime.hackclub.com/my/settings/setup](https://hackatime.hackclub.com/my/settings/setup). It will look something like this: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
 
     ![Screenshot showing API Key on Hackatime website](./images/roblox-api-key.png)
     *Your API key from the Hackatime website*
