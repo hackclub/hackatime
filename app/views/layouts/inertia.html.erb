@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="<%= Rails.env == 'production' ? 'production' : 'development' %>" data-theme="<%= current_theme %>" data-color-scheme="<%= current_theme_color_scheme %>">
+<html lang="en" class="<%= Rails.env == 'production' ? 'production' : 'development' %> fonts-pending" data-theme="<%= current_theme %>" data-color-scheme="<%= current_theme_color_scheme %>">
   <head>
     <title><%= @page_title || content_for(:title) || 'Hackatime - Track your coding time' %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -163,29 +163,48 @@
     <% end %>
     <% include_vite_assets = !Rails.env.test? || ENV["INERTIA_SYSTEM_TEST"] == "1" %>
     <% if include_vite_assets %>
-      <%= inline_vite_stylesheet_tag "application" %>
-      <%= inline_vite_stylesheet_tag "inertia", type: :typescript %>
+      <% defer_vite_stylesheets = inertia_ssr_head&.include?('data-initial-vite-stylesheet="critical"') %>
+      <%= inertia_ssr_head %>
       <%= javascript_tag nonce: true do %>
         (() => {
           const root = document.documentElement;
           const clearPendingFont = () => root.classList.remove("fonts-pending");
 
-          root.classList.add("fonts-pending");
           if (!document.fonts) {
             clearPendingFont();
             return;
           }
 
-          document.fonts
-            .load('400 1em "Spline Sans Variable"', "AĀ")
+          const loadFont = () => document.fonts
+            .load('400 1em "Spline Sans Variable"', document.body?.textContent || "A")
             .then(clearPendingFont, clearPendingFont);
+
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", loadFont, { once: true });
+          } else {
+            loadFont();
+          }
         })();
       <% end %>
-      <%= vite_stylesheet_tag "application" %>
+      <%= vite_entrypoint_stylesheet_tag "application", media: ("print" if defer_vite_stylesheets), data: ({ deferred_vite_stylesheet: true } if defer_vite_stylesheets) %>
       <%= vite_client_tag %>
-      <%= vite_typescript_tag "inertia" %>
+      <%= vite_typescript_tag "inertia", skip_style_tags: defer_vite_stylesheets %>
+      <% if defer_vite_stylesheets %>
+        <%= vite_entrypoint_stylesheet_tag "inertia", type: :typescript, media: "print", data: { deferred_vite_stylesheet: true } %>
+        <noscript>
+          <%= vite_entrypoint_stylesheet_tag "application" %>
+          <%= vite_entrypoint_stylesheet_tag "inertia", type: :typescript %>
+        </noscript>
+        <%= javascript_tag nonce: true do %>
+          document.querySelectorAll("link[data-deferred-vite-stylesheet]").forEach((link) => {
+            const activate = () => { link.media = "all"; };
+            if (link.sheet) activate();
+            else link.addEventListener("load", activate, { once: true });
+          });
+        <% end %>
+      <% end %>
     <% end %>
-    <%= inertia_ssr_head %>
+    <%= inertia_ssr_head unless include_vite_assets %>
 
     <!--
     TODO: don't hardcode this!
