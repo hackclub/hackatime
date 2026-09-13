@@ -1,33 +1,22 @@
 class Admin::TimelineController < Admin::BaseController
   include ApplicationHelper
 
-  USER_SELECT_FIELDS = %i[id username slack_username github_username slack_avatar_url github_avatar_url display_name_override].freeze
-
   def show
     @date = parse_date_param
-    raw_user_ids = params[:user_ids].present? ? params[:user_ids].split(",").map(&:to_i).uniq : []
-    raw_user_ids += User.where(slack_uid: params[:slack_uids].split(",")).pluck(:id) if params[:slack_uids].present?
-
-    @selected_user_ids = ([ current_user.id ] + raw_user_ids).uniq
-
-    service = TimelineService.new(date: @date, selected_user_ids: @selected_user_ids)
-    timeline_data_unordered = service.timeline_data
-
-    data_map = timeline_data_unordered.index_by { |data| data[:user].id }
-    @users_with_timeline_data = @selected_user_ids.map do |id|
-      data_map[id] || (service.users_by_id[id] ? { user: service.users_by_id[id], spans: [], total_coded_time: 0 } : nil)
-    end.compact
-
-    selected_users = User.where(id: @selected_user_ids).select(*USER_SELECT_FIELDS).preload(:email_addresses)
-                         .map { |u| user_summary(u) }
-                         .sort_by { |u| @selected_user_ids.index(u[:id]) || Float::INFINITY }
+    service = TimelineService.for_selection(
+      date: @date,
+      current_user: current_user,
+      user_ids: params[:user_ids],
+      slack_uids: params[:slack_uids]
+    )
+    @users_with_timeline_data = service.timeline_data
 
     @primary_user = @users_with_timeline_data.first&.[](:user) || current_user
     primary_timezone = @primary_user.timezone.presence || current_user.timezone.presence || "UTC"
 
     render inertia: "Admin/Timeline", props: {
       current_user: user_summary(current_user).merge(admin_level: current_user.admin_level),
-      selected_users: selected_users,
+      selected_users: service.users.map { |user| user_summary(user) },
       date: @date.to_s,
       date_label: @date.in_time_zone(primary_timezone).strftime("%A, %B %-d, %Y"),
       today: Time.current.to_date.to_s,
@@ -39,32 +28,13 @@ class Admin::TimelineController < Admin::BaseController
   def search_users
     return render json: [] if params[:query].blank?
 
-    users = User.fuzzy_ranked_search(params[:query], limit: 20)
+    users = TimelineService.search_users(params[:query])
     render json: users.map { |u| user_summary(u) }
   end
 
   def leaderboard_users
-    limit = 25
-    leaderboard = Leaderboard.where.not(finished_generating_at: nil)
-                             .find_by(start_date: Date.current,
-                                      period_type: (params[:period] == "last_7_days") ? :last_7_days : :daily,
-                                      deleted_at: nil)
-
-    user_ids_from_leaderboard = leaderboard ? leaderboard.entries.order(total_seconds: :desc).limit(limit).pluck(:user_id) : []
-    all_ids_to_fetch = ([ current_user.id ] + user_ids_from_leaderboard).uniq
-
-    users_data = User.where(id: all_ids_to_fetch).select(*USER_SELECT_FIELDS).preload(:email_addresses).index_by(&:id)
-
-    final_user_objects = []
-    final_user_objects << user_summary(users_data[current_user.id]) if users_data[current_user.id]
-
-    user_ids_from_leaderboard.each do |uid|
-      break if final_user_objects.size >= limit
-      next if uid == current_user.id
-      final_user_objects << user_summary(users_data[uid]) if users_data[uid]
-    end
-
-    render json: { users: final_user_objects }
+    users = TimelineService.leaderboard_users(current_user: current_user, period: params[:period])
+    render json: { users: users.map { |user| user_summary(user) } }
   end
 
   private
