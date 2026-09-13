@@ -134,67 +134,6 @@ module Api
           render json: { days: days }
         end
 
-        def alt_candidates
-          lookback_days = (params[:lookback_days] || 30).to_i.clamp(1, 365)
-          cutoff = lookback_days.days.ago.to_i
-
-          query = <<-SQL
-            SELECT
-                r1.user_id AS user_a_id,
-                r2.user_id AS user_b_id,
-                r1.machine,
-                r1.ip_address,
-                r1.first_seen as user_a_first_seen_on_combo,
-                r1.last_seen as user_a_last_seen_on_combo,
-                r2.first_seen as user_b_first_seen_on_combo,
-                r2.last_seen as user_b_last_seen_on_combo
-            FROM
-                (
-                    SELECT
-                        user_id,
-                        machine,
-                        ip_address,
-                        MIN(time) as first_seen,
-                        MAX(time) as last_seen
-                    FROM heartbeats
-                    WHERE
-                        user_id IS NOT NULL
-                        AND machine IS NOT NULL
-                        AND ip_address IS NOT NULL
-                        AND deleted_at IS NULL
-                        AND time >= ?
-                    GROUP BY 1, 2, 3
-                ) r1
-            JOIN
-                (
-                    SELECT
-                        user_id,
-                        machine,
-                        ip_address,
-                        MIN(time) as first_seen,
-                        MAX(time) as last_seen
-                    FROM heartbeats
-                    WHERE
-                        user_id IS NOT NULL
-                        AND machine IS NOT NULL
-                        AND ip_address IS NOT NULL
-                        AND deleted_at IS NULL
-                        AND time >= ?
-                    GROUP BY 1, 2, 3
-                ) r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
-            WHERE
-                r1.user_id < r2.user_id
-            LIMIT 5000
-          SQL
-
-          result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff, cutoff ])
-          )
-
-          render json: { candidates: result.to_a }
-        end
-
-
         def active_users
           since_ts = params[:since].to_i
           return render_error("invalid since parameter") if since_ts < 0
