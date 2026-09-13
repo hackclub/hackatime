@@ -49,6 +49,31 @@ module Api
           render_not_found_json("Audit log not found")
         end
 
+        def trust_logs
+          user = find_user_by_id
+          return unless user
+
+          logs = TrustLevelAuditLog.for_user(user).recent.limit(25)
+          render json: {
+            trust_logs: logs.map { |log|
+              {
+                id: log.id,
+                previous_trust_level: log.previous_trust_level,
+                new_trust_level: log.new_trust_level,
+                changed_by: {
+                  id: log.changed_by.id,
+                  username: log.changed_by.username,
+                  display_name: log.changed_by.display_name,
+                  admin_level: log.changed_by.admin_level
+                },
+                reason: log.reason,
+                notes: log.notes,
+                created_at: log.created_at
+              }
+            }
+          }
+        end
+
         private
 
         def audit_log_json(log, full: false)

@@ -2,7 +2,7 @@ module Api
   module Admin
     module V1
       class AdminController < Api::Admin::V1::ApplicationController
-        include Api::Admin::V1::UserUtilities
+        include DateParsing
 
         def check
           u = current_user
