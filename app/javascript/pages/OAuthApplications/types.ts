@@ -5,10 +5,16 @@ type OAuthApplicationSummary = {
   confidential: boolean;
   scopes: string[];
   redirect_uris: string[];
+  created_at?: string;
+  owner?: {
+    id: number;
+    display_name: string;
+  } | null;
 };
 
 export type OAuthApplicationsIndexProps = {
   page_title: string;
+  admin_mode?: boolean;
   applications: OAuthApplicationSummary[];
 };
 
@@ -35,13 +41,13 @@ type OAuthApplicationFormErrors = {
   redirect_uri: string[];
   scopes: string[];
   confidential: string[];
-  redirect_to_hca_login: boolean;
 };
 
 export type OAuthApplicationFormProps = {
   page_title: string;
   heading: string;
   subheading: string;
+  admin_mode?: boolean;
   form_mode: "new" | "edit";
   form_method: "post" | "patch";
   labels: {
@@ -69,12 +75,20 @@ type OAuthApplicationShowApplication = {
   scopes: string[];
   redirect_uris: string[];
   can_toggle_verified: boolean;
+  created_at?: string;
+  owner?: {
+    id: number;
+    display_name: string;
+    avatar_url: string | null;
+    can_impersonate: boolean;
+  } | null;
 };
 
 export type OAuthApplicationShowProps = {
   page_title: string;
   heading: string;
   subheading: string;
+  admin_mode?: boolean;
   application: OAuthApplicationShowApplication;
   secret: {
     value: string | null;

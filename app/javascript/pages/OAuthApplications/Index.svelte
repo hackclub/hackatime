@@ -1,16 +1,24 @@
 <script lang="ts">
-  import { Link } from "@inertiajs/svelte";
+  import { Form, Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import DetailField from "../../components/DetailField.svelte";
   import DestructiveActionModal from "./DestructiveActionModal.svelte";
   import Badge from "./components/Badge.svelte";
   import ChipList from "./components/ChipList.svelte";
   import type { OAuthApplicationsIndexProps } from "./types";
-  import { doorkeeperApplications } from "../../api";
+  import { adminOauthApplications, doorkeeperApplications } from "../../api";
 
-  let { page_title, applications }: OAuthApplicationsIndexProps = $props();
+  let {
+    page_title,
+    admin_mode = false,
+    applications,
+  }: OAuthApplicationsIndexProps = $props();
 
   const newApplicationPath = doorkeeperApplications.new.path();
+  const showPath = (id: number) =>
+    admin_mode
+      ? adminOauthApplications.show.path({ id })
+      : doorkeeperApplications.show.path({ id });
 
   let deleteModalOpen = $state(false);
   let pendingDelete = $state<{ name: string; path: string } | null>(null);
@@ -31,14 +39,16 @@
       <h1
         class="text-2xl sm:text-3xl font-bold text-surface-content mb-1 sm:mb-2"
       >
-        Your applications
+        {admin_mode ? "All OAuth applications" : "Your applications"}
       </h1>
       <p class="text-sm sm:text-base text-muted">
-        Manage your OAuth applications that integrate with Hackatime.
+        {admin_mode
+          ? "Manage OAuth applications across all Hackatime users."
+          : "Manage your OAuth applications that integrate with Hackatime."}
       </p>
     </div>
 
-    {#if applications.length > 0}
+    {#if applications.length > 0 && !admin_mode}
       <Button href={newApplicationPath} variant="primary"
         >New application</Button
       >
@@ -68,6 +78,13 @@
               </div>
 
               <div class="space-y-2">
+                {#if admin_mode}
+                  <DetailField label="Owner">
+                    <p class="text-sm text-surface-content">
+                      {application.owner?.display_name || "No owner"}
+                    </p>
+                  </DetailField>
+                {/if}
                 <DetailField label="Callback URLs">
                   <div class="mt-1">
                     <ChipList
@@ -85,34 +102,58 @@
                     />
                   </div>
                 </DetailField>
+                {#if admin_mode && application.created_at}
+                  <DetailField label="Created">
+                    <p class="text-sm text-surface-content">
+                      {application.created_at}
+                    </p>
+                  </DetailField>
+                {/if}
               </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
               <Link
-                href={doorkeeperApplications.show.path({ id: application.id })}
+                href={showPath(application.id)}
                 class="inline-flex flex-1 items-center justify-center rounded-lg border border-surface-200 bg-surface-100 px-3 py-2 text-sm font-medium text-surface-content transition-colors hover:bg-surface-200 sm:flex-none"
               >
                 View
               </Link>
-              <Link
-                href={doorkeeperApplications.edit.path({ id: application.id })}
-                class="inline-flex flex-1 items-center justify-center rounded-lg border border-primary bg-primary px-3 py-2 text-sm font-medium text-on-primary transition-opacity hover:opacity-90 sm:flex-none"
-              >
-                Edit
-              </Link>
-              <Button
-                type="button"
-                variant="surface"
-                class="!flex-1 !border-red/45 !bg-red/15 !text-red hover:!bg-red/25 sm:!flex-none"
-                onclick={() =>
-                  openDeleteModal(
-                    application.name,
-                    doorkeeperApplications.destroy.path({ id: application.id }),
-                  )}
-              >
-                Delete
-              </Button>
+              {#if admin_mode}
+                <Form
+                  action={adminOauthApplications.toggleVerified.path({
+                    id: application.id,
+                  })}
+                  method="post"
+                >
+                  <Button type="submit" variant="primary">
+                    {application.verified ? "Unverify" : "Verify"}
+                  </Button>
+                </Form>
+              {:else}
+                <Link
+                  href={doorkeeperApplications.edit.path({
+                    id: application.id,
+                  })}
+                  class="inline-flex flex-1 items-center justify-center rounded-lg border border-primary bg-primary px-3 py-2 text-sm font-medium text-on-primary transition-opacity hover:opacity-90 sm:flex-none"
+                >
+                  Edit
+                </Link>
+                <Button
+                  type="button"
+                  variant="surface"
+                  class="!flex-1 !border-red/45 !bg-red/15 !text-red hover:!bg-red/25 sm:!flex-none"
+                  onclick={() =>
+                    openDeleteModal(
+                      application.name,
+                      doorkeeperApplications.destroy.path({
+                        id: application.id,
+                      }),
+                    )}
+                >
+                  Delete
+                </Button>
+              {/if}
             </div>
           </div>
         </article>
@@ -123,16 +164,20 @@
       class="rounded-xl border border-surface-200 bg-dark p-6 text-center sm:p-10"
     >
       <h2 class="text-xl font-semibold text-surface-content">
-        No applications yet
+        {admin_mode ? "No applications" : "No applications yet"}
       </h2>
       <p class="mt-2 text-sm text-muted">
-        Create your first OAuth application to start integrating with Hackatime.
+        {admin_mode
+          ? "No OAuth applications have been created yet."
+          : "Create your first OAuth application to start integrating with Hackatime."}
       </p>
-      <div class="mt-5">
-        <Button href={newApplicationPath} variant="primary"
-          >New application</Button
-        >
-      </div>
+      {#if !admin_mode}
+        <div class="mt-5">
+          <Button href={newApplicationPath} variant="primary"
+            >New application</Button
+          >
+        </div>
+      {/if}
     </section>
   {/if}
 </div>
