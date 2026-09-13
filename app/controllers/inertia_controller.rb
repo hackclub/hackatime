@@ -10,6 +10,7 @@ class InertiaController < ApplicationController
       nav: inertia_nav_props,
       footer: inertia_footer_props,
       theme: inertia_theme_props,
+      csp_nonce: content_security_policy_nonce,
       csrf_token: form_authenticity_token,
       hide_sidebar: false,
       hide_footer: false,
