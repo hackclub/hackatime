@@ -33,14 +33,57 @@ html {
 }
 
 @font-face {
-  font-family: "Spline Sans Fallback";
-  src: local("Arial"), local("Helvetica"), local("DejaVu Sans");
-  size-adjust: 92%;
+  font-family: "Spline Sans Fallback: Segoe UI";
+  src: local("Segoe UI"), local("SegoeUI");
+  ascent-override: 94.5081%;
+  descent-override: 23.1979%;
+  size-adjust: 101.9489%;
+}
+
+@font-face {
+  font-family: "Spline Sans Fallback: Helvetica Neue";
+  src: local("Helvetica Neue"), local("HelveticaNeue");
+  ascent-override: 95.9237%;
+  descent-override: 23.5454%;
+  line-gap-override: 0%;
+  size-adjust: 100.4444%;
+}
+
+@font-face {
+  font-family: "Spline Sans Fallback: Roboto";
+  src: local("Roboto Regular"), local("Roboto-Regular");
+  ascent-override: 94.8204%;
+  descent-override: 23.2745%;
+  size-adjust: 101.6132%;
+}
+
+@font-face {
+  font-family: "Spline Sans Fallback: Arial";
+  src: local("Arial"), local("ArialMT");
+  ascent-override: 95.0286%;
+  descent-override: 23.3256%;
+  line-gap-override: 0%;
+  size-adjust: 101.3906%;
+}
+
+@font-face {
+  font-family: "Spline Sans Fallback: DejaVu Sans";
+  src: local("DejaVu Sans"), local("DejaVuSans");
+  ascent-override: 108.3513%;
+  descent-override: 26.5958%;
+  size-adjust: 88.9237%;
 }
 
 html.fonts-pending,
 html.fonts-pending body {
-  font-family: "Spline Sans Fallback", Arial, sans-serif;
+  font-family:
+    "Spline Sans Fallback: Segoe UI",
+    "Spline Sans Fallback: Helvetica Neue",
+    "Spline Sans Fallback: Roboto",
+    "Spline Sans Fallback: Arial",
+    "Spline Sans Fallback: DejaVu Sans",
+    system-ui,
+    sans-serif;
 }
 
 *,
