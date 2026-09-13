@@ -28,7 +28,7 @@ Visit the [GitHub page](https://github.com/ZXMushroom63/WakatimeIntegration) and
 2. Open the Plugins window (`Edit->Plugins...`) and enable `WakatimeIntegration`.
 3. Restart the editor when prompted
 4. In editor settings (`Edit->Editor Settings...`) find the WakatimeIntegration category (should be under `Plugins` category)
-5. Set the Bearer Token to the API Key found at [https://hackatime.hackclub.com/my/settings/setup](https://hackatime.hackclub.com/my/settings/setup)
+5. Set the Bearer Token to the API Key found at [https://hackatime.hackclub.com/api-key](https://hackatime.hackclub.com/api-key)
 6. Set the Endpoint to `https://hackatime.hackclub.com/api/hackatime/v1`
 7. Set the interval to `30`.
 8. You may need to manually enable the plugin for each project you wish to track.
