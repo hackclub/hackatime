@@ -27,6 +27,7 @@ WORKDIR /app
 
 # Install npm dependencies for Vite.
 COPY package.json bun.lock bunfig.toml ./
+COPY patches patches
 RUN bun install && \
     bun x playwright install --with-deps --only-shell chromium && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives
