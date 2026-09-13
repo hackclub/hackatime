@@ -46,7 +46,6 @@
 
 <div class="space-y-8 sm:space-y-10">
   <ScreenHeader
-    emoji="/images/emojis/ms-computer.svg"
     title="Awesome!"
     subtitle="Now let's install the Hackatime extension in your editor."
   />
