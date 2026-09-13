@@ -12,8 +12,8 @@
 </script>
 
 <script lang="ts">
-  import { Debounced } from "runed";
   import Search from "hcicons-svelte/search";
+  import UserSearchCombobox from "./UserSearchCombobox.svelte";
   import { formatUtcDate } from "../utils";
 
   type Accent = "primary" | "green" | "red";
@@ -38,17 +38,8 @@
     emptyText = "No user selected",
   }: Props = $props();
 
-  let query = $state("");
-  let results = $state<UserPickerResult[]>([]);
-  let open = $state(false);
-  let highlight = $state(-1);
-  let searchAbortController: AbortController | null = null;
-  let searchSequence = 0;
-  const debouncedQuery = new Debounced(() => query, 200);
-
   const dropdownBase = "absolute left-0 top-full z-50 mt-1";
   const dropdownPanel = "rounded-lg border border-surface-200 bg-dark";
-  let listboxId = $derived(`${id}-results`);
 
   let selectedClass = $derived(
     accent === "green"
@@ -57,90 +48,6 @@
         ? "border-red/30 bg-red/10"
         : "border-primary/30 bg-primary/10",
   );
-
-  let dropdownClass = $derived(
-    results.length
-      ? `${dropdownBase} max-h-48 w-full overflow-y-auto ${dropdownPanel} shadow-lg`
-      : `${dropdownBase} w-full ${dropdownPanel} p-3 text-center text-sm text-muted shadow-lg`,
-  );
-
-  let activeDescendant = $derived(
-    open && highlight >= 0 && highlight < results.length
-      ? `${id}-result-${results[highlight].id}`
-      : undefined,
-  );
-
-  $effect(() => {
-    void doSearch(debouncedQuery.current);
-  });
-
-  function resetSearch() {
-    open = false;
-    results = [];
-    highlight = -1;
-  }
-
-  async function doSearch(searchQuery: string) {
-    const requestSequence = ++searchSequence;
-    searchAbortController?.abort();
-
-    const trimmed = searchQuery.trim();
-    if (!trimmed) return resetSearch();
-
-    const controller = new AbortController();
-    searchAbortController = controller;
-
-    try {
-      const res = await fetch(
-        `${searchUrl}?query=${encodeURIComponent(trimmed)}`,
-        { signal: controller.signal },
-      );
-      if (!res.ok) throw new Error(`Search failed with ${res.status}`);
-
-      const nextResults = await res.json();
-      if (requestSequence !== searchSequence) return;
-
-      results = nextResults;
-      open = true;
-      highlight = -1;
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") return;
-      if (requestSequence === searchSequence) resetSearch();
-    } finally {
-      if (searchAbortController === controller) searchAbortController = null;
-    }
-  }
-
-  function selectUser(user: UserPickerResult) {
-    selected = user;
-    query = "";
-    open = false;
-  }
-
-  function handleOptionKeydown(e: KeyboardEvent, user: UserPickerResult) {
-    if (e.key !== "Enter" && e.key !== " ") return;
-
-    e.preventDefault();
-    selectUser(user);
-  }
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      open = false;
-      return;
-    }
-
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter")
-      return;
-
-    e.preventDefault();
-
-    if (e.key === "ArrowDown")
-      highlight = Math.min(highlight + 1, results.length - 1);
-    else if (e.key === "ArrowUp") highlight = Math.max(highlight - 1, 0);
-    else if (highlight >= 0 && highlight < results.length)
-      selectUser(results[highlight]);
-  }
 </script>
 
 {#snippet avatar(user: UserPickerResult, className: string)}
@@ -151,65 +58,93 @@
   {/if}
 {/snippet}
 
-<div class="relative">
-  <div class="relative">
-    <div
-      class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
-    >
-      <Search size={24} aria-hidden="true" />
-    </div>
-    <label for={id} class="sr-only">{label}</label>
-    <input
-      {id}
-      type="text"
-      {placeholder}
-      bind:value={query}
-      onkeydown={handleKeydown}
-      autocomplete="off"
-      role="combobox"
-      aria-autocomplete="list"
-      aria-controls={listboxId}
-      aria-expanded={open}
-      aria-activedescendant={activeDescendant}
-      class="w-full rounded-lg border border-surface-200 bg-input py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
-    />
-  </div>
+<UserSearchCombobox
+  {searchUrl}
+  {id}
+  onselect={(user: UserPickerResult) => (selected = user)}
+>
+  {#snippet children({
+    query,
+    results,
+    open,
+    highlight,
+    searchError,
+    listboxId,
+    activeDescendant,
+    setQuery,
+    select,
+    handleKeydown,
+    handleOptionKeydown,
+  })}
+    <div class="relative">
+      <div class="relative">
+        <div
+          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"
+        >
+          <Search size={24} aria-hidden="true" />
+        </div>
+        <label for={id} class="sr-only">{label}</label>
+        <input
+          {id}
+          type="text"
+          {placeholder}
+          value={query}
+          oninput={(event) => setQuery(event.currentTarget.value)}
+          onkeydown={handleKeydown}
+          autocomplete="off"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-controls={listboxId}
+          aria-expanded={open && !searchError}
+          aria-activedescendant={activeDescendant}
+          class="w-full rounded-lg border border-surface-200 bg-input py-2 pl-10 pr-3 text-sm text-surface-content placeholder-gray-500 focus:border-primary focus:outline-none"
+        />
+      </div>
 
-  {#if open}
-    <div id={listboxId} class={dropdownClass} role="listbox" aria-label={label}>
-      {#if results.length}
-        {#each results as user, i}
-          <div
-            id={`${id}-result-${user.id}`}
-            role="option"
-            tabindex="-1"
-            aria-selected={i === highlight}
-            class="flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-surface-100/50 {i ===
-            highlight
-              ? 'bg-surface-100/50'
-              : ''}"
-            onclick={() => selectUser(user)}
-            onkeydown={(e) => handleOptionKeydown(e, user)}
-          >
-            {@render avatar(user, "h-8 w-8 rounded-full")}
-            <div class="text-left">
-              <div class="font-medium text-surface-content">
-                {user.display_name}
+      {#if open && !searchError}
+        <div
+          id={listboxId}
+          class={results.length
+            ? `${dropdownBase} max-h-48 w-full overflow-y-auto ${dropdownPanel} shadow-lg`
+            : `${dropdownBase} w-full ${dropdownPanel} p-3 text-center text-sm text-muted shadow-lg`}
+          role="listbox"
+          aria-label={label}
+        >
+          {#if results.length}
+            {#each results as user, i}
+              <div
+                id={`${id}-result-${user.id}`}
+                role="option"
+                tabindex="-1"
+                aria-selected={i === highlight}
+                class="flex w-full cursor-pointer items-center gap-3 p-3 transition-colors hover:bg-surface-100/50 {i ===
+                highlight
+                  ? 'bg-surface-100/50'
+                  : ''}"
+                onclick={() => select(user)}
+                onkeydown={(event) => handleOptionKeydown(event, user)}
+              >
+                {@render avatar(user, "h-8 w-8 rounded-full")}
+                <div class="text-left">
+                  <div class="font-medium text-surface-content">
+                    {user.display_name}
+                  </div>
+                  <div class="text-xs text-muted">
+                    ID: {user.id}{user.created_at
+                      ? ` · Created: ${formatUtcDate(user.created_at) ?? user.created_at}`
+                      : ""}
+                  </div>
+                </div>
               </div>
-              <div class="text-xs text-muted">
-                ID: {user.id}{user.created_at
-                  ? ` · Created: ${formatUtcDate(user.created_at) ?? user.created_at}`
-                  : ""}
-              </div>
-            </div>
-          </div>
-        {/each}
-      {:else}
-        No users found
+            {/each}
+          {:else}
+            No users found
+          {/if}
+        </div>
       {/if}
     </div>
-  {/if}
-</div>
+  {/snippet}
+</UserSearchCombobox>
 
 <div class="mt-4">
   {#if selected}
