@@ -78,7 +78,16 @@ createInertiaApp({
     if (!loadPage) {
       throw new Error(`Missing Inertia page component: '${name}.svelte'`);
     }
-    return await loadPage();
+
+    const page = await loadPage();
+    if (name.startsWith("Users/Settings/") && page.layout === undefined) {
+      const { default: SettingsLayout } = await import(
+        "../pages/Users/Settings/Layout.svelte"
+      );
+      return { ...page, layout: [AppLayout, SettingsLayout] };
+    }
+
+    return page;
   },
 
   defaults: {
