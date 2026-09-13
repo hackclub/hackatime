@@ -163,6 +163,24 @@
     <% end %>
     <% include_vite_assets = !Rails.env.test? || ENV["INERTIA_SYSTEM_TEST"] == "1" %>
     <% if include_vite_assets %>
+      <%= inline_vite_stylesheet_tag "application" %>
+      <%= inline_vite_stylesheet_tag "inertia", type: :typescript %>
+      <%= javascript_tag nonce: true do %>
+        (() => {
+          const root = document.documentElement;
+          const clearPendingFont = () => root.classList.remove("fonts-pending");
+
+          root.classList.add("fonts-pending");
+          if (!document.fonts) {
+            clearPendingFont();
+            return;
+          }
+
+          document.fonts
+            .load('400 1em "Spline Sans Variable"', "AĀ")
+            .then(clearPendingFont, clearPendingFont);
+        })();
+      <% end %>
       <%= vite_stylesheet_tag "application" %>
       <%= vite_client_tag %>
       <%= vite_typescript_tag "inertia" %>

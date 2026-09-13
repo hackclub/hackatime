@@ -32,6 +32,17 @@ html {
   color-scheme: var(--app-color-scheme, dark);
 }
 
+@font-face {
+  font-family: "Spline Sans Fallback";
+  src: local("Arial"), local("Helvetica"), local("DejaVu Sans");
+  size-adjust: 92%;
+}
+
+html.fonts-pending,
+html.fonts-pending body {
+  font-family: "Spline Sans Fallback", Arial, sans-serif;
+}
+
 *,
 *::before,
 *::after {
