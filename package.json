@@ -24,7 +24,7 @@
     "@tsconfig/svelte": "^5.0.8",
     "beasties": "^0.5.4",
     "bits-ui": "^2.19.0",
-    "blume": "^1.5.3",
+    "blume": "^1.6.4",
     "canvas-confetti": "^1.9.4",
     "d3-array": "3.2.4",
     "d3-shape": "^3.2.0",
