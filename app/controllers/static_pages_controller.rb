@@ -24,6 +24,16 @@ class StaticPagesController < InertiaController
     end
   end
 
+  def hardware
+    if current_user
+      redirect_to root_path
+    else
+      set_homepage_seo_content
+      @home_stats = Cache::HomeStatsJob.perform_now
+      render inertia: "HardwareHome/SignedOut", props: signed_out_props
+    end
+  end
+
   def signin
     return redirect_to root_path if current_user
 
