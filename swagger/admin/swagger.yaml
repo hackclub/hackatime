@@ -54,7 +54,8 @@ paths:
                         date_timestamp_s:
                           type: integer
                           example: 1704067200
-                          description: Start-of-day epoch (seconds, UTC)
+                          description: Epoch for the start of the target user's local
+                            day
                         total_seconds:
                           type: number
                           example: 7200.0
