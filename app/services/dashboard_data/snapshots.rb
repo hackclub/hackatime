@@ -2,6 +2,8 @@ module DashboardData
   module Snapshots
     GROUPED_DIMENSIONS = %i[project language editor operating_system category].freeze
     WEEKLY_PROJECT_DIMENSION = "weekly_project".freeze
+    # Keep indexed predecessor probes bounded; broad selections favour one scan.
+    PREDECESSOR_LOOKUP_LIMIT = 1_000
 
     module_function
 
@@ -229,7 +231,102 @@ module DashboardData
       end
     end
 
-    # Live aggregate snapshot used by the filtered (non-rollup) dashboard path.
+    def adaptive_filtered_snapshot(user:, scope:)
+      matches = yield scope.with_valid_timestamps
+      attributed = if matches.reorder(nil).limit(PREDECESSOR_LOOKUP_LIMIT + 1).count <= PREDECESSOR_LOOKUP_LIMIT
+        predecessor_dashboard_scope(timeline: scope, matches: matches)
+      else
+        yield attributed_dashboard_scope(scope)
+      end
+      filtered_query_snapshot(user: user, scope: attributed)
+    end
+
+    def predecessor_dashboard_scope(timeline:, matches:)
+      current_sql = matches.reorder(nil).select(:id, :time, *GROUPED_DIMENSIONS).to_sql
+      previous_sql = timeline.with_valid_timestamps
+        .where("(heartbeats.time, heartbeats.id) < (current_heartbeat.time, current_heartbeat.id)")
+        .reorder(time: :desc, id: :desc).limit(1).select(:time).to_sql
+      timeout = Heartbeat.heartbeat_timeout_duration.to_i
+      attributed_sql = <<~SQL.squish
+        SELECT current_heartbeat.*,
+               LEAST(COALESCE(current_heartbeat.time - previous_heartbeat.time, 0), #{timeout}) AS duration
+        FROM (#{current_sql}) current_heartbeat
+        LEFT JOIN LATERAL (#{previous_sql}) previous_heartbeat ON TRUE
+      SQL
+      Heartbeat.unscoped.from("(#{attributed_sql}) heartbeats")
+    end
+
+    # Date range and archive eligibility belong inside this window; dashboard
+    # dimension filters belong outside it. Each gap belongs to the current row.
+    def attributed_dashboard_scope(scope)
+      timeout = Heartbeat.heartbeat_timeout_duration.to_i
+      timeline = scope.with_valid_timestamps.reorder(nil).select(
+        :id, :time, *GROUPED_DIMENSIONS,
+        Arel.sql("LEAST(COALESCE(time - LAG(time) OVER (ORDER BY time, id), 0), #{timeout}) AS duration")
+      )
+      Heartbeat.unscoped.from(timeline, :heartbeats)
+    end
+
+    def filtered_query_snapshot(user:, scope:)
+      # Materialize after filtering so every aggregate reuses the same small set
+      # of attributed rows instead of sorting/windowing the full timeline again.
+      relation_sql = scope.select(:time, *GROUPED_DIMENSIONS, :duration).to_sql
+      timezone = Heartbeat.connection.quote(user.timezone)
+      local_time = "to_timestamp(time) AT TIME ZONE #{timezone}"
+      ranges = week_ranges(user.timezone)
+      week = "TO_CHAR(DATE_TRUNC('week', #{local_time}), 'YYYY-MM-DD')"
+      slot = "CONCAT(EXTRACT(ISODOW FROM #{local_time})::integer, '-', EXTRACT(HOUR FROM #{local_time})::integer)"
+      aggregates = [ <<~SQL.squish ]
+        SELECT 'total' AS dimension, NULL::text AS bucket, NULL::text AS week_key,
+               COALESCE(SUM(duration), 0) AS duration, COUNT(*) AS heartbeats
+        FROM filtered
+      SQL
+      GROUPED_DIMENSIONS.each do |field|
+        aggregates << <<~SQL.squish
+          SELECT '#{field}', #{field}::text, NULL::text, SUM(duration), NULL::bigint
+          FROM filtered GROUP BY #{field}
+        SQL
+      end
+      aggregates << <<~SQL.squish
+        SELECT 'weekly_project', project::text, #{week}, SUM(duration), NULL::bigint
+        FROM filtered
+        WHERE time BETWEEN #{Heartbeat.connection.quote(ranges.last[1])} AND #{Heartbeat.connection.quote(ranges.first[2])}
+        GROUP BY #{week}, project
+      SQL
+      aggregates << <<~SQL.squish
+        SELECT 'coding_rhythm', #{slot}, NULL::text, SUM(duration), NULL::bigint
+        FROM filtered GROUP BY #{slot}
+      SQL
+
+      rows = Heartbeat.connection.select_all(<<~SQL.squish)
+        WITH filtered AS MATERIALIZED (#{relation_sql})
+        #{aggregates.join(' UNION ALL ')}
+      SQL
+      snapshot = {
+        total_time: 0,
+        total_heartbeats: 0,
+        grouped_durations: GROUPED_DIMENSIONS.index_with { {} },
+        weekly_project_stats: ranges.to_h { |key, *_| [ key, {} ] },
+        coding_rhythm: { timezone: user.timezone, duration_by_slot: {} }
+      }
+      rows.each do |row|
+        duration = row["duration"].to_i
+        case row["dimension"]
+        when "total"
+          snapshot[:total_time] = duration
+          snapshot[:total_heartbeats] = row["heartbeats"].to_i
+        when "weekly_project"
+          snapshot[:weekly_project_stats].fetch(row["week_key"])[row["bucket"]] = duration
+        when "coding_rhythm"
+          snapshot[:coding_rhythm][:duration_by_slot][row["bucket"]] = duration
+        else
+          snapshot[:grouped_durations].fetch(row["dimension"].to_sym)[row["bucket"]] = duration
+        end
+      end
+      snapshot
+    end
+
+    # Live aggregate snapshot used by the unfiltered non-rollup dashboard path.
     # Returns the same shape as the rollup-derived aggregate snapshot.
     def aggregate_query_snapshot(user:, scope:)
       {

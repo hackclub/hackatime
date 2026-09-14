@@ -51,15 +51,6 @@ Rails.application.routes.draw do
     end
   end
 
-  constraints AdminLevelConstraint.new(:ultraadmin) do
-    namespace :admin, defaults: { export: true } do
-      resource :account_merger, only: [ :show ], controller: "account_merger" do
-        get :search_users
-        post :merge
-      end
-    end
-  end
-
   # Read-only admin surfaces — viewers are allowed.
   constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer, :ultraadmin) do
     namespace :admin, defaults: { export: true } do

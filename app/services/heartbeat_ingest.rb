@@ -102,9 +102,11 @@ class HeartbeatIngest
     source_type = attrs[:entity] == "test.txt" ? :test_entry : :direct_entry
     attrs[:project] = sanitize_project(attrs[:project])
 
+    language_from_placeholder = attrs[:language] == LAST_LANGUAGE_SENTINEL
     resolve_placeholders!(attrs, placeholder_state)
 
-    inferred = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity])
+    known_language = attrs[:language] if language_from_placeholder || LanguageUtils.find_name(attrs[:language])
+    inferred = LanguageUtils.fill_missing_language(known_language, entity: attrs[:entity])
     attrs[:language] = inferred if inferred.present?
 
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])

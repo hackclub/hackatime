@@ -18,7 +18,7 @@ Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are
 
 Start by downloading it from the [TestFlight Link](https://testflight.apple.com/join/xCpuSbPs). You will need to download the [TestFlight App](https://apps.apple.com/us/app/testflight/id899247664) before you use the link to get it.
 
-Visit the [setup page](https://hackatime.hackclub.com/setup) and copy the `api_key`, `api_url` and `heartbeat_rate_limit_seconds`. This ensures everything works perfectly with Hackatime.
+Visit the [setup page](https://hackatime.hackclub.com/my/settings/setup) and copy the `api_key`, `api_url` and `heartbeat_rate_limit_seconds`. This ensures everything works perfectly with Hackatime.
 
 ## Step 3: Select your project/folder
 Hit the "Select folder" button in the middle and enter the directory you're working in and hit the "Done" in the top right or click on the Swift Playgrounds project if you're working on one. 

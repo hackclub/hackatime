@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Shared signin/admin authorization helpers used by HTML controllers
-# (sessions, account_merger, settings/*, admin/*, my/*).
+# (sessions, settings/*, admin/*, my/*).
 #
 # These helpers redirect on failure and return falsy so callers can do
 # `return unless require_signed_in!(...)` or chain off of them.

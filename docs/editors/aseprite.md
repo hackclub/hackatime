@@ -31,7 +31,7 @@ After installing, you will need to grab your Hackatime API key and manually add 
 
    ```ini
    [settings]
-   api_url = https://hackatime.hackclub.com/api
+   api_url = https://hackatime.hackclub.com/api/hackatime/v1
    api_key = YOUR_HACKATIME_API_KEY
    ```
 

@@ -36,7 +36,7 @@ Next, you'll need to install the Hackatime plugin directly within Roblox Studio:
 
 Now, you'll connect the plugin to your Hackatime account using your unique API key:
 
-1.  Get your API key by visiting [hackatime.hackclub.com/my/wakatime_setup](https://hackatime.hackclub.com/setup). It will look something like this: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
+1.  Get your API key by visiting [https://hackatime.hackclub.com/api-key](https://hackatime.hackclub.com/api-key). It will look something like this: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
 
     ![Screenshot showing API Key on Hackatime website](./images/roblox-api-key.png)
     *Your API key from the Hackatime website*
@@ -61,7 +61,7 @@ If you see an **ERR\_NETWORK** message, it means the plugin can't connect to Hac
 3.  Ensure that **"hackatime.hackclub.com"** is enabled.
 
     ![Screenshot showing Game Settings with Security tab open and Allow HTTP Requests highlighted](./images/roblox-game-settings-security.png)
-    *Open Plugin Managment*
+    *Open Plugin Management*
 
     ![Screenshot showing Allow HTTP Requests enabled](./images/roblox-allow-http-requests.png)
     *Allow HTTP requests*

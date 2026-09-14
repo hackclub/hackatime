@@ -163,11 +163,27 @@
     <% end %>
     <% include_vite_assets = !Rails.env.test? || ENV["INERTIA_SYSTEM_TEST"] == "1" %>
     <% if include_vite_assets %>
-      <%= vite_stylesheet_tag "application" %>
+      <% defer_vite_stylesheets = inertia_ssr_head&.include?('data-initial-vite-stylesheet="critical"') %>
+      <%= inertia_ssr_head %>
+      <%= vite_entrypoint_stylesheet_tag "application", media: ("print" if defer_vite_stylesheets), data: ({ deferred_vite_stylesheet: true } if defer_vite_stylesheets) %>
       <%= vite_client_tag %>
-      <%= vite_typescript_tag "inertia" %>
+      <%= vite_typescript_tag "inertia", skip_style_tags: defer_vite_stylesheets %>
+      <% if defer_vite_stylesheets %>
+        <%= vite_entrypoint_stylesheet_tag "inertia", type: :typescript, media: "print", data: { deferred_vite_stylesheet: true } %>
+        <noscript>
+          <%= vite_entrypoint_stylesheet_tag "application" %>
+          <%= vite_entrypoint_stylesheet_tag "inertia", type: :typescript %>
+        </noscript>
+        <%= javascript_tag nonce: true do %>
+          document.querySelectorAll("link[data-deferred-vite-stylesheet]").forEach((link) => {
+            const activate = () => { link.media = "all"; };
+            if (link.sheet) activate();
+            else link.addEventListener("load", activate, { once: true });
+          });
+        <% end %>
+      <% end %>
     <% end %>
-    <%= inertia_ssr_head %>
+    <%= inertia_ssr_head unless include_vite_assets %>
 
     <!--
     TODO: don't hardcode this!
