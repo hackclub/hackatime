@@ -73,12 +73,16 @@ class My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to my_settings_imports_exports_path
     assert_equal "Export requests are limited to once every 10 minutes.", flash[:alert]
   end
-    test "POST export enqueues job with include_stats when checked" do
+  test "POST export enqueues job with include_stats when checked" do
+    user = User.create!
+    user.email_addresses.create!(email: "stats-export@example.com", source: :signing_in)
+    sign_in_as(user)
+
     assert_enqueued_with(
       job: HeartbeatExportJob,
-      args: [@user.id, hash_including(include_stats: true, all_data: true)]
+      args: [user.id, hash_including(include_stats: true, all_data: true)]
     ) do
-      post export_my_heartbeats_url, params: { all_data: "1", include_stats: "1" }
+      post export_my_heartbeats_url, params: { all_data: "true", include_stats: "true" }
     end
   end
 end
