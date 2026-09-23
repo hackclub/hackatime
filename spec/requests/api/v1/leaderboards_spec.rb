@@ -14,6 +14,7 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
     get('Get daily leaderboard (Alias)') do
       tags 'Leaderboard'
       description 'Alias for /api/v1/leaderboard/daily. Returns the daily leaderboard. Public, no authentication required.'
+      security []
       produces 'application/json'
 
       response(200, 'successful', document: false) do
@@ -55,6 +56,7 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
     get('Get daily leaderboard') do
       tags 'Leaderboard'
       description 'Returns the daily leaderboard of coding time. Public, no authentication required. The leaderboard is cached and regenerated periodically.'
+      security []
       produces 'application/json'
 
       response(200, 'successful') do
@@ -96,6 +98,7 @@ RSpec.describe 'Api::V1::Leaderboard', type: :request do
     get('Get weekly leaderboard') do
       tags 'Leaderboard'
       description 'Returns the weekly leaderboard of coding time (last 7 days). Public, no authentication required.'
+      security []
       produces 'application/json'
 
       response(200, 'successful') do
