@@ -296,7 +296,7 @@ Rails.application.routes.draw do
         end
 
         # Trust level audit logs
-        resources :trust_level_audit_logs, only: [ :index, :show ]
+        resources :trust_level_audit_logs, only: [ :index, :show, :update ]
 
         # Deletion requests
         resources :deletion_requests, only: [ :index, :show ] do

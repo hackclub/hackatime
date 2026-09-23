@@ -383,6 +383,95 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
         run_test!
       end
     end
+
+    patch('Edit Trust Level Audit Log') do
+      tags 'Admin Resources'
+      description "Fix the reason and notes of a trust level change. Only the admin who made the change may edit it, and only within #{TrustLevelAuditLog::EDIT_WINDOW.inspect} of making it. The trust level itself cannot be edited; make a new change instead. The first-written text is kept in original_reason / original_notes."
+      security [ AdminToken: [] ]
+      consumes 'application/json'
+      produces 'application/json'
+
+      parameter name: :id, in: :path, type: :string
+      parameter name: :payload, in: :body, schema: {
+        type: :object,
+        required: %w[reason],
+        properties: {
+          reason: { type: :string, example: 'Unbanned after appeal; heartbeats were from a shared machine' },
+          notes: { type: :string, nullable: true, example: 'See appeal thread', description: 'Omit to keep the current notes; send null or an empty string to clear them.' }
+        }
+      }
+
+      let(:actor) { AdminApiKey.find_by!(token: 'dev-admin-api-key-12345').user }
+      let(:target) { create(:user, :with_email, username: 'amend_target', email: 'amend-target@example.com') }
+      let(:changed_by) { actor }
+      let(:log) do
+        create(:trust_level_audit_log,
+          user: target,
+          changed_by: changed_by,
+          previous_trust_level: 'red',
+          new_trust_level: 'blue',
+          reason: 'Unbanned after',
+          notes: nil
+        )
+      end
+      let(:id) { log.id }
+
+      response(200, 'successful') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:payload) { { reason: 'Unbanned after appeal; heartbeats were from a shared machine', notes: 'See appeal thread' } }
+        schema type: :object,
+          properties: {
+            id: { type: :integer, example: 5012 },
+            reason: { type: :string, nullable: true },
+            notes: { type: :string, nullable: true },
+            edited_at: { type: :string, format: :date_time, nullable: true, example: '2024-03-20T15:45:00Z' },
+            edited_by: {
+              type: :object,
+              nullable: true,
+              properties: {
+                id: { type: :integer, example: 1 },
+                username: { type: :string, example: 'orpheus' },
+                display_name: { type: :string, example: 'orpheus' }
+              }
+            },
+            original_reason: { type: :string, nullable: true, example: 'Unbanned after' },
+            original_notes: { type: :string, nullable: true }
+          }
+        run_test! do |response|
+          body = JSON.parse(response.body)
+          expect(body['reason']).to eq('Unbanned after appeal; heartbeats were from a shared machine')
+          expect(body['notes']).to eq('See appeal thread')
+          expect(body['original_reason']).to eq('Unbanned after')
+          expect(body['edited_by']['id']).to eq(actor.id)
+          expect(log.reload.new_trust_level).to eq('blue')
+        end
+      end
+
+      response(403, 'forbidden — Returned when the log was written by another admin, or is older than the edit window.') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:changed_by) { create(:user, :superadmin, :with_email, username: 'other_admin', email: 'other-admin@example.com') }
+        let(:payload) { { reason: 'rewritten' } }
+        schema(**error_schema)
+        run_test! do
+          expect(log.reload.reason).to eq('Unbanned after')
+        end
+      end
+
+      response(422, 'invalid request — Returned when reason is blank.') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:payload) { { reason: '' } }
+        schema(**error_schema)
+        run_test!
+      end
+
+      response(404, 'not found') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:id) { '0' }
+        let(:payload) { { reason: 'rewritten' } }
+        schema(**error_schema)
+        run_test!
+      end
+    end
   end
 
   path '/api/admin/v1/deletion_requests' do

@@ -56,8 +56,13 @@ class Admin::TrustLevelAuditLogsController < Admin::BaseController
   end
 
   def show
-    log = TrustLevelAuditLog.includes(:user, :changed_by).find(params[:id])
-    render inertia: "Admin/TrustLevelAuditLogs/Show", props: { audit_log: audit_log_props(log).merge(notes: log.notes) }
+    log = TrustLevelAuditLog.includes(:user, :changed_by, :edited_by).find(params[:id])
+    edit = log.edited? ? {
+      edited_at_long: log.edited_at.strftime("%B %d, %Y at %I:%M %p %Z"),
+      edited_by: audit_user_props(log.edited_by),
+      original_reason: log.original_reason, original_notes: log.original_notes
+    } : {}
+    render inertia: "Admin/TrustLevelAuditLogs/Show", props: { audit_log: audit_log_props(log).merge(notes: log.notes, **edit) }
   end
 
   private

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_160000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -659,14 +659,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
   create_table "trust_level_audit_logs", force: :cascade do |t|
     t.bigint "changed_by_id", null: false
     t.datetime "created_at", null: false
+    t.datetime "edited_at"
+    t.bigint "edited_by_id"
     t.string "new_trust_level", null: false
     t.text "notes"
+    t.text "original_notes"
+    t.text "original_reason"
     t.string "previous_trust_level", null: false
     t.text "reason"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["changed_by_id", "created_at"], name: "index_trust_level_audit_logs_on_changed_by_and_created_at"
     t.index ["changed_by_id"], name: "index_trust_level_audit_logs_on_changed_by_id"
+    t.index ["edited_by_id"], name: "index_trust_level_audit_logs_on_edited_by_id"
     t.index ["user_id", "created_at"], name: "index_trust_level_audit_logs_on_user_and_created_at"
     t.index ["user_id"], name: "index_trust_level_audit_logs_on_user_id"
   end
@@ -784,6 +789,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
   add_foreign_key "sign_in_tokens", "users"
   add_foreign_key "trust_level_audit_logs", "users"
   add_foreign_key "trust_level_audit_logs", "users", column: "changed_by_id"
+  add_foreign_key "trust_level_audit_logs", "users", column: "edited_by_id"
   add_foreign_key "users", "users", column: "leaderboard_shadowbanned_by_id"
   add_foreign_key "wakatime_mirrors", "users"
 end
