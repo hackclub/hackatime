@@ -15,7 +15,11 @@ class Settings::EditorsController < Settings::BaseController
         hackatime_extension_text_type: @user.hackatime_extension_text_type,
         show_goals_in_statusbar: @user.show_goals_in_statusbar
       },
-      options: base_options(keys: %i[extension_text_types]) }
+      options: {
+        extension_text_types: User.hackatime_extension_text_types.keys.map { |key|
+          { label: key.humanize, value: key }
+        }
+      } }
   end
 
   def editor_params = params.require(:user).permit(:hackatime_extension_text_type, :show_goals_in_statusbar)
