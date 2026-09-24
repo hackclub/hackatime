@@ -4,13 +4,13 @@ RSpec.describe 'Admin::Timeline', type: :request, openapi_spec: 'admin/swagger.y
   path '/api/admin/v1/timeline' do
     get('Get timeline') do
       tags 'Admin Timeline'
-      description 'Get timeline events including coding activity and commits for selected users.'
+      description 'Get timeline events including coding activity and commits for up to 20 requested users plus the authenticated admin, for a maximum of 21 users.'
       security [ AdminToken: [] ]
       produces 'application/json'
 
       parameter name: :date, in: :query, schema: { type: :string, format: :date }, description: 'Date for the timeline (YYYY-MM-DD)'
-      parameter name: :user_ids, in: :query, type: :string, description: 'Comma-separated list of User IDs'
-      parameter name: :slack_uids, in: :query, type: :string, description: 'Comma-separated list of Slack User IDs'
+      parameter name: :user_ids, in: :query, type: :string, description: 'Comma-separated list of User IDs, in display order'
+      parameter name: :slack_uids, in: :query, type: :string, description: 'Comma-separated list of Slack User IDs, in display order'
 
       response(200, 'successful') do
         schema type: :object,
@@ -20,6 +20,7 @@ RSpec.describe 'Admin::Timeline', type: :request, openapi_spec: 'admin/swagger.y
             prev_date: { type: :string, format: :date, example: '2024-03-19' },
             users: {
               type: :array,
+              maxItems: 21,
               items: {
                 type: :object,
                 properties: {
@@ -89,6 +90,7 @@ RSpec.describe 'Admin::Timeline', type: :request, openapi_spec: 'admin/swagger.y
             prev_date: { type: :string, format: :date, example: '2024-03-19' },
             users: {
               type: :array,
+              maxItems: 21,
               items: {
                 type: :object,
                 properties: {
@@ -204,6 +206,11 @@ RSpec.describe 'Admin::Timeline', type: :request, openapi_spec: 'admin/swagger.y
       response(422, 'unprocessable entity') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:query) { '' }
+        schema type: :object,
+          properties: {
+            error: { type: :string, example: 'Query parameter is required' }
+          },
+          required: [ 'error' ]
         run_test!
       end
 
