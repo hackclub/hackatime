@@ -80,6 +80,41 @@ class SettingsGoalsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, user.reload.goals.count
   end
 
+  test "create rejects a duplicate and returns the normalized goal form" do
+    user = create(:user)
+    create(:goal,
+      user: user,
+      period: "day",
+      target_seconds: 2.hours.to_i,
+      languages: [ "Python", "Ruby" ],
+      projects: [ "alpha", "beta" ]
+    )
+    sign_in_as(user)
+
+    post my_settings_goals_create_path, params: {
+      goal: {
+        period: "day",
+        target_seconds: 2.hours.to_i,
+        languages: [ "", "Ruby", "Python" ],
+        projects: [ "", "beta", "alpha" ]
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_inertia_component "Users/Settings/Goals"
+    assert_equal 1, user.reload.goals.count
+
+    form = inertia.props["goal_form"]
+    assert_equal true, form["open"]
+    assert_equal "create", form["mode"]
+    assert_nil form["goal_id"]
+    assert_equal "day", form["period"]
+    assert_equal 2.hours.to_i, form["target_seconds"]
+    assert_equal [ "Python", "Ruby" ], form["languages"]
+    assert_equal [ "alpha", "beta" ], form["projects"]
+    assert_includes form["errors"], "duplicate goal"
+  end
+
   test "update saves valid goal changes" do
     user = create(:user)
     goal = create(:goal,
