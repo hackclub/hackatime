@@ -22,7 +22,33 @@ class SlackController < ApplicationController
     SlackCommand::SailorsLogJob.perform_later(params_hash)
   end
 
+  def events
+    return render(json: { challenge: params[:challenge] }) if params[:type] == "url_verification"
+
+    if params[:type] == "event_callback" && params.dig(:event, :type) == "user_change"
+      slack_user = params.dig(:event, :user)
+      user = User.find_by(slack_uid: slack_user[:id]) if slack_user
+      SlackProfileSyncJob.perform_later(user.id) if user && slack_profile_changed?(user, slack_user)
+    end
+
+    head :ok
+  end
+
   private
+
+  def slack_profile_changed?(user, slack_user)
+    profile = slack_user[:profile] || {}
+    slack_username =
+      profile[:display_name_normalized].presence ||
+      profile[:real_name_normalized].presence ||
+      slack_user[:name].presence
+    slack_avatar_url = profile[:image_192].presence || profile[:image_72].presence
+    slack_email = profile[:email].to_s.strip.downcase.presence
+
+    (slack_username.present? && slack_username != user.slack_username) ||
+      (slack_avatar_url.present? && slack_avatar_url != user.slack_avatar_url) ||
+      (slack_email.present? && slack_email != user.email_addresses.source_slack.pick(:email))
+  end
 
   def params_hash
     @params_hash ||= params.permit(:command, :text, :response_url, :user_id, :team_id, :team_domain,
@@ -32,10 +58,11 @@ class SlackController < ApplicationController
   def verify_slack_request
     return true if Rails.env.development?
 
-    signing_secret = ENV["SAILORS_LOG_SLACK_SIGNING_SECRET"]
+    signing_secret_name = action_name == "events" ? "SLACK_SIGNING_SECRET" : "SAILORS_LOG_SLACK_SIGNING_SECRET"
+    signing_secret = ENV[signing_secret_name]
     if signing_secret.blank?
       # we will never hit this in prod but this is good prep for `config.saas_mode`
-      Rails.logger.error "[SlackController] SAILORS_LOG_SLACK_SIGNING_SECRET is not configured"
+      Rails.logger.error "[SlackController] #{signing_secret_name} is not configured"
       return head(:unauthorized)
     end
 

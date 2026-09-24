@@ -112,17 +112,19 @@ module OauthAuthentication
         u.email_addresses << email_address unless u.email_addresses.include?(email_address)
       end
 
-      user.email_addresses.source_slack.where.not(email: email).update_all(source: :signing_in)
-      email_address.source = :slack
-      email_address.save! if email_address.persisted?
+      User.transaction do
+        user.email_addresses.source_slack.where.not(email: email).destroy_all
+        email_address.source = :slack
+        email_address.save! if email_address.persisted?
 
-      user.slack_uid = data.dig("authed_user", "id")
-      user.apply_slack_profile_attributes(slack_user)
-      user.parse_and_set_timezone(slack_user["tz"])
-      user.slack_access_token = data["authed_user"]["access_token"]
-      user.slack_scopes = data["authed_user"]["scope"]&.split(/,\s*/)
-      user.country_code = country_code_from_ip(ip_address) if user.country_code.blank?
-      user.save!
+        user.slack_uid = data.dig("authed_user", "id")
+        user.apply_slack_profile_attributes(slack_user)
+        user.parse_and_set_timezone(slack_user["tz"])
+        user.slack_access_token = data["authed_user"]["access_token"]
+        user.slack_scopes = data["authed_user"]["scope"]&.split(/,\s*/)
+        user.country_code = country_code_from_ip(ip_address) if user.country_code.blank?
+        user.save!
+      end
       user
     rescue => e
       report_error(e, message: "Error creating user from Slack data: #{e.message}")
