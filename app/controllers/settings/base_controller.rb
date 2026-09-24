@@ -14,6 +14,20 @@ class Settings::BaseController < InertiaController
            status: status
   end
 
+  def update_user_settings(attributes, redirect_location:, back: false, clear_history: false)
+    if @user.update(attributes)
+      redirect_options = { notice: "Settings updated successfully" }
+      redirect_options[:inertia] = { clear_history: true } if clear_history
+
+      return redirect_back(fallback_location: redirect_location, **redirect_options) if back
+
+      redirect_to redirect_location, **redirect_options
+    else
+      flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
+      render_settings_page(status: :unprocessable_entity)
+    end
+  end
+
   # Lightweight props shared by every settings page
   def common_props(active_section:)
     { active_section: active_section,
