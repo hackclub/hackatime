@@ -9,8 +9,11 @@ module Api
             {
               name: project[:name],
               total_seconds: project[:total_seconds],
-              most_recent_heartbeat: project[:most_recent_heartbeat],
               languages: project[:languages],
+              repo_url: project[:repo_url],
+              first_heartbeat: project[:first_heartbeat],
+              last_heartbeat: project[:last_heartbeat],
+              most_recent_heartbeat: project[:most_recent_heartbeat],
               archived: project[:archived]
             }
           end
