@@ -89,6 +89,39 @@ class Api::Admin::V1::AdminControllerTest < ActionDispatch::IntegrationTest
     assert_equal expected, hidden_by_id(response)
   end
 
+  test "raw SQL admin queries flag hidden heartbeats" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    poisoned = create(:user, username: "raw_flag_poisoned", timezone: "UTC")
+    clean = create(:user, username: "raw_flag_clean", timezone: "UTC")
+    time = 2.days.ago.utc.beginning_of_day + 12.hours
+    [ poisoned, clean ].each do |user|
+      create(:heartbeat, user:, time: time.to_f, project: "p", entity: "#{user.username}.rb", lineno: 1,
+        source_type: :direct_entry, machine: "shared-machine", ip_address: "203.0.113.9")
+    end
+    poisoned.apply_poison!(Date.current.to_s)
+
+    get "/api/admin/v1/users/#{poisoned.id}/visualization/quantized",
+      params: { year: time.year, month: time.month }, headers: auth_headers(key)
+    assert_response :success
+    points = response.parsed_body.fetch("days").flat_map { |day| day.fetch("points") }
+    assert_equal [ true ], points.map { |point| point.fetch("hidden") }
+
+    [ "/api/admin/v1/heartbeats/ip_machine_pairs", "/api/admin/v1/alts/candidates" ].each do |path|
+      get path, headers: auth_headers(key)
+      assert_response :success
+      row = response.parsed_body.values.first.find { |r| r.fetch("user_a_id") == [ poisoned.id, clean.id ].min }
+      assert_equal poisoned.id < clean.id, row.fetch("user_a_hidden"), path
+      assert_equal poisoned.id > clean.id, row.fetch("user_b_hidden"), path
+    end
+
+    get "/api/admin/v1/heartbeats/shared_machines", headers: auth_headers(key)
+    assert_response :success
+    machine = response.parsed_body.fetch("machines").find { |m| m.fetch("machine") == "shared-machine" }
+    assert_equal "{#{[ poisoned.id, clean.id ].sort.join(',')}}", machine.fetch("user_ids")
+    assert_equal "{#{poisoned.id}}", machine.fetch("hidden_user_ids")
+  end
+
   private
 
   def hidden_by_id(response)

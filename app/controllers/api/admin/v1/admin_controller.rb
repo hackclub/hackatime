@@ -53,7 +53,8 @@ module Api
                     "time",
                     lineno,
                     cursorpos,
-                    date_trunc('day', to_timestamp("time")) as day_start
+                    date_trunc('day', to_timestamp("time")) as day_start,
+                    #{HeartbeatExclusion::HIDDEN_SQL} AS hidden
                 FROM heartbeats
                 WHERE user_id = ?
                 AND deleted_at IS NULL
@@ -75,25 +76,25 @@ module Api
                     ROUND(2 + (1 - CAST(cursorpos AS decimal) / max_cursorpos) * (96)) as qy_cursorpos
                 FROM daily_stats
             )
-            SELECT "time", lineno, cursorpos
+            SELECT "time", lineno, cursorpos, hidden
             FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_lineno) "time", lineno, cursorpos
+                SELECT DISTINCT ON (day_start, qx, qy_lineno) "time", lineno, cursorpos, hidden
                 FROM quantized_heartbeats
                 WHERE lineno IS NOT NULL
                 ORDER BY day_start, qx, qy_lineno, "time" ASC
             ) AS lineno_pixels
             UNION
-            SELECT "time", lineno, cursorpos
+            SELECT "time", lineno, cursorpos, hidden
             FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_cursorpos) "time", lineno, cursorpos
+                SELECT DISTINCT ON (day_start, qx, qy_cursorpos) "time", lineno, cursorpos, hidden
                 FROM quantized_heartbeats
                 WHERE cursorpos IS NOT NULL
                 ORDER BY day_start, qx, qy_cursorpos, "time" ASC
             ) AS cursorpos_pixels
             UNION
-            SELECT "time", lineno, cursorpos
+            SELECT "time", lineno, cursorpos, hidden
             FROM (
-                SELECT DISTINCT ON (day_start, qx) "time", lineno, cursorpos
+                SELECT DISTINCT ON (day_start, qx) "time", lineno, cursorpos, hidden
                 FROM quantized_heartbeats
                 WHERE lineno IS NULL AND cursorpos IS NULL
                 ORDER BY day_start, qx, "time" ASC
@@ -123,7 +124,7 @@ module Api
 
           points_by_day = quantized_result.each_with_object({}) do |row, hash|
             day = Time.at(row["time"]).to_date
-            (hash[day] ||= []) << { time: row["time"], lineno: row["lineno"], cursorpos: row["cursorpos"] }
+            (hash[day] ||= []) << { time: row["time"], lineno: row["lineno"], cursorpos: row["cursorpos"], hidden: row["hidden"] }
           end
 
           days = (start_epoch...end_epoch).step(86400).map do |epoch|
@@ -147,7 +148,9 @@ module Api
                 r1.first_seen as user_a_first_seen_on_combo,
                 r1.last_seen as user_a_last_seen_on_combo,
                 r2.first_seen as user_b_first_seen_on_combo,
-                r2.last_seen as user_b_last_seen_on_combo
+                r2.last_seen as user_b_last_seen_on_combo,
+                r1.hidden as user_a_hidden,
+                r2.hidden as user_b_hidden
             FROM
                 (
                     SELECT
@@ -155,7 +158,8 @@ module Api
                         machine,
                         ip_address,
                         MIN(time) as first_seen,
-                        MAX(time) as last_seen
+                        MAX(time) as last_seen,
+                        BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) as hidden
                     FROM heartbeats
                     WHERE
                         user_id IS NOT NULL
@@ -172,7 +176,8 @@ module Api
                         machine,
                         ip_address,
                         MIN(time) as first_seen,
-                        MAX(time) as last_seen
+                        MAX(time) as last_seen,
+                        BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) as hidden
                     FROM heartbeats
                     WHERE
                         user_id IS NOT NULL

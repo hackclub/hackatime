@@ -17,7 +17,7 @@ class Heartbeat < ApplicationRecord
   scope :with_deleted, -> { unscope(where: :deleted_at) }
   scope :only_deleted, -> { with_deleted.where.not(deleted_at: nil) }
   scope :with_excluded, -> { unscope(where: HeartbeatExclusion::VisibilityPredicate::ATTRIBUTE) }
-  scope :with_hidden_flag, -> { select(arel_table[Arel.star], Arel.sql("#{HeartbeatExclusion::MATCHED_SQL} AS hidden")) }
+  scope :with_hidden_flag, -> { select(arel_table[Arel.star], Arel.sql("#{HeartbeatExclusion::HIDDEN_SQL} AS hidden")) }
 
   enum :source_type, {
     direct_entry: 0,

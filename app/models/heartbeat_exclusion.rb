@@ -17,6 +17,11 @@ class HeartbeatExclusion < ApplicationRecord
     )
   SQL
   VISIBLE_SQL = "NOT #{MATCHED_SQL}".freeze
+  # Select-list form of MATCHED_SQL. The IN check is a hashed lookup, so the
+  # correlated EXISTS only runs for heartbeats of users with an active rule.
+  HIDDEN_SQL = <<~SQL.squish.freeze
+    (heartbeats.user_id IN (SELECT user_id FROM heartbeat_exclusions WHERE revoked_at IS NULL) AND #{MATCHED_SQL})
+  SQL
 
   # The where-clause node Heartbeat's default scope adds. It reports a pseudo
   # attribute so `unscope(where: :heartbeat_exclusions)` removes exactly this

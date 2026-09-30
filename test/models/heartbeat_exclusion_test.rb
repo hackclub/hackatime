@@ -72,6 +72,27 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
     assert_not_nil rule.revoked_at
   end
 
+  test "unbanning after admitted fraud keeps the poison" do
+    admin = create(:user, admin_level: :superadmin)
+    assert @user.set_trust(:red, changed_by_user: admin, reason: "fabricated heartbeats")
+    @user.apply_poison!(@cutoff, reason: "admitted fraud", by: admin)
+
+    assert @user.set_trust(:blue, changed_by_user: admin, reason: "appeal accepted")
+
+    assert @user.reload.poisoned?
+    assert_not_includes Heartbeat.all, @before_cutoff
+  end
+
+  test "unbanning an innocent user hides nothing" do
+    admin = create(:user, admin_level: :superadmin)
+    assert @user.set_trust(:red, changed_by_user: admin, reason: "suspected")
+
+    assert @user.set_trust(:blue, changed_by_user: admin, reason: "innocent")
+
+    assert_empty @user.heartbeat_exclusions
+    assert_includes Heartbeat.all, @before_cutoff
+  end
+
   test "removing a poison that does not exist returns false" do
     assert_not @user.remove_poison!
   end

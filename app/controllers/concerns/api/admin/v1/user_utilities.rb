@@ -308,7 +308,7 @@ module Api
 
           total_count = query.count
           source_types = Heartbeat.source_types.invert
-          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS, Arel.sql(HeartbeatExclusion::MATCHED_SQL))
+          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS, Arel.sql(HeartbeatExclusion::HIDDEN_SQL))
           ja4s_by_id = Ja4.where(id: rows.filter_map { |*, ja4_id, _hidden| ja4_id }.uniq).index_by(&:id)
           heartbeats = rows.map do |id, time, created_at, lineno, cursorpos, is_write, project, language, entity, branch, category, dependencies, editor, machine, operating_system, type, project_root_count, user_agent, line_additions, line_deletions, ip_address, lines, source_type, ja4_id, hidden|
             {
