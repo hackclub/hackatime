@@ -5,17 +5,19 @@ class Heartbeat < ApplicationRecord
 
   include Heartbeatable
   include TimeRangeFilterable
-  include HeartbeatPoisoning
 
   time_range_filterable_field :time
 
   # Default scope to exclude deleted records
   default_scope { where(deleted_at: nil) }
+  # Hide rows matched by an active HeartbeatExclusion (poison, project deletion)
+  default_scope { where(HeartbeatExclusion.visibility_predicate) }
 
   scope :today, -> { where(time: Time.current.beginning_of_day.to_i..Time.current.end_of_day.to_i) }
   scope :recent, -> { where("time > ?", 24.hours.ago.to_i) }
   scope :with_deleted, -> { unscope(where: :deleted_at) }
   scope :only_deleted, -> { with_deleted.where.not(deleted_at: nil) }
+  scope :with_excluded, -> { unscope(where: HeartbeatExclusion::VisibilityPredicate::ATTRIBUTE) }
 
   enum :source_type, {
     direct_entry: 0,

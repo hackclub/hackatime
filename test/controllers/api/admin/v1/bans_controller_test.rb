@@ -39,7 +39,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :created
     assert_not_includes Heartbeat.all, on_the_day
-    assert_equal @cutoff + 1.day, @user.reload.poisoned_until.utc
+    assert_equal @cutoff + 1.day, @user.reload.active_poison.ends_at.utc
   end
 
   test "accepts a bare date string as the request body" do
@@ -47,7 +47,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
       headers: auth_headers.merge("Content-Type" => "text/plain")
 
     assert_response :created
-    assert_equal @cutoff + 1.day, @user.reload.poisoned_until.utc
+    assert_equal @cutoff + 1.day, @user.reload.active_poison.ends_at.utc
   end
 
   test "accepts the hackatime id in its other forms" do
@@ -67,7 +67,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
     post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-05" }, headers: auth_headers, as: :json
 
     assert_response :created
-    assert_equal Time.utc(2026, 3, 6), @user.reload.poisoned_until.utc
+    assert_equal Time.utc(2026, 3, 6), @user.reload.active_poison.ends_at.utc
     assert_not_includes Heartbeat.all, @after_cutoff
   end
 
@@ -80,6 +80,16 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_nil response.parsed_body["poisoned_until"]
     assert_includes Heartbeat.all, @before_cutoff
+  end
+
+  test "ban and unban record the acting admin and keep the rule as history" do
+    post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
+    delete "/api/admin/v1/ban/#{@user.id}", headers: auth_headers, as: :json
+
+    rule = @user.heartbeat_exclusions.sole
+    assert_equal @superadmin, rule.created_by
+    assert_equal @superadmin, rule.revoked_by
+    assert_not_nil rule.revoked_at
   end
 
   test "unbanning a user who is not banned succeeds without changing anything" do
@@ -168,8 +178,8 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :created
     @user.reload
-    assert_equal @cutoff + 1.day, @user.poisoned_until.utc
-    assert_equal "Fraud!", @user.poison_reason
+    assert_equal @cutoff + 1.day, @user.active_poison.ends_at.utc
+    assert_equal "Fraud!", @user.active_poison.reason
     assert_not @user.admin_level_ultraadmin?
   end
 

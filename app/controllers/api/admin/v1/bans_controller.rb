@@ -11,16 +11,9 @@ module Api
           cutoff = ban_date
           return render_error("date is required") if cutoff.blank?
 
-          @user.apply_poison!(cutoff, reason: ban_params[:reason])
+          poison = @user.apply_poison!(cutoff, reason: ban_params[:reason], by: current_user)
 
-          render json: {
-            success: true,
-            user_id: @user.id,
-            poisoned_until: @user.poisoned_until.iso8601,
-            poisoned_at: @user.poisoned_at.iso8601,
-            poison_reason: @user.poison_reason,
-            hidden_heartbeats: hidden_heartbeat_count
-          }, status: :created
+          render json: { success: true, user_id: @user.id, **poison_json(poison) }, status: :created
         rescue ArgumentError => e
           if e.message.include?("future")
             render_error("date cannot be in the future")
@@ -30,22 +23,14 @@ module Api
         end
 
         def show
-          render json: {
-            user_id: @user.id,
-            poisoned: @user.poisoned?,
-            poisoned_until: @user.poisoned_until&.iso8601,
-            poisoned_at: @user.poisoned_at&.iso8601,
-            poison_reason: @user.poison_reason,
-            hidden_heartbeats: hidden_heartbeat_count
-          }
+          poison = @user.active_poison
+          render json: { user_id: @user.id, poisoned: poison.present?, **poison_json(poison) }
         end
 
         def destroy
-          unless @user.poisoned?
+          unless @user.remove_poison!(by: current_user)
             return render json: { success: true, user_id: @user.id, poisoned_until: nil, already_unbanned: true }
           end
-
-          @user.remove_poison!
 
           render json: { success: true, user_id: @user.id, poisoned_until: nil }
         end
@@ -69,7 +54,14 @@ module Api
           raw unless raw.start_with?("{", "[")
         end
 
-        def hidden_heartbeat_count = Heartbeat.only_poisoned.where(user_id: @user.id).count
+        def poison_json(poison)
+          {
+            poisoned_until: poison&.ends_at&.iso8601,
+            poisoned_at: poison&.created_at&.iso8601,
+            poison_reason: poison&.reason,
+            hidden_heartbeats: poison ? poison.heartbeats.count : 0
+          }
+        end
       end
     end
   end

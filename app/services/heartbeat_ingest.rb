@@ -125,7 +125,8 @@ class HeartbeatIngest
     ).slice(*Heartbeat.column_names.map(&:to_sym))
   end
 
-  def heartbeats_for_dedup = Heartbeat.including_poison { Heartbeat.where(user_id: @user.id) }
+  # Hidden heartbeats still own their fields_hash, so resubmissions must match them.
+  def heartbeats_for_dedup = @user.heartbeats.with_excluded
 
   def persist_direct_heartbeats(entries)
     entries_by_hash = entries.group_by { |entry| entry[:fields_hash] }

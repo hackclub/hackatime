@@ -189,6 +189,8 @@ class User < ApplicationRecord
   end
 
   has_many :heartbeats
+  has_many :heartbeat_exclusions, dependent: :destroy
+  has_one :active_poison, -> { active.poison }, class_name: "HeartbeatExclusion"
   has_many :goals, dependent: :destroy
   has_many :documentation_feedbacks, dependent: :destroy
   has_many :email_addresses, dependent: :destroy
@@ -241,35 +243,42 @@ class User < ApplicationRecord
     LeaderboardPageCache.clear!
   end
 
-  scope :poisoned, -> { where.not(poisoned_until: nil) }
+  def poisoned? = active_poison.present?
 
-  def poisoned? = poisoned_until.present?
+  # Hides this user's heartbeats before the cutoff. A new poison replaces the
+  # active one. See HeartbeatExclusion.poison_cutoff for accepted cutoffs.
+  def apply_poison!(cutoff, reason: nil, by: nil)
+    ends_at = HeartbeatExclusion.poison_cutoff(cutoff, timezone:)
 
-  def apply_poison!(cutoff, reason: nil)
-    raise ArgumentError, "cutoff is required" if cutoff.blank?
-    raise ArgumentError, "cutoff cannot be in the future" if poison_cutoff_in_future?(cutoff)
+    poison = transaction do
+      lock!
+      active_poison&.revoke!(by:)
+      heartbeat_exclusions.create!(kind: :poison, ends_at:, reason: reason.presence, created_by: by)
+    end
+    reset_active_poison
+    refresh_heartbeat_derived_data!
+    poison
+  end
 
-    cutoff = coerce_poison_cutoff(cutoff)
-    raise ArgumentError, "cutoff is invalid" if cutoff.blank?
+  def remove_poison!(by: nil)
+    revoked = transaction do
+      lock!
+      active_poison&.revoke!(by:)
+    end
+    reset_active_poison
+    return false unless revoked
 
-    update!(poisoned_until: cutoff, poisoned_at: Time.current, poison_reason: reason.presence)
-    invalidate_poisoned_derived_data!
+    refresh_heartbeat_derived_data!
     true
   end
 
-  def remove_poison!
-    return false unless poisoned?
-
-    update!(poisoned_until: nil, poisoned_at: nil, poison_reason: nil)
-    invalidate_poisoned_derived_data!
-    true
-  end
-  private def invalidate_poisoned_derived_data!
+  # Visible heartbeats changed without new writes (an exclusion was added or
+  # revoked), so rebuild what is derived from them.
+  private def refresh_heartbeat_derived_data!
     schedule_dashboard_rollup_refresh
     discard_stale_leaderboard_entries!
     clear_leaderboard_page_cache
   end
-
 
   private def discard_stale_leaderboard_entries!
     Leaderboard::REBUILDABLE_PERIODS.each do |period|
@@ -279,52 +288,6 @@ class User < ApplicationRecord
 
       LeaderboardUpdateJob.perform_later(period, date, force_update: true)
     end
-  end
-
-  private def poison_cutoff_in_future?(cutoff)
-    Time.use_zone(timezone.presence || "UTC") do
-      if (date = poison_cutoff_date_only(cutoff))
-        date > Date.current
-      else
-        instant = coerce_poison_cutoff(cutoff)
-        instant.present? && instant > Time.current
-      end
-    end
-  end
-
-  private def poison_cutoff_date_only(cutoff)
-    case cutoff
-    when DateTime then nil
-    when Date then cutoff
-    when String then Date.parse(cutoff.strip) if cutoff.strip.match?(/\A\d{4}-\d{2}-\d{2}\z/)
-    end
-  rescue Date::Error
-    nil
-  end
-
-  private def coerce_poison_cutoff(cutoff)
-    case cutoff
-    when Time, ActiveSupport::TimeWithZone, DateTime then cutoff
-    when Date then end_of_day_in_user_zone(cutoff)
-    when String then parse_poison_cutoff_string(cutoff)
-    end
-  end
-
-  private def end_of_day_in_user_zone(date)
-    Time.use_zone(timezone.presence || "UTC") { date.in_time_zone.beginning_of_day + 1.day }
-  end
-
-  private def parse_poison_cutoff_string(value)
-    value = value.strip
-    return if value.blank?
-
-    if value.match?(/\A\d{4}-\d{2}-\d{2}\z/)
-      end_of_day_in_user_zone(Date.parse(value))
-    else
-      Time.use_zone(timezone.presence || "UTC") { Time.zone.parse(value) }
-    end
-  rescue Date::Error
-    nil
   end
 
   def schedule_leaderboard_shadowban_expiration
