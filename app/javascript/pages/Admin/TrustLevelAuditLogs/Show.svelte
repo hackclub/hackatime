@@ -19,6 +19,10 @@
     notes: string | null;
     user: User;
     changed_by: User;
+    edited_at_long?: string;
+    edited_by?: User;
+    original_reason?: string | null;
+    original_notes?: string | null;
   };
   let { audit_log }: { audit_log: Log } = $props();
   const indexPath = adminTrustLevelAuditLogs.index.path();
@@ -133,6 +137,29 @@
           >
             {audit_log.notes}
           </div>
+        </DetailField>{/if}{#if audit_log.edited_at_long && audit_log.edited_by}
+        <DetailField label="edited" variant="mutedSpaced" class="mb-6">
+          <div class="mb-3 flex items-center gap-2 text-surface-content">
+            <AdminUserMention user={audit_log.edited_by} />
+            <span class="text-muted">on {audit_log.edited_at_long}</span>
+          </div>
+          {#if audit_log.original_reason}<div class="mb-1 text-sm text-muted">
+              original reason
+            </div>
+            <div
+              class="mb-3 whitespace-pre-line rounded-lg bg-darker p-4 text-muted"
+            >
+              {audit_log.original_reason}
+            </div>{/if}{#if audit_log.original_notes}<div
+              class="mb-1 text-sm text-muted"
+            >
+              original notes
+            </div>
+            <div
+              class="whitespace-pre-line rounded-lg bg-darker p-4 text-muted"
+            >
+              {audit_log.original_notes}
+            </div>{/if}
         </DetailField>{/if}
     </div>
   </div>

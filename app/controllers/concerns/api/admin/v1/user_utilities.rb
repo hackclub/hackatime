@@ -255,7 +255,7 @@ module Api
           user = find_user_by_id
           return unless user
 
-          logs = TrustLevelAuditLog.for_user(user).recent.limit(25)
+          logs = TrustLevelAuditLog.for_user(user).includes(:changed_by, :edited_by).recent.limit(25)
           render json: {
             trust_logs: logs.map { |log|
               {
@@ -270,7 +270,8 @@ module Api
                 },
                 reason: log.reason,
                 notes: log.notes,
-                created_at: log.created_at
+                created_at: log.created_at,
+                **log.edit_json
               }
             }
           }

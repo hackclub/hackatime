@@ -715,6 +715,112 @@ paths:
                     example: Not found
         '401':
           description: unauthorized
+    patch:
+      summary: Edit Trust Level Audit Log
+      tags:
+      - Admin Resources
+      description: Fix the reason and notes of a trust level change. Only the admin
+        who made the change may edit it, and only within 7 days of making it. The
+        trust level itself cannot be edited; make a new change instead. The first-written
+        text is kept in original_reason / original_notes.
+      security:
+      - AdminToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 5012
+                  reason:
+                    type: string
+                    nullable: true
+                  notes:
+                    type: string
+                    nullable: true
+                  edited_at:
+                    type: string
+                    format: date_time
+                    nullable: true
+                    example: '2024-03-20T15:45:00Z'
+                  edited_by:
+                    type: object
+                    nullable: true
+                    properties:
+                      id:
+                        type: integer
+                        example: 1
+                      username:
+                        type: string
+                        example: orpheus
+                      display_name:
+                        type: string
+                        example: orpheus
+                  original_reason:
+                    type: string
+                    nullable: true
+                    example: Unbanned after
+                  original_notes:
+                    type: string
+                    nullable: true
+        '403':
+          description: forbidden — Returned when the log was written by another admin,
+            or is older than the edit window.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found
+        '422':
+          description: invalid request — Returned when reason is blank.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found
+        '404':
+          description: not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - reason
+              properties:
+                reason:
+                  type: string
+                  example: Unbanned after appeal; heartbeats were from a shared machine
+                notes:
+                  type: string
+                  nullable: true
+                  example: See appeal thread
+                  description: Omit to keep the current notes; send null or an empty
+                    string to clear them.
   "/api/admin/v1/deletion_requests":
     get:
       summary: List Deletion Requests
