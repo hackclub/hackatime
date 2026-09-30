@@ -10,11 +10,6 @@ class HeartbeatIngest
   EPOCH_SANE_MIN = 1_000_000_000
   EPOCH_SANE_MAX = 2_000_000_000
 
-  # The heartbeats dedup unique index changes from (fields_hash) to
-  # (fields_hash, time_epoch) during the hypertable migration.
-  UNIQUE_BY_LEGACY = [ :fields_hash ].freeze
-  UNIQUE_BY_COMPOSITE = %i[fields_hash time_epoch].freeze
-
   Result = Data.define(:total_count, :persisted_count, :duplicate_count, :failed_count, :errors, :items)
   Item = Data.define(:heartbeat, :status, :error)
 
@@ -136,10 +131,8 @@ class HeartbeatIngest
     inserted_by_hash = {}
     if missing_entries.any?
       timestamp = Time.current
-      result = with_heartbeat_unique_by do |unique_by|
-        records = missing_entries.map { |entry| direct_insert_record(entry, timestamp:) }
-        Heartbeat.insert_all(records, unique_by:, returning: Heartbeat.column_names)
-      end
+      records = missing_entries.map { |entry| direct_insert_record(entry, timestamp:) }
+      result = Heartbeat.insert_all(records, unique_by: :fields_hash, returning: Heartbeat.column_names)
       inserted_by_hash = result.to_a.index_by { |attributes| attributes.fetch("fields_hash") }
         .transform_values { |attributes| Heartbeat.new(attributes) }
       persisted_by_hash.merge!(inserted_by_hash)
@@ -176,13 +169,8 @@ class HeartbeatIngest
 
   def direct_insert_record(entry, timestamp:)
     entry[:model_attributes]
-      .except("id", "fields_hash", "created_at", "updated_at", "time_epoch")
-      .merge(
-        "fields_hash" => entry[:fields_hash],
-        "created_at" => timestamp,
-        "updated_at" => timestamp,
-        **partition_attrs(entry[:attrs][:time]).stringify_keys
-      )
+      .except("id", "fields_hash", "created_at", "updated_at")
+      .merge("fields_hash" => entry[:fields_hash], "created_at" => timestamp, "updated_at" => timestamp)
   end
 
   def ingest_import
@@ -256,7 +244,7 @@ class HeartbeatIngest
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     model_attributes = validated_model_attributes(attrs)
     normalized = model_attributes
-      .except("id", "fields_hash", "created_at", "updated_at", "time_epoch")
+      .except("id", "fields_hash", "created_at", "updated_at")
       .symbolize_keys
     normalized[:fields_hash] = import_fields_hash(model_attributes, source: hb)
     normalized[:legacy_fields_hash] = legacy_import_fields_hash(
@@ -283,17 +271,10 @@ class HeartbeatIngest
     return 0 if records.empty?
 
     timestamp = Time.current
-    ActiveRecord::Base.logger.silence do
-      # Build records inside the retry block so a cutover-time schema refresh
-      # recomputes both the conflict target and the time_epoch partition column.
-      with_heartbeat_unique_by do |unique_by|
-        insert_records = records.map do |record|
-          record.except(:legacy_fields_hash)
-            .merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(record[:time]))
-        end
-        Heartbeat.insert_all(insert_records, unique_by:).length
-      end
+    insert_records = records.map do |record|
+      record.except(:legacy_fields_hash).merge(created_at: timestamp, updated_at: timestamp)
     end
+    ActiveRecord::Base.logger.silence { Heartbeat.insert_all(insert_records, unique_by: :fields_hash).length }
   end
 
   # Import normalization is part of the persisted dedup contract. Keep the
@@ -350,36 +331,6 @@ class HeartbeatIngest
     return { editor: nil, os: nil } if full_os.blank?
 
     { editor: browser[1].downcase, os: full_os.include?("_") ? full_os.split("_").first : full_os }
-  end
-
-  def heartbeat_unique_by
-    time_epoch_column? ? UNIQUE_BY_COMPOSITE : UNIQUE_BY_LEGACY
-  end
-
-  def time_epoch_column? = Heartbeat.column_names.include?("time_epoch")
-
-  # The hypertable partition column must arrive populated (TimescaleDB routes to
-  # a chunk before row triggers fire). Bulk insert/insert_all bypass model
-  # callbacks, so ingest supplies time_epoch explicitly once the column exists.
-  # No-op on the pre-cutover / dev-and-test plain table.
-  def partition_attrs(time)
-    return {} unless time_epoch_column? && time.present?
-    { time_epoch: time.to_f.floor }
-  end
-
-  # Rails resolves `unique_by:` against its schema cache, which goes stale the
-  # moment the hypertable cutover swaps the table under us. Refresh the cache
-  # and retry once so in-flight processes self-heal without a restart.
-  def with_heartbeat_unique_by
-    yield heartbeat_unique_by
-  rescue ActiveRecord::StatementInvalid, ArgumentError => e
-    Heartbeat.reset_column_information
-    # Inside an open (now aborted) transaction a retry cannot succeed; re-raise
-    # and let the caller retry with the already-refreshed schema cache.
-    raise if Heartbeat.connection.transaction_open?
-
-    Rails.logger.warn("HeartbeatIngest unique_by fallback: #{e.class}: #{e.message}")
-    yield heartbeat_unique_by
   end
 
   def normalize_epoch_time(value)
