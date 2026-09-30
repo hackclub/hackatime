@@ -79,7 +79,9 @@ paths:
                                 type: boolean
                                 example: false
                                 description: True when a heartbeat exclusion hides
-                                  this heartbeat from non-admin reads
+                                  this heartbeat from non-admin reads. A pixel with
+                                  both visible and hidden heartbeats returns one point
+                                  of each.
         '422':
           description: invalid parameters — Returned ("invalid parameters") when year
             or month is missing or month is outside 1-12.

@@ -122,6 +122,24 @@ class Api::Admin::V1::AdminControllerTest < ActionDispatch::IntegrationTest
     assert_equal "{#{poisoned.id}}", machine.fetch("hidden_user_ids")
   end
 
+  test "a quantized pixel with hidden and visible heartbeats returns one point for each" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, username: "mixed_pixel", timezone: "UTC")
+    time = 2.days.ago.utc.beginning_of_day + 12.hours
+    %w[kept deleted].each do |project|
+      create(:heartbeat, user:, time: time.to_f, project:, entity: "#{project}.rb", lineno: 10, source_type: :direct_entry)
+    end
+    HeartbeatExclusion.create!(user:, kind: :project_deletion, project: "deleted")
+
+    get "/api/admin/v1/users/#{user.id}/visualization/quantized",
+      params: { year: time.year, month: time.month }, headers: auth_headers(key)
+
+    assert_response :success
+    points = response.parsed_body.fetch("days").flat_map { |day| day.fetch("points") }
+    assert_equal [ false, true ], points.map { |point| point.fetch("hidden") }
+  end
+
   private
 
   def hidden_by_id(response)

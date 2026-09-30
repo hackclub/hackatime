@@ -30,7 +30,7 @@ RSpec.describe 'Api::Admin::V1::AdminMisc', type: :request, openapi_spec: 'admin
                         time: { type: :number, example: 1704110400.0 },
                         lineno: { type: :integer, nullable: true, example: 42 },
                         cursorpos: { type: :integer, nullable: true, example: 12 },
-                        hidden: { type: :boolean, example: false, description: 'True when a heartbeat exclusion hides this heartbeat from non-admin reads' }
+                        hidden: { type: :boolean, example: false, description: 'True when a heartbeat exclusion hides this heartbeat from non-admin reads. A pixel with both visible and hidden heartbeats returns one point of each.' }
                       }
                     }
                   }

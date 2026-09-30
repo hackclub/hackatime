@@ -50,6 +50,7 @@ module Api
           quantized_query = <<-SQL
             WITH base_heartbeats AS (
                 SELECT
+                    id,
                     "time",
                     lineno,
                     cursorpos,
@@ -78,28 +79,28 @@ module Api
             )
             SELECT "time", lineno, cursorpos, hidden
             FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_lineno) "time", lineno, cursorpos, hidden
+                SELECT DISTINCT ON (day_start, qx, qy_lineno, hidden) "time", lineno, cursorpos, hidden
                 FROM quantized_heartbeats
                 WHERE lineno IS NOT NULL
-                ORDER BY day_start, qx, qy_lineno, "time" ASC
+                ORDER BY day_start, qx, qy_lineno, hidden, "time" ASC, id ASC
             ) AS lineno_pixels
             UNION
             SELECT "time", lineno, cursorpos, hidden
             FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_cursorpos) "time", lineno, cursorpos, hidden
+                SELECT DISTINCT ON (day_start, qx, qy_cursorpos, hidden) "time", lineno, cursorpos, hidden
                 FROM quantized_heartbeats
                 WHERE cursorpos IS NOT NULL
-                ORDER BY day_start, qx, qy_cursorpos, "time" ASC
+                ORDER BY day_start, qx, qy_cursorpos, hidden, "time" ASC, id ASC
             ) AS cursorpos_pixels
             UNION
             SELECT "time", lineno, cursorpos, hidden
             FROM (
-                SELECT DISTINCT ON (day_start, qx) "time", lineno, cursorpos, hidden
+                SELECT DISTINCT ON (day_start, qx, hidden) "time", lineno, cursorpos, hidden
                 FROM quantized_heartbeats
                 WHERE lineno IS NULL AND cursorpos IS NULL
-                ORDER BY day_start, qx, "time" ASC
+                ORDER BY day_start, qx, hidden, "time" ASC, id ASC
             ) AS null_pixels
-            ORDER BY "time" ASC
+            ORDER BY "time" ASC, hidden ASC
           SQL
 
           daily_totals_query = <<-SQL
