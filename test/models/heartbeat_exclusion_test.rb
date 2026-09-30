@@ -215,6 +215,61 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
     assert_equal [ @after_cutoff ], combined.to_a
   end
 
+  test "the SQL guard accepts filtered, tagged and write-only heartbeat SQL" do
+    [
+      Heartbeat.all.to_sql,
+      Heartbeat.where(user_id: 1).group(:project).select(:project).to_sql,
+      User.joins(:heartbeats).to_sql,
+      @user.heartbeats.with_excluded.to_sql,
+      "#{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT} SELECT id FROM heartbeats",
+      "SELECT day FROM heartbeats_with_gaps",
+      "INSERT INTO \"heartbeats\" (user_id) VALUES (1)",
+      "UPDATE \"heartbeats\" SET deleted_at = now() WHERE user_id = 1",
+      "SELECT \"heartbeats\".* FROM \"heartbeats\" WHERE \"heartbeats\".\"id\" = $1 LIMIT $2"
+    ].each { |sql| assert_not HeartbeatExclusion.unguarded_heartbeat_sql?(sql), sql }
+  end
+
+  test "the SQL guard rejects heartbeat SQL that ignores exclusions" do
+    [
+      "SELECT id FROM heartbeats WHERE user_id = 1",
+      Heartbeat.unscoped.where(user_id: 1).to_sql,
+      "SELECT hb.id FROM (#{Heartbeat.all.to_sql}) hb JOIN heartbeats ON heartbeats.id = hb.id",
+      "UPDATE \"heartbeats\" SET project = 'x' WHERE #{HeartbeatExclusion::VISIBLE_SQL}"
+    ].each { |sql| assert HeartbeatExclusion.unguarded_heartbeat_sql?(sql), sql }
+  end
+
+  test "the test suite fails unguarded heartbeat queries" do
+    assert_raises(RuntimeError) { Heartbeat.connection.select_all("SELECT id FROM heartbeats") }
+    assert_raises(RuntimeError) { @user.heartbeats.update_all(project: "renamed") }
+    assert_nothing_raised { @user.heartbeats.with_excluded.update_all(project: "renamed") }
+  end
+
+  test "the heartbeat cache version changes when a rule is applied or revoked" do
+    before = @user.heartbeat_cache_version
+
+    @user.apply_poison!(@cutoff)
+    poisoned = @user.heartbeat_cache_version
+    @user.remove_poison!
+
+    assert_not_equal before, poisoned
+    assert_not_equal poisoned, @user.heartbeat_cache_version
+    assert_equal @user.heartbeat_cache_version, User.find(@user.id).heartbeat_cache_version
+  end
+
+  test "cached streaks do not survive a poison" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+    yesterday_noon = Time.current.utc.beginning_of_day - 12.hours
+    17.times { |minute| build_heartbeat(yesterday_noon + minute.minutes, "streak") }
+    assert_equal 1, Heartbeat.daily_streaks_for_users([ @user.id ])[@user.id]
+
+    @user.apply_poison!(Date.current.to_s)
+
+    assert_equal 0, Heartbeat.daily_streaks_for_users([ @user.id ])[@user.id]
+  ensure
+    Rails.cache = original_cache
+  end
+
   test "raw SQL using VISIBLE_SQL matches model reads" do
     @user.apply_poison!(@cutoff)
 

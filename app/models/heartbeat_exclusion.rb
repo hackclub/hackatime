@@ -23,6 +23,37 @@ class HeartbeatExclusion < ApplicationRecord
     (heartbeats.user_id IN (SELECT user_id FROM heartbeat_exclusions WHERE revoked_at IS NULL) AND #{MATCHED_SQL})
   SQL
 
+  # Marks SQL that intentionally reads hidden heartbeats. Heartbeat.with_excluded
+  # adds it; raw SQL that must include hidden rows embeds INCLUDE_HIDDEN_COMMENT.
+  INCLUDE_HIDDEN_TAG = "heartbeats:include_hidden"
+  INCLUDE_HIDDEN_COMMENT = "/* #{INCLUDE_HIDDEN_TAG} */".freeze
+
+  HEARTBEATS_TABLE_REFERENCE = /\b(?:FROM|JOIN)\s+"?heartbeats"?(?=[\s),;]|\z)/i
+  STATEMENT_VERB = %r{\A\s*(?:/\*.*?\*/\s*)*(\w+)}m
+  # Record#reload and find(id) bypass default scopes to fetch one known row.
+  PRIMARY_KEY_LOOKUP = /\ASELECT [^;]* FROM "heartbeats" WHERE "heartbeats"\."id" = \$1 LIMIT \$2\z/
+
+  # True for SQL that reads heartbeats without filtering every reference with
+  # VISIBLE_SQL, or writes through the filter and so skips hidden rows, unless
+  # it carries INCLUDE_HIDDEN_TAG. The test suite raises on these.
+  def self.unguarded_heartbeat_sql?(sql)
+    return false if sql.include?(INCLUDE_HIDDEN_TAG) || sql.match?(PRIMARY_KEY_LOOKUP)
+
+    filters = sql.scan(VISIBLE_SQL).size
+    case sql[STATEMENT_VERB, 1]&.upcase
+    when "UPDATE", "DELETE" then filters.positive?
+    when "INSERT" then false
+    else sql.scan(HEARTBEATS_TABLE_REFERENCE).size > filters
+    end
+  end
+
+  # Per-user token that changes whenever one of the user's rules is created or
+  # revoked. Per-user caches of heartbeat-derived data must include it in their keys.
+  def self.cache_versions(user_ids)
+    changed_at = where(user_id: user_ids).group(:user_id).maximum(:updated_at)
+    Array(user_ids).index_with { |id| changed_at[id]&.utc&.strftime("x%s%6N") || "x0" }
+  end
+
   # The where-clause node Heartbeat's default scope adds. It reports a pseudo
   # attribute so `unscope(where: :heartbeat_exclusions)` removes exactly this
   # predicate and keeps the rest of the relation.

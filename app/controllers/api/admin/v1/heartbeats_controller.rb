@@ -11,6 +11,7 @@ module Api
           cutoff = lookback_days.days.ago.to_i
 
           query = <<-SQL
+            #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
             SELECT
               r1.user_id  AS user_a_id,
               r2.user_id  AS user_b_id,
@@ -63,6 +64,7 @@ module Api
           cutoff = lookback_days.days.ago.to_i
 
           query = <<-SQL
+            #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
             WITH user_machines AS (
               SELECT machine, user_id, BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) AS hidden
               FROM heartbeats

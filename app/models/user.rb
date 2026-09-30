@@ -271,6 +271,7 @@ class User < ApplicationRecord
   end
 
   private def refresh_heartbeat_derived_data!
+    @heartbeat_cache_version = nil
     schedule_dashboard_rollup_refresh
     discard_stale_leaderboard_entries!
     clear_leaderboard_page_cache
@@ -338,7 +339,10 @@ class User < ApplicationRecord
 
   def flipper_id = "User;#{id}"
   def active_heartbeat_import_run? = heartbeat_import_runs.active_imports.exists?
-  def activity_graph_cache_key(timezone = self.timezone) = "user_#{id}_daily_durations_#{timezone}"
+  def activity_graph_cache_key(timezone = self.timezone) = "user_#{id}_daily_durations_#{timezone}_#{heartbeat_cache_version}"
+
+  # Include in the cache key of any per-user data derived from heartbeats.
+  def heartbeat_cache_version = @heartbeat_cache_version ||= HeartbeatExclusion.cache_versions([ id ]).fetch(id)
 
   def heartbeats_excluding_archived_projects
     heartbeats.where(project: nil).or(heartbeats.where.not(project: project_repo_mappings.archived.select(:project_name)))

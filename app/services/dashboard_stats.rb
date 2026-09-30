@@ -16,7 +16,7 @@ class DashboardStats
     interval = params[:interval]
     return build_filterable_dashboard_data(interval) if rollup_eligible?
 
-    key = [ "attributed_dashboard_v1", user, archived_project_names ] + FILTERS.map { |field| params[field] } + [ interval.to_s, params[:from], params[:to] ]
+    key = [ "attributed_dashboard_v1", user, user.heartbeat_cache_version, archived_project_names ] + FILTERS.map { |field| params[field] } + [ interval.to_s, params[:from], params[:to] ]
     Rails.cache.fetch(key, expires_in: 5.minutes) { build_filterable_dashboard_data(interval) }
   end
 
@@ -113,7 +113,7 @@ class DashboardStats
 
   def live_raw_filter_options
     archive_key = ActiveSupport::Digest.hexdigest(archived_project_names.to_json)
-    cache_keys = FILTERS.index_with { |field| "user_#{user.id}_dashboard_filter_options_#{field}_#{FILTER_OPTIONS_CACHE_VERSION}_#{archive_key}" }
+    cache_keys = FILTERS.index_with { |field| "user_#{user.id}_dashboard_filter_options_#{field}_#{FILTER_OPTIONS_CACHE_VERSION}_#{archive_key}_#{user.heartbeat_cache_version}" }
     reverse_lookup = cache_keys.invert
 
     cached = Rails.cache.fetch_multi(*cache_keys.values, expires_in: 15.minutes) do |cache_key|

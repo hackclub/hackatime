@@ -48,6 +48,7 @@ module Api
           end
 
           quantized_query = <<-SQL
+            #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
             WITH base_heartbeats AS (
                 SELECT
                     id,
@@ -104,6 +105,7 @@ module Api
           SQL
 
           daily_totals_query = <<-SQL
+            #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
             WITH heartbeats_with_gaps AS (
               SELECT
                 date_trunc('day', to_timestamp("time"))::date as day,
@@ -141,6 +143,7 @@ module Api
           cutoff = lookback_days.days.ago.to_i
 
           query = <<-SQL
+            #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
             SELECT
                 r1.user_id AS user_a_id,
                 r2.user_id AS user_b_id,

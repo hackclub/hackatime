@@ -15,7 +15,9 @@ class Heartbeat < ApplicationRecord
   scope :recent, -> { where("time > ?", 24.hours.ago.to_i) }
   scope :with_deleted, -> { unscope(where: :deleted_at) }
   scope :only_deleted, -> { with_deleted.where.not(deleted_at: nil) }
-  scope :with_excluded, -> { unscope(where: HeartbeatExclusion::VisibilityPredicate::ATTRIBUTE) }
+  scope :with_excluded, -> {
+    unscope(where: HeartbeatExclusion::VisibilityPredicate::ATTRIBUTE).annotate(HeartbeatExclusion::INCLUDE_HIDDEN_TAG)
+  }
   scope :with_hidden_flag, -> { select(arel_table[Arel.star], Arel.sql("#{HeartbeatExclusion::HIDDEN_SQL} AS hidden")) }
 
   enum :source_type, {
