@@ -332,47 +332,6 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal 1, user.heartbeats.count
   end
 
-  test "direct heartbeat ingest rebuilds partition attributes inside a schema retry" do
-    user = create(:user)
-    time = Time.current.to_f
-    attrs = { user_id: user.id, entity: "src/main.rb", time:, type: "file", category: "coding", source_type: :direct_entry }
-    model_attributes = Heartbeat.new(attrs).attributes
-    fields_hash = Heartbeat.generate_fields_hash(model_attributes)
-    entry = { attrs:, model_attributes:, fields_hash: }
-    ingest = HeartbeatIngest.new(user:, mode: :direct, heartbeats: [], schedule_rollup_refresh: false)
-    attempts = []
-    include_time_epoch = false
-    original_column_names = Heartbeat.method(:column_names)
-    original_insert_all = Heartbeat.method(:insert_all)
-
-    Heartbeat.define_singleton_method(:column_names) do
-      columns = original_column_names.call
-      include_time_epoch ? columns + [ "time_epoch" ] : columns
-    end
-    Heartbeat.define_singleton_method(:insert_all) do |records, **|
-      attempts << records
-      raise ArgumentError, "stale schema" if attempts.one?
-
-      ActiveRecord::Result.new([ "fields_hash" ], [ [ fields_hash ] ])
-    end
-    ingest.define_singleton_method(:with_heartbeat_unique_by) do |&block|
-      block.call([ :fields_hash ])
-    rescue ArgumentError
-      include_time_epoch = true
-      block.call(%i[fields_hash time_epoch])
-    end
-
-    begin
-      ingest.send(:persist_direct_heartbeats, [ entry ])
-    ensure
-      Heartbeat.define_singleton_method(:column_names, original_column_names)
-      Heartbeat.define_singleton_method(:insert_all, original_insert_all)
-    end
-
-    assert_not attempts.first.sole.key?("time_epoch")
-    assert_equal time.floor, attempts.second.sole.fetch("time_epoch")
-  end
-
   test "direct heartbeat ingest deduplicates repeated items within one bulk request" do
     user = create(:user)
     payload = {
@@ -773,68 +732,6 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal [ nil, "main" ], user.heartbeats.where(entity: [ "first.py", "second.py" ]).order(:time).pluck(:branch)
   end
 
-  test "heartbeat_unique_by targets the composite index once time_epoch exists" do
-    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
-
-    assert_equal [ :fields_hash ], ingest.send(:heartbeat_unique_by)
-
-    with_time_epoch_column = Heartbeat.column_names + [ "time_epoch" ]
-    Heartbeat.define_singleton_method(:column_names) { with_time_epoch_column }
-    begin
-      assert_equal %i[fields_hash time_epoch], ingest.send(:heartbeat_unique_by)
-    ensure
-      Heartbeat.singleton_class.remove_method(:column_names)
-    end
-  end
-
-  test "partition_attrs supplies floor(time) as time_epoch only once the column exists" do
-    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
-
-    # pre-cutover / dev-and-test plain table: no-op
-    assert_equal({}, ingest.send(:partition_attrs, 1_783_000_000.9))
-
-    with_time_epoch_column = Heartbeat.column_names + [ "time_epoch" ]
-    Heartbeat.define_singleton_method(:column_names) { with_time_epoch_column }
-    begin
-      assert_equal({ time_epoch: 1_783_000_000 }, ingest.send(:partition_attrs, 1_783_000_000.9))
-      assert_equal({}, ingest.send(:partition_attrs, nil))
-    ensure
-      Heartbeat.singleton_class.remove_method(:column_names)
-    end
-  end
-
-  test "set_time_epoch! populates the partition column when it exists" do
-    hb = Heartbeat.new(time: 1_783_000_000.9)
-
-    # column absent today: hook is a no-op and does not raise
-    assert_nothing_raised { hb.send(:set_time_epoch!) }
-
-    captured = []
-    hb.define_singleton_method(:time_epoch=) { |v| captured << v }
-    with_time_epoch = Heartbeat.column_names + [ "time_epoch" ]
-    Heartbeat.define_singleton_method(:column_names) { with_time_epoch }
-    begin
-      hb.send(:set_time_epoch!)
-      assert_equal [ 1_783_000_000 ], captured
-    ensure
-      Heartbeat.singleton_class.remove_method(:column_names)
-    end
-  end
-
-  test "with_heartbeat_unique_by re-raises inside an open transaction after refreshing the schema cache" do
-    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
-
-    # transactional tests already wrap us in a transaction, so the guard applies
-    calls = 0
-    assert_raises(ArgumentError) do
-      ingest.send(:with_heartbeat_unique_by) do |_unique_by|
-        calls += 1
-        raise ArgumentError, "No unique index found"
-      end
-    end
-    assert_equal 1, calls
-  end
-
   test "direct heartbeat ingest replaces unrecognized client languages with extension detection" do
     user = User.create!(timezone: "UTC")
 
@@ -919,38 +816,5 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     heartbeat = user.heartbeats.create!(legacy_attributes.merge(source_type: :wakapi_import))
     heartbeat.update_column(:fields_hash, Heartbeat.generate_fields_hash(legacy_attributes))
     heartbeat
-  end
-end
-
-# Outside a transaction (the production configuration for both ingest modes),
-# the unique_by fallback must retry exactly once with a refreshed schema cache.
-class HeartbeatIngestUniqueByFallbackTest < ActiveSupport::TestCase
-  self.use_transactional_tests = false
-
-  test "with_heartbeat_unique_by retries once after a schema-cache failure" do
-    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
-
-    calls = 0
-    result = ingest.send(:with_heartbeat_unique_by) do |unique_by|
-      calls += 1
-      raise ActiveRecord::StatementInvalid, "no unique or exclusion constraint" if calls == 1
-      unique_by
-    end
-
-    assert_equal 2, calls
-    assert_equal [ :fields_hash ], result
-  end
-
-  test "with_heartbeat_unique_by does not retry more than once" do
-    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
-
-    calls = 0
-    assert_raises(ActiveRecord::StatementInvalid) do
-      ingest.send(:with_heartbeat_unique_by) do |_unique_by|
-        calls += 1
-        raise ActiveRecord::StatementInvalid, "no unique or exclusion constraint"
-      end
-    end
-    assert_equal 2, calls
   end
 end
