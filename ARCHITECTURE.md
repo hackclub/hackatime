@@ -123,10 +123,8 @@ the user, time and activity metadata listed by
 collapse equal hashes; `insert_all ... unique_by` lets the database settle
 cross-request races, then ingestion fetches the winning row. Import batches
 keep the latest row per hash and also check legacy hashes so normalization
-changes do not duplicate old imports. During the Timescale cutover, uniqueness
-may be `(fields_hash)` or `(fields_hash, time_epoch)`; ingestion detects the
-schema, explicitly sets the partition epoch, refreshes stale schema metadata,
-and retries only outside an open transaction.
+changes do not duplicate old imports. Uniqueness is the partial
+`fields_hash` index over non-deleted rows.
 
 Soft deletion is implemented by `deleted_at`; the model's default scope hides
 those rows. Use `soft_delete` / `restore`, which also invalidate rollups.
