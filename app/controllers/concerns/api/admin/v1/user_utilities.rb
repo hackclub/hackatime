@@ -59,7 +59,7 @@ module Api
         def get_users_by_ip
           return render_error("bro dont got the ip") if params[:ip].blank?
 
-          result = Heartbeat.where(ip_address: params[:ip]).select(:ip_address, :user_id, :machine, :user_agent).distinct
+          result = Heartbeat.with_excluded.where(ip_address: params[:ip]).select(:ip_address, :user_id, :machine, :user_agent).distinct
           render json: {
             users: result.map { |u|
               {
@@ -75,7 +75,7 @@ module Api
         def get_users_by_machine
           return render_error("bro dont got the machine") if params[:machine].blank?
 
-          result = Heartbeat.where(machine: params[:machine]).select(:user_id, :machine).distinct
+          result = Heartbeat.with_excluded.where(machine: params[:machine]).select(:user_id, :machine).distinct
           render json: { users: result.map { |u| { user_id: u.user_id, machine: u.machine } } }
         end
 
@@ -83,7 +83,7 @@ module Api
           user = find_user_by_id
           return unless user
 
-          valid = user.heartbeats.where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
+          valid = user.heartbeats.with_excluded.where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
 
           lht = valid.maximum(:time)
           lht /= 1000 if lht && lht > 1000000000000
@@ -133,7 +133,7 @@ module Api
             end_time = date.end_of_day.utc
           end
 
-          heartbeats = user.heartbeats.where(time: start_time.to_i..end_time.to_i).order(:time)
+          heartbeats = user.heartbeats.with_excluded.where(time: start_time.to_i..end_time.to_i).order(:time)
 
           render json: {
             user_id: user.id,
@@ -177,7 +177,7 @@ module Api
           user = find_user_by_id
           return unless user
 
-          base_heartbeats = user.heartbeats.where.not(project: nil)
+          base_heartbeats = user.heartbeats.with_excluded.where.not(project: nil)
 
           if params[:start_date].present? || params[:end_date].present?
             range = parse_default_time_range or return
@@ -298,7 +298,7 @@ module Api
           limit = (params[:limit] || 1000).to_i.clamp(1, 5_000)
           offset = (params[:offset] || 0).to_i.clamp(0, Float::INFINITY)
 
-          query = user.heartbeats
+          query = user.heartbeats.with_excluded
           query = apply_time_range(query) or return
           %i[project language entity editor machine].each do |f|
             query = query.where(f => params[f]) if params[f].present?
@@ -355,7 +355,7 @@ module Api
 
           limit = (params[:limit] || 5000).to_i.clamp(1, 5000)
 
-          query = user.heartbeats
+          query = user.heartbeats.with_excluded
           query = apply_time_range(query) or return
 
           quoted_column = Heartbeat.connection.quote_column_name(column_name)

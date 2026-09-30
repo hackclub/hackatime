@@ -200,7 +200,7 @@ module Api
           return render_error("invalid since parameter") if since_ts < 0
 
           since_ts = [ since_ts, 90.days.ago.to_i ].max
-          render json: { user_ids: Heartbeat.where("time >= ?", since_ts).distinct.limit(50_000).pluck(:user_id) }
+          render json: { user_ids: Heartbeat.with_excluded.where("time >= ?", since_ts).distinct.limit(50_000).pluck(:user_id) }
         end
 
         def audit_logs_counts
@@ -229,7 +229,7 @@ module Api
           user_id = params[:user_id].presence
 
           escaped = segment.gsub(/[\\%_]/) { |c| "\\#{c}" }
-          query = Heartbeat.where("user_agent ILIKE ?", "%#{escaped}%")
+          query = Heartbeat.with_excluded.where("user_agent ILIKE ?", "%#{escaped}%")
           query = query.where(user_id: user_id) if user_id
           query = apply_time_range(query) or return
 
