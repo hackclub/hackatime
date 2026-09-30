@@ -48,12 +48,15 @@ module Api
           end
 
           quantized_query = <<-SQL
+            #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
             WITH base_heartbeats AS (
                 SELECT
+                    id,
                     "time",
                     lineno,
                     cursorpos,
-                    date_trunc('day', to_timestamp("time")) as day_start
+                    date_trunc('day', to_timestamp("time")) as day_start,
+                    #{HeartbeatExclusion::HIDDEN_SQL} AS hidden
                 FROM heartbeats
                 WHERE user_id = ?
                 AND deleted_at IS NULL
@@ -75,33 +78,34 @@ module Api
                     ROUND(2 + (1 - CAST(cursorpos AS decimal) / max_cursorpos) * (96)) as qy_cursorpos
                 FROM daily_stats
             )
-            SELECT "time", lineno, cursorpos
+            SELECT "time", lineno, cursorpos, hidden
             FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_lineno) "time", lineno, cursorpos
+                SELECT DISTINCT ON (day_start, qx, qy_lineno, hidden) "time", lineno, cursorpos, hidden
                 FROM quantized_heartbeats
                 WHERE lineno IS NOT NULL
-                ORDER BY day_start, qx, qy_lineno, "time" ASC
+                ORDER BY day_start, qx, qy_lineno, hidden, "time" ASC, id ASC
             ) AS lineno_pixels
             UNION
-            SELECT "time", lineno, cursorpos
+            SELECT "time", lineno, cursorpos, hidden
             FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_cursorpos) "time", lineno, cursorpos
+                SELECT DISTINCT ON (day_start, qx, qy_cursorpos, hidden) "time", lineno, cursorpos, hidden
                 FROM quantized_heartbeats
                 WHERE cursorpos IS NOT NULL
-                ORDER BY day_start, qx, qy_cursorpos, "time" ASC
+                ORDER BY day_start, qx, qy_cursorpos, hidden, "time" ASC, id ASC
             ) AS cursorpos_pixels
             UNION
-            SELECT "time", lineno, cursorpos
+            SELECT "time", lineno, cursorpos, hidden
             FROM (
-                SELECT DISTINCT ON (day_start, qx) "time", lineno, cursorpos
+                SELECT DISTINCT ON (day_start, qx, hidden) "time", lineno, cursorpos, hidden
                 FROM quantized_heartbeats
                 WHERE lineno IS NULL AND cursorpos IS NULL
-                ORDER BY day_start, qx, "time" ASC
+                ORDER BY day_start, qx, hidden, "time" ASC, id ASC
             ) AS null_pixels
-            ORDER BY "time" ASC
+            ORDER BY "time" ASC, hidden ASC
           SQL
 
           daily_totals_query = <<-SQL
+            #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
             WITH heartbeats_with_gaps AS (
               SELECT
                 date_trunc('day', to_timestamp("time"))::date as day,
@@ -123,7 +127,7 @@ module Api
 
           points_by_day = quantized_result.each_with_object({}) do |row, hash|
             day = Time.at(row["time"]).to_date
-            (hash[day] ||= []) << { time: row["time"], lineno: row["lineno"], cursorpos: row["cursorpos"] }
+            (hash[day] ||= []) << { time: row["time"], lineno: row["lineno"], cursorpos: row["cursorpos"], hidden: row["hidden"] }
           end
 
           days = (start_epoch...end_epoch).step(86400).map do |epoch|
@@ -139,6 +143,7 @@ module Api
           cutoff = lookback_days.days.ago.to_i
 
           query = <<-SQL
+            #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
             SELECT
                 r1.user_id AS user_a_id,
                 r2.user_id AS user_b_id,
@@ -147,7 +152,9 @@ module Api
                 r1.first_seen as user_a_first_seen_on_combo,
                 r1.last_seen as user_a_last_seen_on_combo,
                 r2.first_seen as user_b_first_seen_on_combo,
-                r2.last_seen as user_b_last_seen_on_combo
+                r2.last_seen as user_b_last_seen_on_combo,
+                r1.hidden as user_a_hidden,
+                r2.hidden as user_b_hidden
             FROM
                 (
                     SELECT
@@ -155,7 +162,8 @@ module Api
                         machine,
                         ip_address,
                         MIN(time) as first_seen,
-                        MAX(time) as last_seen
+                        MAX(time) as last_seen,
+                        BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) as hidden
                     FROM heartbeats
                     WHERE
                         user_id IS NOT NULL
@@ -172,7 +180,8 @@ module Api
                         machine,
                         ip_address,
                         MIN(time) as first_seen,
-                        MAX(time) as last_seen
+                        MAX(time) as last_seen,
+                        BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) as hidden
                     FROM heartbeats
                     WHERE
                         user_id IS NOT NULL
@@ -200,7 +209,7 @@ module Api
           return render_error("invalid since parameter") if since_ts < 0
 
           since_ts = [ since_ts, 90.days.ago.to_i ].max
-          render json: { user_ids: Heartbeat.where("time >= ?", since_ts).distinct.limit(50_000).pluck(:user_id) }
+          render json: { user_ids: Heartbeat.with_excluded.where("time >= ?", since_ts).distinct.limit(50_000).pluck(:user_id) }
         end
 
         def audit_logs_counts
@@ -229,7 +238,7 @@ module Api
           user_id = params[:user_id].presence
 
           escaped = segment.gsub(/[\\%_]/) { |c| "\\#{c}" }
-          query = Heartbeat.where("user_agent ILIKE ?", "%#{escaped}%")
+          query = Heartbeat.with_excluded.where("user_agent ILIKE ?", "%#{escaped}%")
           query = query.where(user_id: user_id) if user_id
           query = apply_time_range(query) or return
 
@@ -237,7 +246,7 @@ module Api
             return render json: { segment: segment, total_count: query.limit(nil).count }
           end
 
-          heartbeats = query.order(time: :desc).limit(limit + 1).offset(offset).to_a
+          heartbeats = query.with_hidden_flag.order(time: :desc).limit(limit + 1).offset(offset).to_a
           has_more = heartbeats.size > limit
           heartbeats = heartbeats.first(limit)
 
@@ -264,7 +273,8 @@ module Api
                 lineno: hb.lineno,
                 cursorpos: hb.cursorpos,
                 lines: hb.lines,
-                source_type: hb.source_type
+                source_type: hb.source_type,
+                hidden: hb.hidden
               }
             },
             has_more: has_more

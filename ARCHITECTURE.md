@@ -129,6 +129,15 @@ changes do not duplicate old imports. Uniqueness is the partial
 Soft deletion is implemented by `deleted_at`; the model's default scope hides
 those rows. Use `soft_delete` / `restore`, which also invalidate rollups.
 
+[`HeartbeatExclusion`](app/models/heartbeat_exclusion.rb) rules (admin poisons,
+project deletions) hide heartbeats without deleting them. A second default scope
+applies them to every model read. Raw SQL must include
+`HeartbeatExclusion::VISIBLE_SQL`; code that intentionally needs hidden rows uses
+`Heartbeat.with_excluded` or embeds `HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT`.
+The test suite raises on heartbeat SQL that does neither, including writes that
+would silently skip hidden rows. Per-user caches of heartbeat-derived data must
+include `User#heartbeat_cache_version` in their keys so rule changes bust them.
+
 Duration is not stored. [`Heartbeatable`](app/models/concerns/heartbeatable.rb)
 derives it from ordered heartbeat timestamps. The default timeout is 2 minutes:
 

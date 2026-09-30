@@ -189,6 +189,8 @@ class User < ApplicationRecord
   end
 
   has_many :heartbeats
+  has_many :heartbeat_exclusions, dependent: :destroy
+  has_one :active_poison, -> { active.poison }, class_name: "HeartbeatExclusion"
   has_many :goals, dependent: :destroy
   has_many :documentation_feedbacks, dependent: :destroy
   has_many :email_addresses, dependent: :destroy
@@ -239,6 +241,50 @@ class User < ApplicationRecord
 
   def clear_leaderboard_page_cache
     LeaderboardPageCache.clear!
+  end
+
+  def poisoned? = active_poison.present?
+
+  def apply_poison!(cutoff, reason: nil, by: nil)
+    ends_at = HeartbeatExclusion.poison_cutoff(cutoff, timezone:)
+
+    poison = transaction do
+      lock!
+      active_poison&.revoke!(by:)
+      heartbeat_exclusions.create!(kind: :poison, ends_at:, reason: reason.presence, created_by: by)
+    end
+    reset_active_poison
+    refresh_heartbeat_derived_data!
+    poison
+  end
+
+  def remove_poison!(by: nil)
+    revoked = transaction do
+      lock!
+      active_poison&.revoke!(by:)
+    end
+    reset_active_poison
+    return false unless revoked
+
+    refresh_heartbeat_derived_data!
+    true
+  end
+
+  private def refresh_heartbeat_derived_data!
+    @heartbeat_cache_version = nil
+    schedule_dashboard_rollup_refresh
+    discard_stale_leaderboard_entries!
+    clear_leaderboard_page_cache
+  end
+
+  private def discard_stale_leaderboard_entries!
+    Leaderboard::REBUILDABLE_PERIODS.each do |period|
+      date = LeaderboardDateRange.normalize_date(Date.current, period)
+      board = Leaderboard.find_by(start_date: date, period_type: period, timezone_utc_offset: nil, deleted_at: nil)
+      LeaderboardEntry.where(user_id: id, leaderboard_id: board.id).delete_all if board
+
+      LeaderboardUpdateJob.perform_later(period, date, force_update: true)
+    end
   end
 
   def schedule_leaderboard_shadowban_expiration
@@ -293,7 +339,10 @@ class User < ApplicationRecord
 
   def flipper_id = "User;#{id}"
   def active_heartbeat_import_run? = heartbeat_import_runs.active_imports.exists?
-  def activity_graph_cache_key(timezone = self.timezone) = "user_#{id}_daily_durations_#{timezone}"
+  def activity_graph_cache_key(timezone = self.timezone) = "user_#{id}_daily_durations_#{timezone}_#{heartbeat_cache_version}"
+
+  # Include in the cache key of any per-user data derived from heartbeats.
+  def heartbeat_cache_version = @heartbeat_cache_version ||= HeartbeatExclusion.cache_versions([ id ]).fetch(id)
 
   def heartbeats_excluding_archived_projects
     heartbeats.where(project: nil).or(heartbeats.where.not(project: project_repo_mappings.archived.select(:project_name)))

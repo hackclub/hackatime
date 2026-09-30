@@ -59,7 +59,7 @@ module Api
         def get_users_by_ip
           return render_error("bro dont got the ip") if params[:ip].blank?
 
-          result = Heartbeat.where(ip_address: params[:ip]).select(:ip_address, :user_id, :machine, :user_agent).distinct
+          result = Heartbeat.with_excluded.where(ip_address: params[:ip]).select(:ip_address, :user_id, :machine, :user_agent).distinct
           render json: {
             users: result.map { |u|
               {
@@ -75,7 +75,7 @@ module Api
         def get_users_by_machine
           return render_error("bro dont got the machine") if params[:machine].blank?
 
-          result = Heartbeat.where(machine: params[:machine]).select(:user_id, :machine).distinct
+          result = Heartbeat.with_excluded.where(machine: params[:machine]).select(:user_id, :machine).distinct
           render json: { users: result.map { |u| { user_id: u.user_id, machine: u.machine } } }
         end
 
@@ -83,7 +83,7 @@ module Api
           user = find_user_by_id
           return unless user
 
-          valid = user.heartbeats.where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
+          valid = user.heartbeats.with_excluded.where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
 
           lht = valid.maximum(:time)
           lht /= 1000 if lht && lht > 1000000000000
@@ -133,7 +133,7 @@ module Api
             end_time = date.end_of_day.utc
           end
 
-          heartbeats = user.heartbeats.where(time: start_time.to_i..end_time.to_i).order(:time)
+          heartbeats = user.heartbeats.with_excluded.where(time: start_time.to_i..end_time.to_i).order(:time)
 
           render json: {
             user_id: user.id,
@@ -141,7 +141,7 @@ module Api
             start_date: start_time.to_date.iso8601,
             end_date: end_time.to_date.iso8601,
             timezone: user.timezone,
-            heartbeats: heartbeats.map { |hb|
+            heartbeats: heartbeats.with_hidden_flag.map { |hb|
               {
                 id: hb.id,
                 time: Time.at(hb.time).utc.iso8601,
@@ -165,7 +165,8 @@ module Api
                 project_root_count: hb.project_root_count,
                 is_write: hb.is_write,
                 source_type: hb.source_type,
-                ip_address: hb.ip_address
+                ip_address: hb.ip_address,
+                hidden: hb.hidden
               }
             },
             total_heartbeats: heartbeats.count,
@@ -177,7 +178,7 @@ module Api
           user = find_user_by_id
           return unless user
 
-          base_heartbeats = user.heartbeats.where.not(project: nil)
+          base_heartbeats = user.heartbeats.with_excluded.where.not(project: nil)
 
           if params[:start_date].present? || params[:end_date].present?
             range = parse_default_time_range or return
@@ -299,7 +300,7 @@ module Api
           limit = (params[:limit] || 1000).to_i.clamp(1, 5_000)
           offset = (params[:offset] || 0).to_i.clamp(0, Float::INFINITY)
 
-          query = user.heartbeats
+          query = user.heartbeats.with_excluded
           query = apply_time_range(query) or return
           %i[project language entity editor machine].each do |f|
             query = query.where(f => params[f]) if params[f].present?
@@ -307,9 +308,9 @@ module Api
 
           total_count = query.count
           source_types = Heartbeat.source_types.invert
-          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
-          ja4s_by_id = Ja4.where(id: rows.filter_map(&:last).uniq).index_by(&:id)
-          heartbeats = rows.map do |id, time, created_at, lineno, cursorpos, is_write, project, language, entity, branch, category, dependencies, editor, machine, operating_system, type, project_root_count, user_agent, line_additions, line_deletions, ip_address, lines, source_type, ja4_id|
+          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS, Arel.sql(HeartbeatExclusion::HIDDEN_SQL))
+          ja4s_by_id = Ja4.where(id: rows.filter_map { |*, ja4_id, _hidden| ja4_id }.uniq).index_by(&:id)
+          heartbeats = rows.map do |id, time, created_at, lineno, cursorpos, is_write, project, language, entity, branch, category, dependencies, editor, machine, operating_system, type, project_root_count, user_agent, line_additions, line_deletions, ip_address, lines, source_type, ja4_id, hidden|
             {
               id: id,
               time: time,
@@ -334,7 +335,8 @@ module Api
               is_write: is_write,
               source_type: source_types[source_type] || source_type,
               ip_address: ip_address,
-              ja4: ja4s_by_id[ja4_id]&.then { |ja4| { fingerprint: ja4.fingerprint, name: ja4.name } }
+              ja4: ja4s_by_id[ja4_id]&.then { |ja4| { fingerprint: ja4.fingerprint, name: ja4.name } },
+              hidden: hidden
             }
           end
 
@@ -356,7 +358,7 @@ module Api
 
           limit = (params[:limit] || 5000).to_i.clamp(1, 5000)
 
-          query = user.heartbeats
+          query = user.heartbeats.with_excluded
           query = apply_time_range(query) or return
 
           quoted_column = Heartbeat.connection.quote_column_name(column_name)

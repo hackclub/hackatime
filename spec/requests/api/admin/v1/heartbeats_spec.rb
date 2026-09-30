@@ -59,7 +59,9 @@ RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request, openapi_spec: 'admi
                   user_a_first_seen: { type: :number, example: 1710340200.0, description: 'Unix timestamp (may be fractional)' },
                   user_a_last_seen:  { type: :number, example: 1710946200.0, description: 'Unix timestamp (may be fractional)' },
                   user_b_first_seen: { type: :number, example: 1710512400.0, description: 'Unix timestamp (may be fractional)' },
-                  user_b_last_seen:  { type: :number, example: 1710859800.0, description: 'Unix timestamp (may be fractional)' }
+                  user_b_last_seen:  { type: :number, example: 1710859800.0, description: 'Unix timestamp (may be fractional)' },
+                  user_a_hidden:     { type: :boolean, example: false, description: "True when every one of user A's heartbeats on this pair is hidden" },
+                  user_b_hidden:     { type: :boolean, example: false, description: "True when every one of user B's heartbeats on this pair is hidden" }
                 }
               }
             }
@@ -140,7 +142,8 @@ RSpec.describe 'Api::Admin::V1::Heartbeats', type: :request, openapi_spec: 'admi
                 properties: {
                   machine:           { type: :string, example: 'Orpheus-MacBook-Pro' },
                   machine_frequency: { type: :integer, example: 2 },
-                  user_ids:          { type: :string, example: '{42,43}', description: 'PostgreSQL array literal of user IDs (raw ARRAY_AGG output, not a JSON array)' }
+                  user_ids:          { type: :string, example: '{42,43}', description: 'PostgreSQL array literal of user IDs (raw ARRAY_AGG output, not a JSON array)' },
+                  hidden_user_ids:   { type: :string, example: '{43}', description: 'PostgreSQL array literal of users whose heartbeats on this machine are all hidden' }
                 }
               }
             }

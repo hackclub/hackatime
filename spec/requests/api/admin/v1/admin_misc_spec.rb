@@ -29,7 +29,8 @@ RSpec.describe 'Api::Admin::V1::AdminMisc', type: :request, openapi_spec: 'admin
                       properties: {
                         time: { type: :number, example: 1704110400.0 },
                         lineno: { type: :integer, nullable: true, example: 42 },
-                        cursorpos: { type: :integer, nullable: true, example: 12 }
+                        cursorpos: { type: :integer, nullable: true, example: 12 },
+                        hidden: { type: :boolean, example: false, description: 'True when a heartbeat exclusion hides this heartbeat from non-admin reads. A pixel with both visible and hidden heartbeats returns one point of each.' }
                       }
                     }
                   }
@@ -95,7 +96,9 @@ RSpec.describe 'Api::Admin::V1::AdminMisc', type: :request, openapi_spec: 'admin
                   user_a_first_seen_on_combo: { type: :number, example: 1710340200.0 },
                   user_a_last_seen_on_combo: { type: :number, example: 1710946200.0 },
                   user_b_first_seen_on_combo: { type: :number, example: 1710512400.0 },
-                  user_b_last_seen_on_combo: { type: :number, example: 1710859800.0 }
+                  user_b_last_seen_on_combo: { type: :number, example: 1710859800.0 },
+                  user_a_hidden: { type: :boolean, example: false, description: "True when every one of user A's heartbeats on this combo is hidden" },
+                  user_b_hidden: { type: :boolean, example: false, description: "True when every one of user B's heartbeats on this combo is hidden" }
                 }
               }
             }
