@@ -5,10 +5,9 @@
 # match any active rule; Heartbeat.with_excluded bypasses that. Revoking a rule
 # restores its heartbeats and keeps the rule as history.
 class HeartbeatExclusion < ApplicationRecord
-  # Postgres predicate that is true when no active rule hides the heartbeat.
-  # Raw SQL over the heartbeats table must include it to match model reads.
-  VISIBLE_SQL = <<~SQL.squish.freeze
-    NOT EXISTS (
+  # Raw SQL over the heartbeats table must filter on VISIBLE_SQL to match model reads.
+  MATCHED_SQL = <<~SQL.squish.freeze
+    EXISTS (
       SELECT 1 FROM heartbeat_exclusions
       WHERE heartbeat_exclusions.user_id = heartbeats.user_id
         AND heartbeat_exclusions.revoked_at IS NULL
@@ -17,6 +16,7 @@ class HeartbeatExclusion < ApplicationRecord
         AND (heartbeat_exclusions.ends_at IS NULL OR heartbeats.time < EXTRACT(EPOCH FROM heartbeat_exclusions.ends_at))
     )
   SQL
+  VISIBLE_SQL = "NOT #{MATCHED_SQL}".freeze
 
   # The where-clause node Heartbeat's default scope adds. It reports a pseudo
   # attribute so `unscope(where: :heartbeat_exclusions)` removes exactly this
@@ -85,7 +85,6 @@ class HeartbeatExclusion < ApplicationRecord
   end
   private_class_method :parse_instant
 
-  # The heartbeats this rule matches, regardless of other rules.
   def heartbeats
     scope = Heartbeat.with_excluded.where(user_id:)
     scope = scope.where(project:) if project

@@ -245,8 +245,6 @@ class User < ApplicationRecord
 
   def poisoned? = active_poison.present?
 
-  # Hides this user's heartbeats before the cutoff. A new poison replaces the
-  # active one. See HeartbeatExclusion.poison_cutoff for accepted cutoffs.
   def apply_poison!(cutoff, reason: nil, by: nil)
     ends_at = HeartbeatExclusion.poison_cutoff(cutoff, timezone:)
 
@@ -272,8 +270,6 @@ class User < ApplicationRecord
     true
   end
 
-  # Visible heartbeats changed without new writes (an exclusion was added or
-  # revoked), so rebuild what is derived from them.
   private def refresh_heartbeat_derived_data!
     schedule_dashboard_rollup_refresh
     discard_stale_leaderboard_entries!

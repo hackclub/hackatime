@@ -141,7 +141,7 @@ module Api
             start_date: start_time.to_date.iso8601,
             end_date: end_time.to_date.iso8601,
             timezone: user.timezone,
-            heartbeats: heartbeats.map { |hb|
+            heartbeats: heartbeats.with_hidden_flag.map { |hb|
               {
                 id: hb.id,
                 time: Time.at(hb.time).utc.iso8601,
@@ -165,7 +165,8 @@ module Api
                 project_root_count: hb.project_root_count,
                 is_write: hb.is_write,
                 source_type: hb.source_type,
-                ip_address: hb.ip_address
+                ip_address: hb.ip_address,
+                hidden: hb.hidden
               }
             },
             total_heartbeats: heartbeats.count,
@@ -307,9 +308,9 @@ module Api
 
           total_count = query.count
           source_types = Heartbeat.source_types.invert
-          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS)
-          ja4s_by_id = Ja4.where(id: rows.filter_map(&:last).uniq).index_by(&:id)
-          heartbeats = rows.map do |id, time, created_at, lineno, cursorpos, is_write, project, language, entity, branch, category, dependencies, editor, machine, operating_system, type, project_root_count, user_agent, line_additions, line_deletions, ip_address, lines, source_type, ja4_id|
+          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS, Arel.sql(HeartbeatExclusion::MATCHED_SQL))
+          ja4s_by_id = Ja4.where(id: rows.filter_map { |*, ja4_id, _hidden| ja4_id }.uniq).index_by(&:id)
+          heartbeats = rows.map do |id, time, created_at, lineno, cursorpos, is_write, project, language, entity, branch, category, dependencies, editor, machine, operating_system, type, project_root_count, user_agent, line_additions, line_deletions, ip_address, lines, source_type, ja4_id, hidden|
             {
               id: id,
               time: time,
@@ -334,7 +335,8 @@ module Api
               is_write: is_write,
               source_type: source_types[source_type] || source_type,
               ip_address: ip_address,
-              ja4: ja4s_by_id[ja4_id]&.then { |ja4| { fingerprint: ja4.fingerprint, name: ja4.name } }
+              ja4: ja4s_by_id[ja4_id]&.then { |ja4| { fingerprint: ja4.fingerprint, name: ja4.name } },
+              hidden: hidden
             }
           end
 

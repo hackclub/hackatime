@@ -67,7 +67,34 @@ class Api::Admin::V1::AdminControllerTest < ActionDispatch::IntegrationTest
     assert_equal 120, timeline.fetch("total_coded_time")
   end
 
+  test "admin heartbeat listings flag hidden heartbeats" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, username: "admin_hidden_flag", timezone: "UTC")
+    time = 2.days.ago.utc.beginning_of_day + 12.hours
+    kept, deleted = %w[kept deleted].each_with_index.map do |project, index|
+      create(:heartbeat, user:, time: (time + index * 60).to_f, project:, entity: "#{project}.rb",
+        source_type: :direct_entry, user_agent: "wakatime/flag-agent")
+    end
+    HeartbeatExclusion.create!(user:, kind: :project_deletion, project: "deleted")
+    expected = { kept.id => false, deleted.id => true }
+
+    get "/api/admin/v1/user/heartbeats", params: { user_id: user.id }, headers: auth_headers(key)
+    assert_equal expected, hidden_by_id(response)
+
+    get "/api/admin/v1/user/stats", params: { user_id: user.id, date: time.to_date.iso8601 }, headers: auth_headers(key)
+    assert_equal expected, hidden_by_id(response)
+
+    get "/api/admin/v1/heartbeats/by_user_agent_segment", params: { segment: "flag-agent" }, headers: auth_headers(key)
+    assert_equal expected, hidden_by_id(response)
+  end
+
   private
+
+  def hidden_by_id(response)
+    assert_response :success
+    response.parsed_body.fetch("heartbeats").to_h { |hb| [ hb.fetch("id"), hb.fetch("hidden") ] }
+  end
 
   def auth_headers(key)
     { "Authorization" => ActionController::HttpAuthentication::Token.encode_credentials(key.token) }

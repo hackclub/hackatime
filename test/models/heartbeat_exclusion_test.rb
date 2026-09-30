@@ -28,8 +28,6 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
 
   def poisoned_until = @user.reload.active_poison&.ends_at&.utc
 
-  # Poison
-
   test "poisoning hides heartbeats before the cutoff but keeps the rows" do
     @user.apply_poison!(@cutoff)
 
@@ -114,8 +112,6 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
     assert_equal 1, result.duplicate_count
   end
 
-  # Project deletion rules
-
   test "a project rule hides only that project's heartbeats" do
     same_day_other_project = build_heartbeat(@cutoff - 2.days, "kept-project")
 
@@ -167,8 +163,6 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
     assert_equal [ @before_cutoff ], rule.heartbeats.to_a
   end
 
-  # Scoping
-
   test "with_excluded reveals hidden heartbeats and keeps other conditions" do
     @user.apply_poison!(@cutoff)
     other_old = build_heartbeat(@cutoff - 5.days, "other", user: create(:user, timezone: "UTC"))
@@ -209,8 +203,6 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
 
     assert_equal [ @after_cutoff.id ], ids
   end
-
-  # Cutoff parsing
 
   test "a DateTime cutoff keeps its time of day" do
     @user.apply_poison!(DateTime.new(2026, 3, 1, 12, 0, 0))
@@ -291,8 +283,6 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
 
     assert_not @user.reload.poisoned?
   end
-
-  # Derived data
 
   test "poisoning removes the user's stale current leaderboard entries only" do
     board = Leaderboard.create!(start_date: Date.current, period_type: :daily)

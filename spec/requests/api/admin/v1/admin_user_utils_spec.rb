@@ -180,6 +180,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
                   is_write: { type: :boolean, nullable: true, example: true },
                   source_type: { type: :string, example: 'direct_entry' },
                   ip_address: { type: :string, nullable: true, example: '203.0.113.7' },
+                  hidden: { type: :boolean, example: false, description: 'True when a heartbeat exclusion (such as a poison) hides this heartbeat from non-admin reads' },
                   ja4: {
                     type: :object,
                     nullable: true,
@@ -410,7 +411,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
                     lineno: { type: :integer, nullable: true, example: 42 },
                     cursorpos: { type: :integer, nullable: true, example: 12 },
                     lines: { type: :integer, nullable: true, example: 350 },
-                    source_type: { type: :string, nullable: true, example: 'direct_entry' }
+                    source_type: { type: :string, nullable: true, example: 'direct_entry' },
+                    hidden: { type: :boolean, example: false, description: 'True when a heartbeat exclusion (such as a poison) hides this heartbeat from non-admin reads' }
                   }
                 }
               },
@@ -686,7 +688,8 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
                   project_root_count: { type: :integer, nullable: true, example: 4 },
                   is_write: { type: :boolean, nullable: true, example: true },
                   source_type: { type: :string, nullable: true, example: 'direct_entry' },
-                  ip_address: { type: :string, nullable: true, example: '203.0.113.7' }
+                  ip_address: { type: :string, nullable: true, example: '203.0.113.7' },
+                  hidden: { type: :boolean, example: false, description: 'True when a heartbeat exclusion (such as a poison) hides this heartbeat from non-admin reads' }
                 }
               }
             }

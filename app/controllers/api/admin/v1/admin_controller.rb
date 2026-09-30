@@ -237,7 +237,7 @@ module Api
             return render json: { segment: segment, total_count: query.limit(nil).count }
           end
 
-          heartbeats = query.order(time: :desc).limit(limit + 1).offset(offset).to_a
+          heartbeats = query.with_hidden_flag.order(time: :desc).limit(limit + 1).offset(offset).to_a
           has_more = heartbeats.size > limit
           heartbeats = heartbeats.first(limit)
 
@@ -264,7 +264,8 @@ module Api
                 lineno: hb.lineno,
                 cursorpos: hb.cursorpos,
                 lines: hb.lines,
-                source_type: hb.source_type
+                source_type: hb.source_type,
+                hidden: hb.hidden
               }
             },
             has_more: has_more

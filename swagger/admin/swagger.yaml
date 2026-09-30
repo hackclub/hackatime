@@ -1995,6 +1995,11 @@ paths:
                           type: string
                           nullable: true
                           example: 203.0.113.7
+                        hidden:
+                          type: boolean
+                          example: false
+                          description: True when a heartbeat exclusion (such as a
+                            poison) hides this heartbeat from non-admin reads
                         ja4:
                           type: object
                           nullable: true
@@ -2167,6 +2172,11 @@ paths:
                             type: string
                             nullable: true
                             example: direct_entry
+                          hidden:
+                            type: boolean
+                            example: false
+                            description: True when a heartbeat exclusion (such as
+                              a poison) hides this heartbeat from non-admin reads
                     has_more:
                       type: boolean
                       example: false
@@ -2533,6 +2543,11 @@ paths:
                           type: string
                           nullable: true
                           example: 203.0.113.7
+                        hidden:
+                          type: boolean
+                          example: false
+                          description: True when a heartbeat exclusion (such as a
+                            poison) hides this heartbeat from non-admin reads
         '404':
           description: user not found
   "/api/admin/v1/user/projects":

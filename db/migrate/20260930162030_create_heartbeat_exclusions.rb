@@ -14,7 +14,6 @@ class CreateHeartbeatExclusions < ActiveRecord::Migration[8.1]
       t.timestamps
     end
 
-    # Every heartbeat read probes this index through the default scope.
     add_index :heartbeat_exclusions, :user_id, where: "revoked_at IS NULL",
       name: "index_heartbeat_exclusions_active_on_user_id"
     add_index :heartbeat_exclusions, [ :user_id, :created_at ]
