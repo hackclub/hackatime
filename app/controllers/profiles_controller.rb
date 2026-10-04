@@ -135,14 +135,7 @@ class ProfilesController < InertiaController
   def public_profile_og_heatmap
     return nil unless @user.allow_public_stats_lookup
 
-    rollup = DashboardRollup.find_by(user_id: @user.id, dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION)
-    duration_by_date = rollup&.payload&.fetch("duration_by_date", nil)
-    return nil if duration_by_date.blank?
-
-    duration_by_date.each_with_object({}) do |(date, seconds), out|
-      key = (date.is_a?(Date) ? date.iso8601 : date.to_date.iso8601 rescue date.to_s)
-      out[key] = seconds.to_i
-    end
+    DashboardStats.new(user: @user).rollup_snapshot&.dig(:activity_graph, :duration_by_date).presence
   end
 
   def profile_summary_payload

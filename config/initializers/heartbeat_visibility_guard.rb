@@ -6,7 +6,7 @@ if Rails.env.test?
     next unless HeartbeatExclusion.unguarded_heartbeat_sql?(payload[:sql])
 
     raise "Heartbeat SQL ignores heartbeat exclusions. Use the Heartbeat default scope, " \
-          "HeartbeatExclusion::VISIBLE_SQL or Heartbeat.with_excluded, or embed " \
+          "HeartbeatExclusion.visible_sql / hidden_sql or Heartbeat.with_excluded, or embed " \
           "HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT when hidden rows are intended:\n#{payload[:sql]}"
   end
 end

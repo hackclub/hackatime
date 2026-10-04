@@ -162,7 +162,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
       )
     end
 
-    assert_equal [ ja4 ], user.heartbeats.joins(:ja4).distinct.pluck("ja4s.fingerprint")
+    assert_equal [ ja4 ], Ja4.where(id: user.heartbeats.distinct.pluck(:ja4_id)).pluck(:fingerprint)
   end
 
   test "direct heartbeat ingest returns existing heartbeat for duplicate input" do
@@ -209,7 +209,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     sql = []
     subscriber = lambda do |_name, _started, _finished, _unique_id, payload|
       statement = payload[:sql]
-      sql << statement if statement.include?('"heartbeats"') && !payload[:cached]
+      sql << statement if statement.match?(/\bheartbeats\b/) && !payload[:cached]
     end
 
     result = ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
@@ -226,10 +226,9 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal 2, result.persisted_count
     assert_equal 0, result.duplicate_count
     assert_equal [ "src/first.rb", "src/second.py" ], result.items.map { |item| item.heartbeat.entity }
-    insert = sql.select { |statement| statement.start_with?('INSERT INTO "heartbeats"') }.sole
-    assert_includes insert, "ON CONFLICT"
-    assert_includes insert, "DO NOTHING"
-    assert_equal 1, sql.count { |statement| statement.start_with?("SELECT") && statement.include?("fields_hash") }
+    assert_equal 1, sql.count { |statement| statement.start_with?("INSERT INTO heartbeats") }
+    # One identity lookup for the whole batch, not one per heartbeat.
+    assert_equal 1, sql.count { |statement| statement.start_with?("SELECT") && statement.include?("heartbeats.time IN") }
   end
 
   test "direct heartbeat ingest runs model validations before bulk insertion" do
@@ -306,30 +305,29 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
   end
 
-  test "direct heartbeat ingest refetches a concurrent winner after an insert conflict" do
+  test "a resend of a hidden heartbeat returns the hidden heartbeat" do
     user = create(:user)
-    payload = { entity: "src/raced.rb", time: Time.current.to_f, type: "file" }
-    winner = nil
-    no_inserted_rows = ActiveRecord::Result.new([], [])
-    original_insert_all = Heartbeat.method(:insert_all)
+    payload = { entity: "src/hidden.rb", project: "secret", time: 1_700_000_000.0, type: "file" }
+    first = HeartbeatIngest.call(user:, mode: :direct, heartbeats: [ payload ]).items.sole.heartbeat
+    HeartbeatExclusion.create!(user:, kind: :project_deletion, project: "secret")
 
-    Heartbeat.define_singleton_method(:insert_all) do |records, **|
-      winner = Heartbeat.create!(records.sole)
-      no_inserted_rows
-    end
+    result = HeartbeatIngest.call(user:, mode: :direct, heartbeats: [ payload ])
 
-    begin
-      result = HeartbeatIngest.call(user:, mode: :direct, heartbeats: [ payload ])
+    assert_equal 1, result.duplicate_count
+    assert_equal first.id, result.items.sole.heartbeat.id
+    assert_equal 1, Heartbeat.with_excluded.where(user_id: user.id).count
+  end
 
-      assert_equal 0, result.persisted_count
-      assert_equal 1, result.duplicate_count
-      assert_equal 0, result.failed_count
-      assert_equal winner.id, result.items.sole.heartbeat.id
-    ensure
-      Heartbeat.define_singleton_method(:insert_all, original_insert_all)
-    end
+  test "a resend of a soft-deleted heartbeat is stored again" do
+    user = create(:user)
+    payload = { entity: "src/deleted.rb", time: 1_700_000_000.0, type: "file" }
+    first = HeartbeatIngest.call(user:, mode: :direct, heartbeats: [ payload ]).items.sole.heartbeat
+    Heartbeat.soft_delete_where!(user_id: user.id, ids: [ first.id ])
 
-    assert_equal 1, user.heartbeats.count
+    result = HeartbeatIngest.call(user:, mode: :direct, heartbeats: [ payload ])
+
+    assert_equal 1, result.persisted_count
+    assert_not_equal first.id, result.items.sole.heartbeat.id
   end
 
   test "direct heartbeat ingest deduplicates repeated items within one bulk request" do
@@ -807,14 +805,14 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
 
   private
 
+  # A heartbeat stored by an older import, before normalisation changes: its
+  # stored values are the raw dump values, which the legacy identity reproduces.
   def create_legacy_imported_heartbeat(user, attributes)
-    legacy_attributes = Heartbeat.indexed_attributes.index_with { nil }.symbolize_keys.merge(
+    legacy_attributes = Heartbeat::IDENTITY_ATTRIBUTES.index_with { nil }.symbolize_keys.merge(
       dependencies: [],
       is_write: false,
       user_id: user.id
     ).merge(attributes)
-    heartbeat = user.heartbeats.create!(legacy_attributes.merge(source_type: :wakapi_import))
-    heartbeat.update_column(:fields_hash, Heartbeat.generate_fields_hash(legacy_attributes))
-    heartbeat
+    user.heartbeats.create!(legacy_attributes.merge(source_type: :wakapi_import))
   end
 end

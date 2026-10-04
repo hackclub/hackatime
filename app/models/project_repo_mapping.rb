@@ -22,6 +22,26 @@ class ProjectRepoMapping < ApplicationRecord
   after_create :create_repository_and_sync, if: :repo_url_required?
   after_update :sync_repository_if_url_changed, if: :repo_url_required?
 
+  # Each user's most recently coded project (direct heartbeats in the last five
+  # minutes) that has an active mapping: { user_id => ProjectRepoMapping }.
+  def self.currently_active_by_user
+    Rails.cache.fetch("project_repo_mappings/currently_active_by_user", expires_in: Heartbeat::SITE_ACTIVITY_CACHE_TTL) do
+      recent = Heartbeat.where(source_type: :direct_entry).where("time > ?", 5.minutes.ago.to_f)
+        .where.not(project: nil).group(:user_id, :project)
+        .pluck(:user_id, :project, Arel.sql("max(time)"))
+      next {} if recent.empty?
+
+      mappings = active.joins(:user)
+        .where(user_id: recent.map(&:first).uniq, project_name: recent.map(&:second).uniq)
+        .index_by { |mapping| [ mapping.user_id, mapping.project_name ] }
+
+      recent.sort_by { |_, _, time| -time }.each_with_object({}) do |(user_id, project, _), result|
+        mapping = mappings[[ user_id, project ]]
+        result[user_id] ||= mapping if mapping
+      end
+    end
+  end
+
   def repo_url_required? = repo_url.present?
   def archive! = update_archive_status(Time.current)
   def unarchive! = update_archive_status(nil)

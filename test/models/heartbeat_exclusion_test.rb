@@ -33,7 +33,7 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
 
     assert_not_includes Heartbeat.all, @before_cutoff
     assert_includes Heartbeat.all, @after_cutoff
-    assert Heartbeat.unscoped.exists?(@before_cutoff.id)
+    assert Heartbeat.unscoped.with_excluded.exists?(@before_cutoff.id)
   end
 
   test "poisoning applies to the user's own association reads" do
@@ -203,8 +203,10 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
   end
 
   test "the default scope applies the exclusion filter exactly once" do
-    assert_equal 1, Heartbeat.all.to_sql.scan("heartbeat_exclusions.revoked_at IS NULL").length
-    assert_equal 0, Heartbeat.with_excluded.to_sql.scan("heartbeat_exclusions").length
+    @user.apply_poison!(@cutoff)
+
+    assert_equal 1, Heartbeat.all.to_sql.scan(HeartbeatExclusion::VISIBLE_MARKER).length
+    assert_equal 0, Heartbeat.with_excluded.to_sql.scan(HeartbeatExclusion::VISIBLE_MARKER).length
   end
 
   test "exclusions compose with or" do
@@ -219,13 +221,12 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
     [
       Heartbeat.all.to_sql,
       Heartbeat.where(user_id: 1).group(:project).select(:project).to_sql,
-      User.joins(:heartbeats).to_sql,
       @user.heartbeats.with_excluded.to_sql,
       "#{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT} SELECT id FROM heartbeats",
       "SELECT day FROM heartbeats_with_gaps",
-      "INSERT INTO \"heartbeats\" (user_id) VALUES (1)",
-      "UPDATE \"heartbeats\" SET deleted_at = now() WHERE user_id = 1",
-      "SELECT \"heartbeats\".* FROM \"heartbeats\" WHERE \"heartbeats\".\"id\" = $1 LIMIT $2"
+      "INSERT INTO heartbeats (user_id) VALUES (1)",
+      "UPDATE heartbeats SET deleted_at = now() WHERE user_id = 1",
+      "SELECT heartbeats.* FROM heartbeats WHERE heartbeats.id = 42 LIMIT 1"
     ].each { |sql| assert_not HeartbeatExclusion.unguarded_heartbeat_sql?(sql), sql }
   end
 
@@ -234,14 +235,16 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
       "SELECT id FROM heartbeats WHERE user_id = 1",
       Heartbeat.unscoped.where(user_id: 1).to_sql,
       "SELECT hb.id FROM (#{Heartbeat.all.to_sql}) hb JOIN heartbeats ON heartbeats.id = hb.id",
-      "UPDATE \"heartbeats\" SET project = 'x' WHERE #{HeartbeatExclusion::VISIBLE_SQL}"
+      "SELECT id FROM hackatime.heartbeats WHERE user_id = 1",
+      "INSERT INTO heartbeat_rollups SELECT user_id FROM heartbeats",
+      "UPDATE heartbeats SET project = 'x' WHERE #{HeartbeatExclusion.visible_sql}"
     ].each { |sql| assert HeartbeatExclusion.unguarded_heartbeat_sql?(sql), sql }
   end
 
   test "the test suite fails unguarded heartbeat queries" do
-    assert_raises(RuntimeError) { Heartbeat.connection.select_all("SELECT id FROM heartbeats") }
-    assert_raises(RuntimeError) { @user.heartbeats.update_all(project: "renamed") }
-    assert_nothing_raised { @user.heartbeats.with_excluded.update_all(project: "renamed") }
+    # The ClickHouse adapter re-raises the guard's error as its own error class.
+    error = assert_raises(StandardError) { Heartbeat.connection.select_all("SELECT id FROM heartbeats") }
+    assert_includes error.message, "Heartbeat SQL ignores heartbeat exclusions"
   end
 
   test "the heartbeat cache version changes when a rule is applied or revoked" do
@@ -270,11 +273,11 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
     Rails.cache = original_cache
   end
 
-  test "raw SQL using VISIBLE_SQL matches model reads" do
+  test "raw SQL using visible_sql matches model reads" do
     @user.apply_poison!(@cutoff)
 
     ids = Heartbeat.connection.select_values(
-      "SELECT id FROM heartbeats WHERE deleted_at IS NULL AND #{HeartbeatExclusion::VISIBLE_SQL} AND user_id = #{@user.id}"
+      "SELECT id FROM heartbeats WHERE deleted_at IS NULL AND #{HeartbeatExclusion.visible_sql} AND user_id = #{@user.id}"
     )
 
     assert_equal [ @after_cutoff.id ], ids

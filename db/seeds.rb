@@ -57,7 +57,7 @@ if Rails.env.development? || Rails.env.test?
     machines = [ 'dev-machine', 'laptop', 'desktop' ]
 
     # Clear existing heartbeats to ensure consistent test data
-    test_user.heartbeats.destroy_all
+    Heartbeat.soft_delete_where!(user_id: test_user.id)
 
     # Create heartbeats for the last 7 days
     7.downto(0) do |day|

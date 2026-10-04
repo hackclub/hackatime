@@ -12,7 +12,7 @@ class ProjectsTest < ApplicationSystemTestCase
     archived_mapping = create(:project_repo_mapping, user: @user, project_name: "archived-project")
     archived_mapping.archive!
     create_project_heartbeats(@user, "archived-project", started_at: 2.days.ago.change(hour: 14))
-    DashboardRollupRefreshService.new(user: @user).call
+    HeartbeatRollup.rebuild!(@user)
 
     visit my_projects_path
 
@@ -54,7 +54,7 @@ class ProjectsTest < ApplicationSystemTestCase
   test "opens projects whose names contain reserved URL characters" do
     project_name = "folder/café ?# 100%25"
     create_project_heartbeats(@user, project_name, started_at: 2.days.ago.noon)
-    DashboardRollupRefreshService.new(user: @user).call
+    HeartbeatRollup.rebuild!(@user)
 
     visit my_projects_path
     project_link = find(%(a[aria-label="View #{project_name}"]))

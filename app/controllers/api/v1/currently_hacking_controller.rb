@@ -1,6 +1,6 @@
 class Api::V1::CurrentlyHackingController < ApplicationController
   def index
-    data = Cache::CurrentlyHackingJob.perform_now
+    data = CurrentlyHacking.data
 
     users = data[:users].map do |user|
       proj = data[:active_projects][user.id]

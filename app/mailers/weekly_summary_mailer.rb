@@ -37,9 +37,7 @@ class WeeklySummaryMailer < ApplicationMailer
   end
 
   def active_days_count(scope)
-    timezone_sql = ActiveRecord::Base.connection.quote(@timezone_label)
-    scope.where.not(time: nil).distinct.count(Arel.sql("DATE(to_timestamp(time) AT TIME ZONE #{timezone_sql})"))
-  rescue StandardError
-    scope.where.not(time: nil).pluck(:time).map { |t| Time.at(t).in_time_zone(@timezone_label).to_date }.uniq.count
+    local_date = "toDate(#{Heartbeatable::DurationSql.local_datetime(@timezone_label)})"
+    scope.with_valid_timestamps.distinct.count(Arel.sql(local_date))
   end
 end

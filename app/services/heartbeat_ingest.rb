@@ -52,7 +52,7 @@ class HeartbeatIngest
         heartbeat:,
         attrs:,
         model_attributes:,
-        fields_hash: Heartbeat.generate_fields_hash(model_attributes)
+        identity: Heartbeat.identity_key(model_attributes)
       }
     rescue => e
       errors << { heartbeat: heartbeat, error: e.message, type: e.class.name }
@@ -61,13 +61,13 @@ class HeartbeatIngest
 
     if entries.any?
       begin
-        persisted_by_hash, inserted_hashes = persist_direct_heartbeats(entries)
-        persisted_count = inserted_hashes.length
+        persisted_by_identity, inserted_identities = persist_direct_heartbeats(entries)
+        persisted_count = inserted_identities.length
         duplicate_count = entries.length - persisted_count
 
         entries.each do |entry|
           items[entry[:index]] = Item.new(
-            heartbeat: persisted_by_hash.fetch(entry[:fields_hash]),
+            heartbeat: persisted_by_identity.fetch(entry[:identity]),
             status: :accepted,
             error: nil
           )
@@ -120,42 +120,56 @@ class HeartbeatIngest
     ).slice(*Heartbeat.column_names.map(&:to_sym))
   end
 
-  # Hidden heartbeats still own their fields_hash, so resubmissions must match them.
-  def heartbeats_for_dedup = @user.heartbeats.with_excluded
+  # Heartbeats live in ClickHouse, which has no unique constraints. Identity is
+  # enforced here instead: look up existing heartbeats with the same identity,
+  # then insert only the new ones. A per-user Postgres advisory lock serialises
+  # that lookup-then-insert across concurrent requests and imports, so two
+  # identical resends racing each other cannot both be inserted. The lock is a
+  # session lock released in `ensure`, so no Postgres transaction is held open
+  # around the ClickHouse network calls.
+  def with_user_ingest_lock(&block) = self.class.with_user_ingest_lock(@user.id, &block)
+
+  def self.with_user_ingest_lock(user_id)
+    connection = ApplicationRecord.connection
+    key = connection.quote(advisory_lock_key(user_id))
+    connection.execute("SELECT pg_advisory_lock(#{key})")
+    yield
+  ensure
+    connection&.execute("SELECT pg_advisory_unlock(#{key})") if key
+  end
+
+  # Namespaced so it can't collide with other advisory locks in the app.
+  def self.advisory_lock_key(user_id) = (0x4842 << 48) | Integer(user_id)
 
   def persist_direct_heartbeats(entries)
-    entries_by_hash = entries.group_by { |entry| entry[:fields_hash] }
-    hashes = entries_by_hash.keys
-    persisted_by_hash = heartbeats_for_dedup.where(fields_hash: hashes).index_by(&:fields_hash)
-    missing_entries = entries_by_hash.filter_map do |fields_hash, matching_entries|
-      matching_entries.first unless persisted_by_hash.key?(fields_hash)
-    end
+    entries_by_identity = entries.group_by { |entry| entry[:identity] }
 
-    inserted_by_hash = {}
-    if missing_entries.any?
-      timestamp = Time.current
-      records = missing_entries.map { |entry| direct_insert_record(entry, timestamp:) }
-      result = Heartbeat.insert_all(records, unique_by: :fields_hash, returning: Heartbeat.column_names)
-      inserted_by_hash = result.to_a.index_by { |attributes| attributes.fetch("fields_hash") }
-        .transform_values { |attributes| Heartbeat.new(attributes) }
-      persisted_by_hash.merge!(inserted_by_hash)
-
-      # Another request can win the conflict after our prefetch but before the
-      # insert. ON CONFLICT skips those rows, so fetch the winners once.
-      unresolved_hashes = missing_entries.map { |entry| entry[:fields_hash] } - inserted_by_hash.keys
-      if unresolved_hashes.any?
-        persisted_by_hash.merge!(
-          heartbeats_for_dedup.where(fields_hash: unresolved_hashes).index_by(&:fields_hash)
-        )
+    with_user_ingest_lock do
+      persisted_by_identity = Heartbeat.existing_by_identity(
+        user_id: @user.id,
+        candidates: entries_by_identity.values.map { |matching| matching.first[:model_attributes] }
+      )
+      missing_entries = entries_by_identity.filter_map do |identity, matching_entries|
+        matching_entries.first unless persisted_by_identity.key?(identity)
       end
-    end
 
-    hashes.each { |fields_hash| persisted_by_hash.fetch(fields_hash) }
-    if inserted_by_hash.any? && @schedule_rollup_refresh
-      self.class.schedule_rollup_refresh(user: @user)
-    end
+      inserted_identities = []
+      if missing_entries.any?
+        timestamp = Time.current
+        rows = Heartbeat.insert_rows!(missing_entries.map { |entry| direct_insert_record(entry, timestamp:) })
+        missing_entries.zip(rows).each do |entry, row|
+          persisted_by_identity[entry[:identity]] = Heartbeat.instantiate(row.transform_keys(&:to_s))
+          inserted_identities << entry[:identity]
+        end
+      end
 
-    [ persisted_by_hash, inserted_by_hash.keys ]
+      entries_by_identity.each_key { |identity| persisted_by_identity.fetch(identity) }
+      if inserted_identities.any? && @schedule_rollup_refresh
+        self.class.schedule_rollup_refresh(user: @user)
+      end
+
+      [ persisted_by_identity, inserted_identities ]
+    end
   end
 
   # insert_all deliberately skips the Active Record lifecycle. Run the normal
@@ -171,13 +185,11 @@ class HeartbeatIngest
   end
 
   def direct_insert_record(entry, timestamp:)
-    entry[:model_attributes]
-      .except("id", "fields_hash", "created_at", "updated_at")
-      .merge("fields_hash" => entry[:fields_hash], "created_at" => timestamp, "updated_at" => timestamp)
+    Heartbeat.row_for_insert(entry[:model_attributes].merge("created_at" => timestamp, "updated_at" => timestamp))
   end
 
   def ingest_import
-    seen_hashes = {}
+    seen = {}
     total_count = 0
     errors = []
     placeholder_state = { contexts: {}, last_project: nil }
@@ -185,13 +197,13 @@ class HeartbeatIngest
     @heartbeats.each do |heartbeat|
       total_count += 1
       attrs = normalize_imported_heartbeat(heartbeat, placeholder_state:)
-      existing = seen_hashes[attrs[:fields_hash]]
-      seen_hashes[attrs[:fields_hash]] = attrs if existing.nil? || attrs[:time] > existing[:time]
+      existing = seen[attrs[:identity]]
+      seen[attrs[:identity]] = attrs if existing.nil? || attrs[:time] > existing[:time]
     rescue => e
       errors << { heartbeat: heartbeat, error: e.message, type: e.class.name }
     end
 
-    persisted_count = flush_import_batch(seen_hashes)
+    persisted_count = flush_import_batch(seen)
     self.class.schedule_rollup_refresh(user: @user) if persisted_count.positive? && @schedule_rollup_refresh
 
     Result.new(
@@ -247,45 +259,91 @@ class HeartbeatIngest
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     model_attributes = validated_model_attributes(attrs)
     normalized = model_attributes
-      .except("id", "fields_hash", "created_at", "updated_at")
+      .except("id", "created_at", "updated_at")
       .symbolize_keys
-    normalized[:fields_hash] = import_fields_hash(model_attributes, source: hb)
-    normalized[:legacy_fields_hash] = legacy_import_fields_hash(
+    normalized[:identity] = Heartbeat.identity_key(import_identity_attributes(model_attributes, source: hb))
+    placeholder_fields = []
+    placeholder_fields << "language" if hb[:language] == LAST_LANGUAGE_SENTINEL
+    placeholder_fields << "branch" if hb[:branch] == LAST_BRANCH_SENTINEL
+    if placeholder_fields.any?
+      normalized[:placeholder_identity] = Heartbeat.identity_key(
+        model_attributes.except(*placeholder_fields).merge(placeholder_fields.index_with { PLACEHOLDER_ANY })
+      )
+      normalized[:placeholder_fields] = placeholder_fields
+    end
+    normalized[:legacy_identity] = Heartbeat.identity_key(legacy_import_identity_attributes(
       hb,
       user_agent_info:,
       resolved_user_agent:,
       normalized_time: normalized[:time]
-    )
+    ))
     update_placeholder_state!(normalized, placeholder_state)
     normalized
   end
 
-  def flush_import_batch(seen_hashes)
-    return 0 if seen_hashes.empty?
+  # Imports are large (up to 50k per batch). Existing heartbeats are looked up
+  # by time window in ClickHouse and compared by identity in Ruby, under the
+  # same per-user lock as direct ingest. A record is a duplicate when either its
+  # canonical identity or its legacy (pre-normalisation) identity matches a
+  # stored heartbeat, so re-importing an old dump never mints a second row.
+  def flush_import_batch(seen)
+    return 0 if seen.empty?
 
-    records = seen_hashes.values
-    compatible_hashes = records.flat_map { |record| [ record[:fields_hash], record[:legacy_fields_hash] ] }.compact.uniq
-    existing_hashes = compatible_hashes.each_slice(10_000).flat_map do |hashes|
-      heartbeats_for_dedup.where(fields_hash: hashes).pluck(:fields_hash)
-    end.to_set
-    records = records.reject do |record|
-      existing_hashes.include?(record[:fields_hash]) || existing_hashes.include?(record[:legacy_fields_hash])
-    end
-    return 0 if records.empty?
+    records = seen.values
+    with_user_ingest_lock do
+      existing = existing_import_identities(records)
+      records = records.reject do |record|
+        existing.include?(record[:identity]) || existing.include?(record[:legacy_identity]) ||
+          (record[:placeholder_identity] && existing.include?(record[:placeholder_identity]))
+      end
+      next 0 if records.empty?
 
-    timestamp = Time.current
-    insert_records = records.map do |record|
-      record.except(:legacy_fields_hash).merge(created_at: timestamp, updated_at: timestamp)
+      timestamp = Time.current
+      rows = records.map do |record|
+        Heartbeat.row_for_insert(
+          record.except(:identity, :legacy_identity, :placeholder_identity, :placeholder_fields)
+            .merge(created_at: timestamp, updated_at: timestamp)
+        )
+      end
+      ActiveRecord::Base.logger.silence do
+        rows.each_slice(IMPORT_INSERT_BATCH_SIZE) { |slice| Heartbeat.insert_rows!(slice) }
+      end
+      rows.length
     end
-    ActiveRecord::Base.logger.silence { Heartbeat.insert_all(insert_records, unique_by: :fields_hash).length }
   end
 
+  IMPORT_INSERT_BATCH_SIZE = 10_000
+
+  # Identities of stored heartbeats in the time span of this batch. Stored rows
+  # get both their canonical identity and their placeholder-preserving identity
+  # (raw <<LAST_LANGUAGE>>/<<LAST_BRANCH>>), so either form of a record matches.
+  def existing_import_identities(records)
+    times = records.map { |record| record[:time].to_f }
+    placeholder_field_sets = records.filter_map { |record| record[:placeholder_fields] }.uniq
+    identities = Set.new
+    Heartbeat.unscoped.with_excluded
+      .where(user_id: @user.id, deleted_at: nil, time: times.min..times.max)
+      .in_batches(of: 50_000, order: :asc, cursor: %i[time id]) do |batch|
+        batch.each do |heartbeat|
+          attributes = heartbeat.attributes
+          identities << Heartbeat.identity_key(attributes)
+          placeholder_field_sets.each do |fields|
+            identities << Heartbeat.identity_key(attributes.except(*fields).merge(fields.index_with { PLACEHOLDER_ANY }))
+          end
+        end
+      end
+    identities
+  end
+
+  # Stands in for a placeholder-resolved field when comparing identities.
+  PLACEHOLDER_ANY = "<<RESOLVED_PLACEHOLDER>>".freeze
+
   # Import normalization is part of the persisted dedup contract. Keep the
-  # pre-parity hash as a lookup alias so re-importing an old dump cannot mint a
-  # second row merely because canonical category, project or UA values changed.
-  def legacy_import_fields_hash(hb, user_agent_info:, resolved_user_agent:, normalized_time:)
+  # pre-parity identity as a lookup alias so re-importing an old dump cannot mint
+  # a second row merely because canonical category, project or UA values changed.
+  def legacy_import_identity_attributes(hb, user_agent_info:, resolved_user_agent:, normalized_time:)
     legacy_user_agent = legacy_parse_user_agent(resolved_user_agent)
-    Heartbeat.generate_fields_hash(
+    {
       user_id: @user.id,
       time: normalized_time,
       entity: hb[:entity],
@@ -306,18 +364,14 @@ class HeartbeatIngest
       cursorpos: hb[:cursorpos],
       dependencies: hb[:dependencies] || [],
       project_root_count: hb[:project_root_count]
-    )
+    }
   end
 
-  # Resolved placeholders are useful metadata, but database-backed resolution
-  # can change between identical imports. Keep the raw sentinel in the persisted
-  # identity so fields_hash remains a pure function of the dump row.
-  def import_fields_hash(model_attributes, source:)
-    hash_attributes = model_attributes.dup
-    hash_attributes["language"] = LAST_LANGUAGE_SENTINEL if source[:language] == LAST_LANGUAGE_SENTINEL
-    hash_attributes["branch"] = LAST_BRANCH_SENTINEL if source[:branch] == LAST_BRANCH_SENTINEL
-    Heartbeat.generate_fields_hash(hash_attributes)
-  end
+  # Placeholder resolution depends on stored history, which can change between
+  # identical imports. A record whose source carried <<LAST_LANGUAGE>> or
+  # <<LAST_BRANCH>> is therefore compared using whatever was stored for it the
+  # first time, not what it resolves to now: see placeholder_identity_keys.
+  def import_identity_attributes(model_attributes, source:) = model_attributes
 
   def legacy_parse_user_agent(user_agent)
     return { editor: nil, os: nil } if user_agent.blank?

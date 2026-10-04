@@ -165,21 +165,15 @@ class My::ProjectRepoMappingsController < InertiaController
   def rollup_projects_path? = selected_interval.blank? && params[:from].blank? && params[:to].blank?
 
   def rollup_projects_payload(archived:)
-    rollups = DashboardRollup
-      .where(user_id: current_user.id, dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION, bucket_value_present: true)
-      .to_a
-
-    DashboardRollupRefreshJob.schedule_for(current_user.id, wait: 0.seconds) if DashboardRollup.dirty?(current_user.id) || rollups.empty?
-    return InertiaRails.defer { projects_payload(archived: archived) } if rollups.empty?
+    details_by_project = DashboardStats.new(user: current_user).rollup_snapshot&.fetch(:project_details)
+    return InertiaRails.defer { projects_payload(archived: archived) } if details_by_project.nil?
 
     mappings_by_name, archived_names, latest_user_commit_at_by_repo_id = projects_context(archived: archived)
 
-    projects = rollups.filter_map do |rollup|
-      project_key = rollup.bucket
-      next if project_key.blank?
+    projects = details_by_project.filter_map do |project_key, details|
       next if archived_names.key?(project_key) != archived
 
-      duration = rollup.total_seconds.to_i
+      duration = details.fetch(:total_seconds)
       next if duration <= 0
 
       project_summary_payload(project_key, duration, mappings_by_name[project_key], latest_user_commit_at_by_repo_id)

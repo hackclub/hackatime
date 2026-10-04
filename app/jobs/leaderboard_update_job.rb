@@ -25,27 +25,22 @@ class LeaderboardUpdateJob < ApplicationJob
 
     range = LeaderboardDateRange.calculate(date, period)
     timestamp = Time.current
-    eligible_users = User.where.not(github_uid: nil).where.not(trust_level: User.trust_levels[:red])
+    eligible_user_ids = User.where.not(github_uid: nil).where.not(trust_level: User.trust_levels[:red]).pluck(:id).to_set
+
+    # Heartbeats live in ClickHouse, so eligibility (a Postgres query) is applied
+    # to the per-user totals rather than inside the heartbeat query.
+    data = Heartbeat.where(time: range)
+                    .leaderboard_eligible
+                    .group(:user_id).duration_seconds
+                    .filter { |user_id, seconds| seconds > 60 && eligible_user_ids.include?(user_id) }
+
+    streaks = Heartbeat.daily_streaks_for_users(data.keys, start_date: 31.days.ago, exclude_browser_time: true)
+    entries = data.map do |user_id, seconds|
+      { leaderboard_id: board.id, user_id:, total_seconds: seconds,
+        streak_count: streaks[user_id] || 0, created_at: timestamp, updated_at: timestamp }
+    end
 
     ActiveRecord::Base.transaction do
-      data = Heartbeat.where(user_id: eligible_users.select(:id), time: range)
-                      .leaderboard_eligible
-                      .group(:user_id).duration_seconds
-                      .filter { |_, seconds| seconds > 60 }
-
-      # Two-phase streak: query 8d first (covers most), extend to 31d for users who maxed it.
-      streaks = Heartbeat.daily_streaks_for_users(data.keys, start_date: 8.days.ago, exclude_browser_time: true)
-      needs_full_history = streaks.select { |_, s| s >= 6 }.keys
-      if needs_full_history.any?
-        Rails.cache.delete_multi(Heartbeat.streak_cache_keys(needs_full_history, exclude_browser_time: true).values)
-        streaks.merge!(Heartbeat.daily_streaks_for_users(needs_full_history, start_date: 31.days.ago, exclude_browser_time: true))
-      end
-
-      entries = data.map do |user_id, seconds|
-        { leaderboard_id: board.id, user_id:, total_seconds: seconds,
-          streak_count: streaks[user_id] || 0, created_at: timestamp, updated_at: timestamp }
-      end
-
       LeaderboardEntry.upsert_all(entries, unique_by: %i[leaderboard_id user_id]) if entries.any?
 
       if data.keys.any?

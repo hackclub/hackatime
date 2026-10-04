@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_30_162032) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_04_130100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -78,24 +78,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_162032) do
     t.index ["repository_id"], name: "index_commits_on_repository_id"
     t.index ["user_id", "created_at"], name: "index_commits_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_commits_on_user_id"
-  end
-
-  create_table "dashboard_rollups", force: :cascade do |t|
-    t.text "bucket_value", default: "", null: false
-    t.boolean "bucket_value_present", default: true, null: false
-    t.datetime "created_at", null: false
-    t.string "dimension", null: false
-    t.jsonb "payload"
-    t.integer "source_heartbeats_count"
-    t.float "source_max_heartbeat_time"
-    t.integer "total_seconds", default: 0, null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["bucket_value"], name: "index_dashboard_rollups_on_bucket_value"
-    t.index ["dimension"], name: "index_dashboard_rollups_on_dimension_total", where: "(((dimension)::text = 'total'::text) AND (total_seconds > 0))"
-    t.index ["user_id", "dimension", "bucket_value_present", "bucket_value"], name: "idx_dashboard_rollups_user_dimension_bucket", unique: true
-    t.index ["user_id", "dimension"], name: "index_dashboard_rollups_on_user_id_and_dimension"
-    t.index ["user_id"], name: "index_dashboard_rollups_on_user_id"
   end
 
   create_table "deletion_requests", force: :cascade do |t|
@@ -339,6 +321,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_162032) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_heartbeat_import_sources_on_user_id", unique: true
+  end
+
+  create_table "heartbeat_rollup_states", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "generation", null: false
+    t.string "heartbeat_cache_version", null: false
+    t.string "timezone", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_heartbeat_rollup_states_on_user_id", unique: true
   end
 
   create_table "heartbeats", force: :cascade do |t|
@@ -588,6 +580,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_162032) do
     t.index ["user_id"], name: "index_project_repo_mappings_on_user_id"
   end
 
+  create_table "rehearsal_expect", primary_key: "name", id: :text, force: :cascade do |t|
+    t.bigint "value"
+  end
+
   create_table "repo_host_events", id: :string, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "provider", default: 0, null: false
@@ -787,7 +783,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_162032) do
   add_foreign_key "api_keys", "users"
   add_foreign_key "commits", "repositories"
   add_foreign_key "commits", "users"
-  add_foreign_key "dashboard_rollups", "users"
   add_foreign_key "deletion_requests", "users"
   add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
   add_foreign_key "documentation_feedbacks", "users", on_delete: :cascade
@@ -799,8 +794,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_30_162032) do
   add_foreign_key "heartbeat_exclusions", "users", column: "revoked_by_id", on_delete: :nullify
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
-  add_foreign_key "heartbeats", "ja4s", on_delete: :nullify
-  add_foreign_key "heartbeats", "users"
+  add_foreign_key "heartbeat_rollup_states", "users", on_delete: :cascade
   add_foreign_key "instance_import_sources", "users"
   add_foreign_key "leaderboard_entries", "leaderboards"
   add_foreign_key "leaderboard_entries", "users"

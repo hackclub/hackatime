@@ -70,36 +70,6 @@ Rails.application.configure do
     #   cron: "* * * * *",
     #   class: "CleanupExpiredEmailVerificationRequestsJob"
     # },
-    cache_active_user_graph_data_job: {
-      cron: "*/10 * * * *",
-      class: "Cache::ActiveUsersGraphDataJob",
-      kwargs: { force_reload: true }
-    },
-    cache_currently_hacking: {
-      cron: "* * * * *",
-      class: "Cache::CurrentlyHackingJob",
-      kwargs: { force_reload: true }
-    },
-    cache_home_stats: {
-      cron: "*/10 * * * *",
-      class: "Cache::HomeStatsJob",
-      kwargs: { force_reload: true }
-    },
-    cache_active_projects: {
-      cron: "* * * * *",
-      class: "Cache::ActiveProjectsJob",
-      kwargs: { force_reload: true }
-    },
-    cache_minutes_logged: {
-      cron: "* * * * *",
-      class: "Cache::MinutesLoggedJob",
-      kwargs: { force_reload: true }
-    },
-    cache_heartbeat_counts: {
-      cron: "* * * * *",
-      class: "Cache::HeartbeatCountsJob",
-      kwargs: { force_reload: true }
-    },
     weekly_summary_email: {
       cron: "30 18 * * 0",
       class: "WeeklySummaryEmailJob",

@@ -344,8 +344,13 @@ class User < ApplicationRecord
   # Include in the cache key of any per-user data derived from heartbeats.
   def heartbeat_cache_version = @heartbeat_cache_version ||= HeartbeatExclusion.cache_versions([ id ]).fetch(id)
 
+  # Archived project names live in Postgres and heartbeats in ClickHouse, so the
+  # names are loaded first and passed in as constants (never as a subquery).
   def heartbeats_excluding_archived_projects
-    heartbeats.where(project: nil).or(heartbeats.where.not(project: project_repo_mappings.archived.select(:project_name)))
+    archived = project_repo_mappings.archived.pluck(:project_name)
+    return heartbeats if archived.empty?
+
+    heartbeats.where(project: nil).or(heartbeats.where.not(project: archived))
   end
 
   def format_extension_text(duration)

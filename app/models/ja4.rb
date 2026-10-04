@@ -1,5 +1,8 @@
 class Ja4 < ApplicationRecord
-  has_many :heartbeats, dependent: :nullify
+  # Heartbeats are in ClickHouse, so nullifying their ja4_id on destroy would be
+  # a table-wide mutation there. JA4 rows are reference data and are never
+  # deleted in normal operation; refuse rather than leave dangling ids silently.
+  has_many :heartbeats, dependent: :restrict_with_exception
 
   validates :fingerprint, presence: true
 

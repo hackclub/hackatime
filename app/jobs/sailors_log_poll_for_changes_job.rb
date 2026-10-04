@@ -37,14 +37,8 @@ class SailorsLogPollForChangesJob < ApplicationJob
   def update_sailors_log(sailors_log)
     return [] if sailors_log.user.active_heartbeat_import_run?
 
-    project_durations = DashboardRollup
-      .where(user_id: sailors_log.user.id, dimension: "project", bucket_value_present: true)
-      .pluck(:bucket_value, :total_seconds).to_h
-
-    if project_durations.empty?
-      DashboardRollupRefreshJob.schedule_for(sailors_log.user.id, wait: 0.seconds)
-      return []
-    end
+    project_durations = DashboardStats.new(user: sailors_log.user).rollup_snapshot&.dig(:grouped_durations, :project)
+    return [] if project_durations.blank?
 
     project_updates = []
     project_durations.each do |k, v|

@@ -13,7 +13,7 @@ class ProfileStatsServiceTest < ActiveSupport::TestCase
     create_heartbeat(user, time: base_time + 60, project: "alpha", language: "Ruby", editor: "vscode")
     create_heartbeat(user, time: base_time + 120, project: "beta", language: "Python", editor: "vscode")
 
-    DashboardRollupRefreshService.new(user: user).call
+    HeartbeatRollup.rebuild!(user)
 
     payload = ProfileStatsService.new(user).dashboard_stats
 
@@ -29,7 +29,7 @@ class ProfileStatsServiceTest < ActiveSupport::TestCase
     create_heartbeat(user, time: base_time, project: "alpha", language: "Ruby", editor: "vscode")
     create_heartbeat(user, time: base_time + 60, project: "alpha", language: "Ruby", editor: "vscode")
 
-    DashboardRollupRefreshService.new(user: user).call
+    HeartbeatRollup.rebuild!(user)
 
     og = ProfileStatsService.new(user).og_stats
 
