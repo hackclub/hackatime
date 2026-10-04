@@ -1,5 +1,7 @@
 class DashboardRollupRefreshJob < ApplicationJob
-  queue_as :default
+  # Not :default: in production that queue shares threads with literally_whenever,
+  # so large batches such as weekly summary emails delay refreshes for hours.
+  queue_as :latency_5m
 
   include GoodJob::ActiveJobExtensions::Concurrency
 
