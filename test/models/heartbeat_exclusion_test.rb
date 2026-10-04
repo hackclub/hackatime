@@ -33,7 +33,7 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
 
     assert_not_includes Heartbeat.all, @before_cutoff
     assert_includes Heartbeat.all, @after_cutoff
-    assert Heartbeat.unscoped.with_excluded.exists?(@before_cutoff.id)
+    assert Heartbeat.unscoped.exists?(@before_cutoff.id)
   end
 
   test "poisoning applies to the user's own association reads" do
