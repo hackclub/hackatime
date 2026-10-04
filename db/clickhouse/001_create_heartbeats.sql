@@ -41,8 +41,7 @@ CREATE TABLE IF NOT EXISTS heartbeats
     ai_prompt_length Nullable(Int32) CODEC(T64, ZSTD(1)),
     ai_line_changes Nullable(Int32) CODEC(T64, ZSTD(1)),
     human_line_changes Nullable(Int32) CODEC(T64, ZSTD(1)),
-    -- Whole seconds: about a third of the size of microseconds, and nothing
-    -- reads these more finely.
+    -- Whole seconds
     deleted_at Nullable(DateTime('UTC')) CODEC(Delta(4), ZSTD(1)),
     created_at DateTime('UTC') CODEC(Delta(4), ZSTD(1)),
     updated_at DateTime('UTC') CODEC(Delta(4), ZSTD(1))
