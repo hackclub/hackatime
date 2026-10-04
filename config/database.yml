@@ -2,7 +2,6 @@ default: &default
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 50 } %>
   timeout: 5000
 
-# Heartbeats live in ClickHouse; everything else stays in Postgres.
 # Schema is owned by db/clickhouse/*.sql (bin/rails clickhouse:schema:load), not by
 # Rails migrations, so database_tasks is off for this connection.
 clickhouse: &clickhouse
@@ -11,9 +10,6 @@ clickhouse: &clickhouse
   database_tasks: false
   read_timeout: 120
   write_timeout: 120
-  # Query settings (aggregate_functions_null_for_empty, memory limits, async
-  # inserts) live on the ClickHouse user's settings profile, not here: the
-  # adapter ignores arbitrary connection settings.
 
 development:
   primary:
