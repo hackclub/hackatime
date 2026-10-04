@@ -16,7 +16,7 @@ CREATE TABLE heartbeat_rollups
     `generation` UInt64,
     `local_date` Date32,
     `hour` UInt8,
-    `project` Nullable(String),
+    `project` LowCardinality(Nullable(String)),
     `language` LowCardinality(Nullable(String)),
     `editor` LowCardinality(Nullable(String)),
     `operating_system` LowCardinality(Nullable(String)),
