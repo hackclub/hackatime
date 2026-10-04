@@ -22,10 +22,6 @@ Edit your `.env` file to include the following:
 # Database configurations - these work with the Docker setup
 DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
 
-# Heartbeats live in ClickHouse. This runs it in Docker next to Postgres; to use
-# another ClickHouse server instead, leave it out and set CLICKHOUSE_URL.
-COMPOSE_PROFILES=clickhouse
-
 # Generate these with `rails secret` or use these for development
 SECRET_KEY_BASE=alallalalallalalallalalalladlalllalal
 ENCRYPTION_PRIMARY_KEY=32characterrandomstring12345678901
