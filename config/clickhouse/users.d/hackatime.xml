@@ -1,11 +1,5 @@
-<!-- Query limits for the Hackatime ClickHouse users.
-     Mounted at /etc/clickhouse-server/users.d/hackatime.xml. The `hackatime`
-     user itself is created by the container from CLICKHOUSE_USER/PASSWORD;
-     this file only attaches its profile. -->
 <clickhouse>
     <profiles>
-        <!-- App: request-path and job queries. Bounded so one bad query cannot
-             take memory from Postgres on the shared box. -->
         <app>
             <max_memory_usage>8589934592</max_memory_usage>
             <max_execution_time>120</max_execution_time>
