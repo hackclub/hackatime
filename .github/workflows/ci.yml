@@ -29,6 +29,11 @@ jobs:
         continue-on-error: true
         run: bin/brakeman --no-pager -f sarif -o brakeman.sarif.json
 
+      # Warnings already reviewed in config/brakeman.ignore are marked as
+      # suppressed in the SARIF, but Code Scanning still opens alerts for them.
+      - name: Drop warnings reviewed in config/brakeman.ignore
+        run: jq '.runs[].results |= map(select(.suppressions == null))' brakeman.sarif.json > brakeman.reviewed.sarif.json && mv brakeman.reviewed.sarif.json brakeman.sarif.json
+
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v4.37.9
         with:
