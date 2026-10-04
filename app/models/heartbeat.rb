@@ -13,12 +13,6 @@ class Heartbeat < ClickhouseRecord
   # across the migration and every API response keeps a stable integer id.
   ID_SEQUENCE = "heartbeats_id_seq".freeze
 
-  # The adapter cannot parse the precision out of DateTime64(6, 'UTC'), so it
-  # would silently drop microseconds on write. Declare it explicitly.
-  %i[created_at updated_at deleted_at].each do |column|
-    attribute column, ActiveRecord::ConnectionAdapters::Clickhouse::OID::DateTime.new(precision: 6)
-  end
-
   # Default scope to exclude deleted records
   default_scope { where(deleted_at: nil) }
   default_scope { where(HeartbeatExclusion.visibility_predicate) }

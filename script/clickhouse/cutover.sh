@@ -172,7 +172,7 @@ backfill)
 pause)
   read_only_sql | pg
   pg -c "SELECT coalesce(max(id), 0) FROM heartbeats" > "$STATE_DIR/final_watermark"
-  pg -c "SELECT now() AT TIME ZONE 'UTC'" > "$STATE_DIR/paused_at"
+  pg -c "SELECT date_trunc('second', now() AT TIME ZONE 'UTC')" > "$STATE_DIR/paused_at"
   if pg -c "INSERT INTO heartbeats SELECT * FROM heartbeats WHERE false" 2>/dev/null; then
     log "Postgres heartbeats still accepts writes"; exit 1
   fi
@@ -197,7 +197,7 @@ delta)
   # are compared against their current state.
   # Account deletions since the backfill soft-delete every heartbeat of the user.
   # They stamp one time on all of the user's live rows, the latest deleted_at.
-  pg -F ' ' -c "SELECT user_id, to_char(max(deleted_at), 'YYYY-MM-DD HH24:MI:SS.US') FROM heartbeats
+  pg -F ' ' -c "SELECT user_id, to_char(max(deleted_at), 'YYYY-MM-DD HH24:MI:SS') FROM heartbeats
                 WHERE user_id IN (SELECT user_id FROM deletion_requests
                                   WHERE completed_at >= TIMESTAMP '$(state backfill_started_at)' - INTERVAL '1 hour')
                   AND deleted_at IS NOT NULL GROUP BY user_id" \
@@ -272,7 +272,7 @@ repair)
   # changes after insert) from the frozen copy onto rows that differ, e.g. a
   # soft delete made from a console that the delta could not see.
   final=$(state final_watermark); paused_at=$(state paused_at)
-  ch --query "CREATE TABLE IF NOT EXISTS $STAGING_DB.repairs (id UInt64, deleted_at Nullable(DateTime64(6, 'UTC')), ja4_id Nullable(UInt64)) ENGINE = MergeTree ORDER BY id"
+  ch --query "CREATE TABLE IF NOT EXISTS $STAGING_DB.repairs (id UInt64, deleted_at Nullable(DateTime('UTC')), ja4_id Nullable(UInt64)) ENGINE = MergeTree ORDER BY id"
   ch --query "TRUNCATE TABLE $STAGING_DB.repairs"
   ch --query "
     INSERT INTO $STAGING_DB.repairs
@@ -282,7 +282,7 @@ repair)
                 WHERE id <= $final AND (deleted_at IS NULL OR deleted_at < '$paused_at')) AS dst USING (id)
     WHERE NOT (src.deleted_at <=> dst.deleted_at AND src.ja4_id <=> dst.ja4_id)"
   ch --format TSV --query "SELECT DISTINCT deleted_at, ja4_id FROM $STAGING_DB.repairs" | while IFS=$'\t' read -r deleted_at ja4_id; do
-    [ "$deleted_at" = '\N' ] && deleted_value=NULL || deleted_value="toDateTime64('$deleted_at', 6, 'UTC')"
+    [ "$deleted_at" = '\N' ] && deleted_value=NULL || deleted_value="toDateTime('$deleted_at', 'UTC')"
     [ "$ja4_id" = '\N' ] && ja4_value=NULL || ja4_value=$ja4_id
     ch --query "UPDATE $DST_DB.heartbeats SET deleted_at = $deleted_value, ja4_id = $ja4_value
                 WHERE id IN (SELECT id FROM $STAGING_DB.repairs WHERE deleted_at <=> $deleted_value AND ja4_id <=> $ja4_value)"

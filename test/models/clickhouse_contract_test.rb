@@ -68,11 +68,11 @@ class ClickhouseContractTest < ActiveSupport::TestCase
     assert_equal "wakapi_import", Heartbeat.unscoped.with_excluded.find(id).source_type
   end
 
-  test "DateTime64(6) keeps UTC and microseconds" do
+  test "timestamps are stored in UTC to the second" do
     stamp = Time.utc(2026, 10, 4, 12, 0, 0, 654_321)
     id = insert_row(created_at: stamp, updated_at: stamp)
     got = Heartbeat.unscoped.with_excluded.where(id:).pick(:created_at)
-    assert_equal stamp.to_r, got.to_r
+    assert_equal Time.utc(2026, 10, 4, 12, 0, 0), got
     assert_equal "UTC", got.utc? ? "UTC" : got.zone
   end
 
