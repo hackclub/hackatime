@@ -49,7 +49,7 @@ $ docker compose exec web /bin/bash
 We'll now setup the database. In your container shell, run the following:
 
 ```bash
-app# bin/rails db:create db:schema:load clickhouse:schema:load db:seed
+app# bin/rails db:create db:schema:load db:seed
 ```
 
 Run the Vite build with SSR (server-side-rendering):

@@ -27,6 +27,9 @@
 #                 rows that committed after the backfill read (default: 2000000)
 #
 # Production order:
+#   0. Create the ClickHouse tables: bin/rails db:migrate:clickhouse with
+#      CLICKHOUSE_URL pointing at production. The deploy's db:prepare then sees
+#      ClickHouse as already migrated.
 #   1. backfill (about 20 minutes, no downtime), with CH=/root/hackatime-ch-prod/ch
 #      and PG_URL the read replica.
 #   2. Build the ClickHouse release image, then: pause and delta with PG_URL the
@@ -127,13 +130,6 @@ copy_all() {
     touch "'"$done_dir"'/$start"'
 }
 
-apply_schema() {
-  ch --query "CREATE DATABASE IF NOT EXISTS $DST_DB"
-  for file in "$ROOT"/db/clickhouse/*.sql; do
-    ch --database "$DST_DB" --multiquery < "$file"
-  done
-}
-
 read_only_sql() {
   cat <<'SQL'
 SET lock_timeout = '10s';
@@ -151,7 +147,7 @@ SQL
 
 case "$STEP" in
 backfill)
-  apply_schema
+  # The table comes from the ClickHouse migrations (bin/rails db:migrate:clickhouse).
   [ "$(ch --query "SELECT count() FROM $DST_DB.heartbeats")" = 0 ] || { log "$DST_DB.heartbeats is not empty"; exit 1; }
   create_staging_table heartbeats_pg
   if [ ! -f "$STATE_DIR/backfill_watermark" ]; then

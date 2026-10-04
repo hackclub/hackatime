@@ -1,5 +1,5 @@
-# Per-user dashboard rollup stored in ClickHouse
-# (db/clickhouse/002_create_heartbeat_rollups.sql). Derived data: rebuilt from
+# Per-user dashboard rollup stored in ClickHouse (see the CreateHeartbeatRollups
+# ClickHouse migration). Derived data: rebuilt from
 # heartbeats by DashboardRollupRefreshJob and read only through the generation
 # published in HeartbeatRollupState.
 class HeartbeatRollup < ClickhouseRecord

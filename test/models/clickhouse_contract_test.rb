@@ -1,8 +1,8 @@
 require "test_helper"
 
 # Contract tests for the clickhouse-activerecord adapter against the real
-# heartbeats DDL (db/clickhouse/001_create_heartbeats.sql). These pin the
-# behaviours the rest of the app relies on: exact types, nil vs empty, big ids,
+# heartbeats DDL (db/clickhouse_migrate). These pin the behaviours the rest of
+# the app relies on: exact types, nil vs empty, big ids,
 # explicit write settings, read-after-write, lightweight updates and
 # cross-database associations.
 class ClickhouseContractTest < ActiveSupport::TestCase

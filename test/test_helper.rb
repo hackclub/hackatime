@@ -12,10 +12,9 @@ module ActiveSupport
     # ClickHouse cannot roll back; ClickhouseTestDatabase truncates it instead.
     skip_transactional_tests_for_database :clickhouse
 
-    parallelize_setup { |worker| ClickhouseTestDatabase.setup!(worker) }
-    # Single-process runs (PARALLEL_WORKERS=1 or one test file) never call parallelize_setup.
-    ClickhouseTestDatabase.setup! unless ENV.fetch("PARALLEL_WORKERS", 2).to_i > 1
-
+    # Test files that load WebMock are already loaded here, and each worker's
+    # ClickHouse database is created over HTTP right after the fork.
+    parallelize_before_fork { ClickhouseTestDatabase.allow_through_webmock! }
     setup { ClickhouseTestDatabase.reset! }
 
     include FactoryBot::Syntax::Methods
