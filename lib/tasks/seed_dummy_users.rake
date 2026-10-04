@@ -39,7 +39,6 @@ namespace :seed do
     ids = User.where("github_uid LIKE ?", "dummy_%").ids
     return puts "no dummies found (except for you)" if ids.empty?
 
-    # Lightweight delete; delete_all would run a heavyweight ClickHouse mutation.
     Heartbeat.connection.with_response_format(nil) do
       Heartbeat.connection.execute("DELETE FROM heartbeats WHERE user_id IN (#{ids.map { |id| Integer(id) }.join(', ')})")
     end
