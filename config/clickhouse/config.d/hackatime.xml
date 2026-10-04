@@ -1,0 +1,36 @@
+<!-- Server config for the Hackatime ClickHouse (heartbeat store).
+     Mounted at /etc/clickhouse-server/config.d/hackatime.xml. -->
+<clickhouse>
+    <!-- Container is capped at 28 GiB; keep server usage under that. -->
+    <max_server_memory_usage>25769803776</max_server_memory_usage>
+    <logger><level>warning</level></logger>
+
+    <!-- Backups go to S3 via the hackatime_backups named collection (see below).
+         One backup or restore at a time. -->
+    <backups>
+        <allow_concurrent_backups>false</allow_concurrent_backups>
+        <allow_concurrent_restores>false</allow_concurrent_restores>
+    </backups>
+
+    <!-- S3 credentials come from container env (set in Coolify), so they never
+         appear in queries, query_log or the repo. ClickHouse matches any S3()
+         URL starting with the endpoint below and signs it with these keys, so
+         backups are just: BACKUP DATABASE hackatime TO S3('<url>/full/2026-10-04/') -->
+    <s3>
+        <hackatime_backups>
+            <endpoint from_env="CLICKHOUSE_BACKUP_S3_URL"/>
+            <access_key_id from_env="CLICKHOUSE_BACKUP_S3_ACCESS_KEY"/>
+            <secret_access_key from_env="CLICKHOUSE_BACKUP_S3_SECRET_KEY"/>
+            <region from_env="CLICKHOUSE_BACKUP_S3_REGION"/>
+        </hackatime_backups>
+    </s3>
+
+    <!-- Scraped by the hackatime-monitoring Prometheus over the coolify network. -->
+    <prometheus>
+        <endpoint>/metrics</endpoint>
+        <port>9363</port>
+        <metrics>true</metrics>
+        <events>true</events>
+        <asynchronous_metrics>true</asynchronous_metrics>
+    </prometheus>
+</clickhouse>
