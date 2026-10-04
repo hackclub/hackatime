@@ -1,10 +1,6 @@
 module DashboardData
-  # Dashboard aggregates computed live from ClickHouse heartbeats.
-  #
-  # Duration semantics are unchanged from the Postgres implementation (see
-  # Heartbeatable::DurationSql): each heartbeat contributes the capped gap since
-  # the previous heartbeat in its partition, the first row contributes zero, and
-  # rows are ordered by (time, id).
+  # Dashboard aggregates computed live from heartbeats, using the duration rules
+  # in Heartbeatable::DurationSql.
   module Snapshots
     GROUPED_DIMENSIONS = %i[project language editor operating_system category].freeze
 
@@ -49,7 +45,6 @@ module DashboardData
       SQL
 
       rows.each_with_object({}) do |(project, count, first, last, languages, duration), result|
-        # The adapter returns Float64 aggregates as BigDecimal; keep epoch floats.
         result[project] = {
           total_seconds: duration.to_i,
           total_heartbeats: count.to_i,
@@ -198,7 +193,6 @@ module DashboardData
     # range and archive/visibility eligibility sit INSIDE the gap window (they
     # define the timeline); dimension filters apply AFTER it, so each kept
     # heartbeat keeps the gap to the previous heartbeat on the whole timeline.
-    # Every aggregate the dashboard renders comes from one ClickHouse query.
     #
     # `scope` is the timeline; the block narrows it to the filtered heartbeats
     # and its where-clause is reused as the post-window filter.
@@ -210,7 +204,6 @@ module DashboardData
       filtered_query_snapshot(user:, scope: timeline, filter_sql:)
     end
 
-    # The extra WHERE conditions the filtered relation adds on top of the timeline.
     def post_window_filter_sql(timeline, filtered)
       extra = filtered.where_clause - timeline.where_clause
       return "1" if extra.empty?

@@ -16,8 +16,6 @@ class ClickhouseRecord < ActiveRecord::Base
   SYNC_INSERT_SETTINGS = { async_insert: 0, insert_deduplicate: 0, deduplicate_insert: "disable" }.freeze
 
   class << self
-    # Runs a statement with ClickHouse query settings applied to every request
-    # made inside the block.
     def with_clickhouse_settings(**settings, &block)
       connection.with_settings(**settings, &block)
     end

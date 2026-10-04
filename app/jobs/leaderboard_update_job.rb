@@ -27,8 +27,7 @@ class LeaderboardUpdateJob < ApplicationJob
     timestamp = Time.current
     eligible_user_ids = User.where.not(github_uid: nil).where.not(trust_level: User.trust_levels[:red]).pluck(:id).to_set
 
-    # Heartbeats live in ClickHouse, so eligibility (a Postgres query) is applied
-    # to the per-user totals rather than inside the heartbeat query.
+    # Eligibility is a Postgres query, so it filters the totals, not the ClickHouse query.
     data = Heartbeat.where(time: range)
                     .leaderboard_eligible
                     .group(:user_id).duration_seconds

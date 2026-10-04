@@ -31,12 +31,9 @@ module Heartbeatable
   #
   # ClickHouse's lagInFrame returns the type default (0.0) for the first row
   # rather than NULL, so the first row is detected with row_number() instead.
-  # Durations are summed as floats and rounded once at the end, matching
-  # Postgres's float -> integer cast (halves round to even).
   module DurationSql
     module_function
 
-    # `gap` expression for a window named `w` over `time`.
     def capped_gap(timeout, window: "w")
       "least(if(row_number() OVER #{window} = 1, 0, time - lagInFrame(time) OVER #{window}), #{Integer(timeout)})"
     end
@@ -185,8 +182,7 @@ module Heartbeatable
     # Per local day, project and AI model: duration (gap to the next heartbeat
     # on the same local day, capped), AI token sums and counts. The "next"
     # heartbeat is the previous row in descending (time, id) order, so the
-    # day's last heartbeat contributes 0. (No SQL `--` comments: the query is
-    # squished onto one line.)
+    # day's last heartbeat contributes 0.
     def daily_activity_summary_rows(scope:, timezone:)
       timezone = valid_timezone(timezone)
       timeout = heartbeat_timeout_duration.to_i

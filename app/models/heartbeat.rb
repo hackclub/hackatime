@@ -83,7 +83,6 @@ class Heartbeat < ClickhouseRecord
 
   # A heartbeat's identity: two heartbeats are the same heartbeat (a client
   # resend) when all of these match. AI attributes only count when present.
-  # This is the attribute set Postgres hashed into fields_hash.
   IDENTITY_ATTRIBUTES = %w[user_id branch category dependencies editor entity language machine operating_system project type user_agent line_additions line_deletions lineno lines cursorpos project_root_count time is_write].freeze
   AI_IDENTITY_ATTRIBUTES = %w[ai_model ai_session ai_subscription_plan ai_input_tokens ai_output_tokens ai_prompt_length ai_line_changes human_line_changes].freeze
 
@@ -106,8 +105,6 @@ class Heartbeat < ClickhouseRecord
 
   INSERT_COLUMNS = %w[id user_id time project branch entity category editor language machine operating_system type user_agent ip_address dependencies dependencies_is_null lineno lines cursorpos line_additions line_deletions project_root_count is_write source_type ja4_id ai_model ai_session ai_subscription_plan ai_input_tokens ai_output_tokens ai_prompt_length ai_line_changes human_line_changes deleted_at created_at updated_at].freeze
 
-  # Converts model attributes into a ClickHouse row: enum to its integer,
-  # dependencies to a non-null array plus its null flag, ip to a string.
   def self.row_for_insert(attributes)
     attrs = attributes.to_h.transform_keys(&:to_s)
     row = attrs.slice(*INSERT_COLUMNS)
@@ -122,8 +119,7 @@ class Heartbeat < ClickhouseRecord
 
   # Finds already-stored heartbeats with the same identity as any of the given
   # candidates, for one user. Hidden (excluded) heartbeats still own their
-  # identity; soft-deleted ones do not, matching the old partial unique index.
-  # Returns { identity_key => Heartbeat }.
+  # identity; soft-deleted ones do not. Returns { identity_key => Heartbeat }.
   #
   # One ClickHouse query: candidates narrow by (user_id, time) on the sort key,
   # then every identity attribute is compared exactly, with NULL equal to NULL.

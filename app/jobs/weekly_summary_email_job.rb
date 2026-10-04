@@ -15,7 +15,6 @@ class WeeklySummaryEmailJob < ApplicationJob
   private
 
   def eligible_users(cutoff)
-    # Heartbeats live in ClickHouse, so recent activity is resolved to user ids first.
     active_user_ids = Heartbeat.where("time >= ?", cutoff.to_f).distinct.pluck(:user_id)
     subscribed = User.subscribed("weekly_summary")
 

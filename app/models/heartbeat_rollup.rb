@@ -6,7 +6,6 @@ class HeartbeatRollup < ClickhouseRecord
   DIMENSIONS = %i[project language editor operating_system category].freeze
   Sql = Heartbeatable::DurationSql
 
-  # Grouping columns of the snapshot query and the grouping sets built from them.
   GROUP_COLUMNS = %w[project language editor operating_system category slot week graph_date today_language today_editor].freeze
   GROUPING_SETS = {
     total: [],
