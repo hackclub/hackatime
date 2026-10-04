@@ -127,6 +127,17 @@ class HeartbeatTest < ActiveSupport::TestCase
     end
   end
 
+  test "today includes the last fractional second of the local day" do
+    user = create(:user)
+    travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+      last_second = Time.utc(2026, 4, 14, 23, 59, 59).to_f + 0.75
+      create(:heartbeat, user:, time: last_second, source_type: :test_entry)
+      create(:heartbeat, user:, time: Time.utc(2026, 4, 15).to_f, source_type: :test_entry)
+
+      assert_equal [ last_second ], Time.use_zone("UTC") { user.heartbeats.today.pluck(:time) }
+    end
+  end
+
   private
 
   def create_heartbeat_sequence(user:, started_at:, editor:, count: 9)

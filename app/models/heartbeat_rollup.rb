@@ -71,8 +71,9 @@ class HeartbeatRollup < ClickhouseRecord
 
         case SET_BY_MASK.fetch(row[0])
         when :total
-          snapshot[:total_time] = seconds
-          snapshot[:total_heartbeats] = heartbeat_count
+          # sum() over no rows is NULL (aggregate_functions_null_for_empty).
+          snapshot[:total_time] = seconds.to_i
+          snapshot[:total_heartbeats] = heartbeat_count.to_i
           today_seconds = todays.to_i
         when :project
           project = values["project"]
@@ -202,7 +203,7 @@ class HeartbeatRollup < ClickhouseRecord
           SELECT *,
                  concat(toString(toDayOfWeek(local_date)), '-', toString(hour)) AS slot,
                  if(local_date >= toDate(#{quote_clickhouse(week_start)}), toString(toMonday(local_date)), NULL) AS week,
-                 if(local_date >= toDate(#{quote_clickhouse(graph_start)}), toString(local_date), NULL) AS graph_date,
+                 if(local_date BETWEEN toDate(#{quote_clickhouse(graph_start)}) AND toDate(#{quote_clickhouse(today)}), toString(local_date), NULL) AS graph_date,
                  if(#{is_today}, language, NULL) AS today_language,
                  if(#{is_today}, editor, NULL) AS today_editor
           FROM #{quoted_table_name}

@@ -23,7 +23,8 @@ class Heartbeat < ClickhouseRecord
   default_scope { where(deleted_at: nil) }
   default_scope { where(HeartbeatExclusion.visibility_predicate) }
 
-  scope :today, -> { where(time: Time.current.beginning_of_day.to_i..Time.current.end_of_day.to_i) }
+  # Local midnight up to (not including) the next one, so the day's last second counts.
+  scope :today, -> { where(time: Time.current.beginning_of_day.to_f...Time.current.tomorrow.beginning_of_day.to_f) }
   scope :recent, -> { where("time > ?", 24.hours.ago.to_i) }
   scope :with_deleted, -> { unscope(where: :deleted_at) }
   scope :only_deleted, -> { with_deleted.where.not(deleted_at: nil) }

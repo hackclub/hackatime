@@ -117,6 +117,31 @@ class HeartbeatRollupTest < ActiveSupport::TestCase
     assert_nil HeartbeatRollupState.current_for(User.find(user.id))
   end
 
+  test "a rollup with no eligible heartbeats reports zero totals" do
+    user = create(:user)
+    create_heartbeat(user, "2026-04-14 09:00:00 UTC", project: "archived", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+    create(:project_repo_mapping, user: user, project_name: "archived").archive!
+
+    HeartbeatRollup.rebuild!(user)
+    snapshot = HeartbeatRollup.dashboard_snapshot(HeartbeatRollupState.current_for(user))
+
+    assert_equal 0, snapshot[:total_time]
+    assert_equal 0, snapshot[:total_heartbeats]
+  end
+
+  test "the activity graph stops at today" do
+    travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+      user = create(:user)
+      create_heartbeat(user, "2026-04-15 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+      create_heartbeat(user, "2026-04-15 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+
+      HeartbeatRollup.rebuild!(user)
+      snapshot = HeartbeatRollup.dashboard_snapshot(HeartbeatRollupState.current_for(user))
+
+      assert_empty snapshot[:activity_graph][:duration_by_date]
+    end
+  end
+
   private
 
   def create_heartbeat(user, timestamp, project:, language:, editor:, operating_system:, category:)

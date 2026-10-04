@@ -1,10 +1,11 @@
 -- Per-user dashboard rollup, derived from heartbeats and rebuilt by
--- DashboardRollupRefreshService. One row per user, rebuild generation, local
+-- DashboardRollupRefreshJob. One row per user, rebuild generation, local
 -- hour (in the user's timezone at build time) and dashboard dimensions.
 --
 -- Each measure is a sum of capped heartbeat gaps (see Heartbeatable::DurationSql)
 -- computed over a different window, so the dashboard can be summed from these
--- rows exactly:
+-- rows. Adding float partial sums can differ from one live sum by float error,
+-- which only changes the rounded seconds in pathological cases. Measures:
 --   duration              whole timeline (totals, languages, editors, rhythm)
 --   project_duration      partitioned by project
 --   day_duration          partitioned by local day (activity graph, today)

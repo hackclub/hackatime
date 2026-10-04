@@ -32,7 +32,7 @@ module Heartbeatable
   # ClickHouse's lagInFrame returns the type default (0.0) for the first row
   # rather than NULL, so the first row is detected with row_number() instead.
   # Durations are summed as floats and rounded once at the end, matching
-  # Postgres's float -> integer cast (round half away from zero).
+  # Postgres's float -> integer cast (halves round to even).
   module DurationSql
     module_function
 
@@ -46,8 +46,8 @@ module Heartbeatable
       "(#{partition}ORDER BY time, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)"
     end
 
-    # Integer seconds from a float sum, rounding half away from zero like
-    # Postgres's float8 -> integer cast.
+    # Integer seconds from a float sum. ClickHouse's round() and Postgres's
+    # float8 -> integer cast both round halves to even (2.5 -> 2).
     def to_seconds(expr) = "toInt64(round(#{expr}))"
 
     # Constant, validated timezone literal.
