@@ -71,7 +71,8 @@ CREATE TABLE heartbeats
     `human_line_changes` Nullable(Int32) CODEC(T64, ZSTD(1)),
     `deleted_at` Nullable(DateTime('UTC')) CODEC(Delta(4), ZSTD(1)),
     `created_at` DateTime('UTC') CODEC(Delta(4), ZSTD(1)),
-    `updated_at` DateTime('UTC') CODEC(Delta(4), ZSTD(1))
+    `updated_at` DateTime('UTC') CODEC(Delta(4), ZSTD(1)),
+    INDEX time_minmax time TYPE minmax GRANULARITY 1
 )
 ENGINE = MergeTree
 ORDER BY (user_id, time, id)
@@ -88,6 +89,7 @@ ORDER BY (version)
 SETTINGS index_granularity = 8192;
 
 INSERT INTO schema_migrations (version) VALUES
+('20261004000003'),
 ('20261004000002'),
 ('20261004000001');
 
