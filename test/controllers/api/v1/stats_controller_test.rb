@@ -181,15 +181,24 @@ class Api::V1::StatsControllerTest < ActionDispatch::IntegrationTest
 
   test "aggregate stats accepts active admin API keys only from the header" do
     admin_api_key = create_admin_api_key
+    user = create(:user, username: "aggregate_stats_user")
+
+    get "/api/v1/stats", params: { username: user.username }, headers: { "Authorization" => "Bearer #{admin_api_key.token}" }
+    assert_response :success
+
+    get "/api/v1/stats", params: { username: user.username }, headers: { "Authorization" => "bearer #{admin_api_key.token}" }
+    assert_response :success
+
+    get "/api/v1/stats", params: { username: user.username, api_key: admin_api_key.token }
+    assert_response :unauthorized
+  end
+
+  test "aggregate stats requires a user" do
+    admin_api_key = create_admin_api_key
 
     get "/api/v1/stats", headers: { "Authorization" => "Bearer #{admin_api_key.token}" }
-    assert_response :success
 
-    get "/api/v1/stats", headers: { "Authorization" => "bearer #{admin_api_key.token}" }
-    assert_response :success
-
-    get "/api/v1/stats", params: { api_key: admin_api_key.token }
-    assert_response :unauthorized
+    assert_response :bad_request
   end
 
   test "aggregate stats rejects valid admin API keys under non-Bearer schemes" do

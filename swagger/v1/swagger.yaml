@@ -1634,9 +1634,9 @@ paths:
       summary: Get total coding time
       tags:
       - Stats
-      description: Returns the total coding time for all users, optionally filtered
-        by user or date range. Requires an active Admin API Key supplied via the Bearer
-        header.
+      description: Returns the total coding time for one user, optionally within a
+        date range. Pass username or user_email. Requires an active Admin API Key
+        supplied via the Bearer header.
       security:
       - Bearer: []
       parameters:
@@ -1654,12 +1654,12 @@ paths:
         description: End date (YYYY-MM-DD), defaults to today
       - name: username
         in: query
-        description: Filter by username (optional)
+        description: Username of the user. Either username or user_email is required.
         schema:
           type: string
       - name: user_email
         in: query
-        description: Filter by user email (optional)
+        description: Email address of the user. Either username or user_email is required.
         schema:
           type: string
       responses:
@@ -1673,6 +1673,13 @@ paths:
         '401':
           description: unauthorized — Returned when the Admin API Key is missing,
             revoked, or incorrect. (Auth is bypassed in the development environment.)
+          content:
+            text/plain:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '400':
+          description: bad request — Returned when neither username nor user_email
+            is given.
           content:
             text/plain:
               schema:
