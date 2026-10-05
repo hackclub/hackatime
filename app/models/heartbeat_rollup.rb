@@ -45,6 +45,7 @@ class HeartbeatRollup < ClickhouseRecord
 
       insert_generation!(user:, generation:, timezone:)
       published = HeartbeatRollupState.publish!(user_id: user.id, generation:, timezone:, heartbeat_cache_version:)
+      cached_dashboard_snapshot(HeartbeatRollupState.new(user_id: user.id, generation:, timezone:), force: true) if published
       if !published
         delete_generations!(user.id, "generation = #{generation}")
       elsif keep_replaced && replaced
@@ -53,6 +54,14 @@ class HeartbeatRollup < ClickhouseRecord
         delete_generations!(user.id, "generation < #{generation}")
       end
       published
+    end
+
+    # dashboard_snapshot, cached per generation and local day. The rebuild that
+    # publishes a generation writes it, so requests rarely query ClickHouse.
+    def cached_dashboard_snapshot(state, force: false)
+      _, today = DashboardData::Snapshots.activity_graph_date_range(state.timezone)
+      key = [ "heartbeat_rollup_snapshot_v1", state.user_id, state.generation, state.timezone, today ]
+      Rails.cache.fetch(key, expires_in: 1.day, force:) { dashboard_snapshot(state) }
     end
 
     # Everything the unfiltered dashboard renders, in the shapes produced by
@@ -130,9 +139,9 @@ class HeartbeatRollup < ClickhouseRecord
     end
 
     # Users with tracked time and their total seconds, from each user's newest
-    # generation. Shared site-wide for a minute.
-    def site_totals
-      Rails.cache.fetch("heartbeat_rollups/site_totals", expires_in: Heartbeat::SITE_ACTIVITY_CACHE_TTL) do
+    # generation. Refreshed by SiteActivityCacheJob.
+    def site_totals(force: false)
+      Rails.cache.fetch("heartbeat_rollups/site_totals", expires_in: Heartbeat::SITE_ACTIVITY_CACHE_TTL, force:) do
         users_tracked, seconds_tracked = connection.select_rows(<<~SQL.squish).first
           SELECT countIf(user_seconds > 0), sum(user_seconds)
           FROM (

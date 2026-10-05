@@ -197,8 +197,11 @@ class DashboardStats
 
     state = HeartbeatRollupState.current_for(user)
     DashboardRollupRefreshJob.schedule_for(user.id, wait: 0.seconds) unless state
-    @rollup_snapshot = state && HeartbeatRollup.dashboard_snapshot(state)
+    @rollup_snapshot = state && HeartbeatRollup.cached_dashboard_snapshot(state)
   end
+
+  # Whether the user has any visible heartbeat, from the rollup when it has some.
+  def heartbeats? = rollup_snapshot&.fetch(:total_heartbeats).to_i.positive? || user.heartbeats.exists?
 
   def activity_graph_date_range(timezone) = DashboardData::Snapshots.activity_graph_date_range(timezone)
   def today_stats_snapshot(scope) = DashboardData::Snapshots.today_stats_snapshot(user: user, scope: scope)

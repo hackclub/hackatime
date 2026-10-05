@@ -157,6 +157,28 @@ class HeartbeatRollupTest < ActiveSupport::TestCase
     end
   end
 
+  test "a rebuild caches its snapshot so readers do not query ClickHouse" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
+    user = create(:user)
+    create_heartbeat(user, 2.minutes.ago.utc.to_s, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+    create_heartbeat(user, 1.minute.ago.utc.to_s, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+
+    HeartbeatRollup.rebuild!(user)
+    state = HeartbeatRollupState.current_for(user)
+    clickhouse_queries = 0
+    count_queries = ->(*, payload) { clickhouse_queries += 1 if payload[:connection].is_a?(ActiveRecord::ConnectionAdapters::ClickhouseAdapter) }
+    snapshot = ActiveSupport::Notifications.subscribed(count_queries, "sql.active_record") do
+      HeartbeatRollup.cached_dashboard_snapshot(state)
+    end
+
+    assert_equal 0, clickhouse_queries
+    assert_equal HeartbeatRollup.dashboard_snapshot(state), snapshot
+    assert_equal 60, snapshot[:total_time]
+  ensure
+    Rails.cache = original_cache
+  end
+
   private
 
   def create_heartbeat(user, timestamp, project:, language:, editor:, operating_system:, category:)

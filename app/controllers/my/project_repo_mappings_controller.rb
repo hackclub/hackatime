@@ -151,12 +151,14 @@ class My::ProjectRepoMappingsController < InertiaController
   end
 
   def projects_data_for_index(archived:)
-    return empty_projects_payload unless current_user.heartbeats.exists?
+    return empty_projects_payload unless user_dashboard_stats.heartbeats?
     return InertiaRails.defer { projects_payload(archived:) } if archived
     return rollup_projects_payload(archived: archived) if rollup_projects_path?
 
     InertiaRails.defer { projects_payload(archived: archived) }
   end
+
+  def user_dashboard_stats = @user_dashboard_stats ||= DashboardStats.new(user: current_user)
 
   def empty_projects_payload
     { total_time_seconds: 0, total_time_label: format_duration(0), has_activity: false, projects: [] }
@@ -165,7 +167,7 @@ class My::ProjectRepoMappingsController < InertiaController
   def rollup_projects_path? = selected_interval.blank? && params[:from].blank? && params[:to].blank?
 
   def rollup_projects_payload(archived:)
-    details_by_project = DashboardStats.new(user: current_user).rollup_snapshot&.fetch(:project_details)
+    details_by_project = user_dashboard_stats.rollup_snapshot&.fetch(:project_details)
     return InertiaRails.defer { projects_payload(archived: archived) } if details_by_project.nil?
 
     mappings_by_name, archived_names, latest_user_commit_at_by_repo_id = projects_context(archived: archived)
