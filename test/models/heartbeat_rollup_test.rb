@@ -77,7 +77,7 @@ class HeartbeatRollupTest < ActiveSupport::TestCase
     end
   end
 
-  test "a rebuild publishes a new generation and removes older ones" do
+  test "a rebuild publishes a new generation and keeps only the one it replaced" do
     user = create(:user)
     create_heartbeat(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
     create_heartbeat(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
@@ -86,11 +86,26 @@ class HeartbeatRollupTest < ActiveSupport::TestCase
     first_generation = HeartbeatRollupState.find_by!(user:).generation
     create_heartbeat(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
     assert HeartbeatRollup.rebuild!(user)
+    second_generation = HeartbeatRollupState.find_by!(user:).generation
+    assert HeartbeatRollup.rebuild!(user)
 
     state = HeartbeatRollupState.find_by!(user:)
-    assert_operator state.generation, :>, first_generation
-    assert_equal [ state.generation ], HeartbeatRollup.where(user_id: user.id).distinct.pluck(:generation)
+    assert_operator state.generation, :>, second_generation
+    assert_operator second_generation, :>, first_generation
+    assert_equal [ second_generation, state.generation ], HeartbeatRollup.where(user_id: user.id).distinct.order(:generation).pluck(:generation)
     assert_equal 120, HeartbeatRollup.dashboard_snapshot(state)[:total_time]
+  end
+
+  test "a reader holding the previous state still sees it after a rebuild publishes" do
+    user = create(:user)
+    create_heartbeat(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+    create_heartbeat(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
+    HeartbeatRollup.rebuild!(user)
+    state_read_by_request = HeartbeatRollupState.current_for(user)
+
+    HeartbeatRollup.rebuild!(user)
+
+    assert_equal 60, HeartbeatRollup.dashboard_snapshot(state_read_by_request)[:total_time]
   end
 
   test "a generation older than the published one is discarded" do

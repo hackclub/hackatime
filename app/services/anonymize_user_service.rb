@@ -28,7 +28,7 @@ class AnonymizeUserService < ApplicationService
     # and ProcessAccountDeletionsJob retries it.
     Heartbeat.soft_delete_where!(user_id: user.id)
     # Replaces the dashboard rollup with an empty one, removing the old rows.
-    HeartbeatRollup.rebuild!(user)
+    HeartbeatRollup.rebuild!(user, keep_replaced: false)
   rescue StandardError => e
     report_error(e, message: "AnonymizeUserService failed for user #{user.id}", extra: { user_id: user.id })
     raise
