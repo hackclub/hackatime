@@ -264,6 +264,34 @@ module Heartbeatable
       end
     end
 
+    # The total and several groupings from one scan, as [total, { name => { value => seconds } }].
+    # Each grouping partitions gaps by its value, like scope.group(column).duration_seconds.
+    # `groups` maps a name to a column (Symbol) or a trusted SQL expression.
+    def grouped_duration_seconds(scope, groups)
+      columns = groups.values.grep(Symbol)
+      inner = scope.with_valid_timestamps.unscope(:group, :order, :select).select(:id, :time, *columns)
+      keys = [ "('', NULL)" ] + groups.map do |name, expr|
+        expr = connection.quote_column_name(expr) if expr.is_a?(Symbol)
+        "(#{connection.quote(name.to_s)}, toString(#{expr}))"
+      end
+
+      result = groups.keys.index_with { {} }
+      total = 0
+      connection.select_rows(<<~SQL.squish).each do |name, value, seconds|
+        SELECT key.1, key.2, #{DurationSql.to_seconds('sum(gap)')}
+        FROM (
+          SELECT key, #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap
+          FROM (#{inner.to_sql}) AS grouped_heartbeats
+          ARRAY JOIN [#{keys.join(', ')}] AS key
+          WINDOW w AS #{DurationSql.window('key')}
+        )
+        GROUP BY key
+      SQL
+        name.empty? ? total = seconds.to_i : result[name.to_sym][value] = seconds.to_i
+      end
+      [ total, result ]
+    end
+
     # Duration within [start_time, end_time], also counting the gap from the
     # last heartbeat before start_time to the first one inside the range.
     def duration_seconds_boundary_aware(scope, start_time, end_time, excluded_categories: [])

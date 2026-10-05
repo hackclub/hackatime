@@ -440,66 +440,43 @@
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "df41d93f4119ff99b128e3ecf5bbb9db6be687f35d27b4f5b86f80bc78573a47",
+      "fingerprint": "2b90047c9c3c1da003103a782f8343a6ea76b4a45759fb4e40f1c9eb93d626d7",
       "check_name": "SQL",
       "message": "Possible SQL injection",
-      "file": "app/services/dashboard_data/snapshots.rb",
-      "line": 73,
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 281,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "connection.select_rows(\"SELECT toString(week) AS week_key, project, #{Sql.to_seconds(\"sum(gap)\")} AS duration\\nFROM (\\n  SELECT project, #{\"toMonday(#{Sql.local_datetime(user.timezone)})\"} AS week, #{Sql.capped_gap(timeout)} AS gap\\n  FROM (#{scope.with_valid_timestamps.unscope(:order, :select).where(:time => ((week_ranges(user.timezone).last[1]..week_ranges(user.timezone).first[2]))).select(:id, :time, :project).to_sql}) AS weekly_heartbeats\\n  WINDOW w AS #{Sql.window([:project, \"toMonday(#{Sql.local_datetime(user.timezone)})\"])}\\n)\\nGROUP BY week, project\\n\".squish)",
+      "code": "connection.select_rows(\"SELECT key.1, key.2, #{DurationSql.to_seconds(\"sum(gap)\")}\\nFROM (\\n  SELECT key, #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap\\n  FROM (#{scope.with_valid_timestamps.unscope(:group, :order, :select).select(:id, :time, *groups.values.grep(Symbol)).to_sql}) AS grouped_heartbeats\\n  ARRAY JOIN [#{([\"('', NULL)\"] + groups.map do\n expr = connection.quote_column_name(expr) if expr.is_a?(Symbol)\n\"(#{connection.quote(name.to_s)}, toString(#{(expr or connection.quote_column_name(expr))}))\"\n\n end).join(\", \")}] AS key\\n  WINDOW w AS #{DurationSql.window(\"key\")}\\n)\\nGROUP BY key\\n\".squish)",
       "render_path": null,
       "location": {
         "type": "method",
-        "class": "DashboardData::Snapshots",
-        "method": "weekly_project_stats"
+        "class": "Heartbeatable",
+        "method": "grouped_duration_seconds"
       },
-      "user_input": "Sql.to_seconds(\"sum(gap)\")",
+      "user_input": "DurationSql.to_seconds(\"sum(gap)\")",
       "confidence": "Medium",
       "cwe_id": [
         89
       ],
-      "note": "ClickHouse dashboard SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; filters are compiled by Active Record."
+      "note": "ClickHouse duration SQL wrapping an Active Record relation (to_sql). Group names are quoted, columns are quoted identifiers and expressions come from code (validated timezones only)."
     },
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "d0890c6ede6b6dec16104fb789f80c0925b3c832e5c4c960ac9da47f3a4dc243",
+      "fingerprint": "ef7ccb7dcd112d475c5e47382d6a39a7c00bbc1e3f5e43f3add16e20752c9584",
       "check_name": "SQL",
       "message": "Possible SQL injection",
       "file": "app/services/dashboard_data/snapshots.rb",
-      "line": 159,
+      "line": 189,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "connection.select_rows(\"SELECT weekday, hour, #{Sql.to_seconds(\"sum(gap)\")} AS duration\\nFROM (\\n  SELECT toDayOfWeek(#{Sql.local_datetime(user.timezone)}) AS weekday, toHour(#{Sql.local_datetime(user.timezone)}) AS hour, #{Sql.capped_gap(timeout)} AS gap\\n  FROM (#{scope.with_valid_timestamps.unscope(:order, :select).select(:id, :time).to_sql}) AS rhythm_heartbeats\\n  WINDOW w AS #{Sql.window}\\n)\\nGROUP BY weekday, hour\\n\".squish)",
+      "code": "connection.select_rows(\"SELECT key.1 AS dimension, key.2 AS bucket, key.3 AS week_key,\\n       #{Sql.to_seconds(\"sum(key.4)\")} AS duration, count() AS heartbeat_count\\nFROM (\\n  SELECT * FROM (\\n    SELECT time, #{\"project, language, editor, operating_system, category\"}, #{\"#{\"#{Sql.capped_gap(timeout)} AS gap\"}, #{\"#{Sql.capped_gap(timeout, :window => \"wp\")} AS project_gap\"}, #{\"#{Sql.capped_gap(timeout, :window => \"wpw\")} AS project_week_gap\"}\"}\\n    FROM (#{scope.unscope(:order, :select).select(:id, :time, *[:project, :language, :editor, :operating_system, :category]).to_sql}) AS timeline_heartbeats\\n    WINDOW #{\"#{\"w AS #{Sql.window}\"}, #{\"wp AS #{Sql.window(:project)}\"}, #{\"wpw AS #{Sql.window([:project, \"toMonday(#{Sql.local_datetime(user.timezone)})\"])}\"}\"}\\n  ) AS heartbeats\\n  WHERE #{(filter_sql or \"1\")}\\n)\\nARRAY JOIN [#{\"('total', NULL, NULL, gap), #{\"('project', project, NULL, #{project_gap})\"}, #{*([:project, :language, :editor, :operating_system, :category] - [:project]).map do\n \"('#{field}', #{field}, NULL, gap)\"\n end}, #{\"if(time BETWEEN #{week_ranges(user.timezone).last[1]} AND #{week_ranges(user.timezone).first[2]}, ('weekly_project', project, toString(#{\"toMonday(#{Sql.local_datetime(user.timezone)})\"}), #{week_gap}), ('skip', NULL, NULL, 0.))\"}, #{\"('coding_rhythm', concat(toString(toDayOfWeek(#{Sql.local_datetime(user.timezone)})), '-', toString(toHour(#{Sql.local_datetime(user.timezone)}))), NULL, gap)\"}\"}] AS key\\nWHERE key.1 != 'skip'\\nGROUP BY dimension, bucket, week_key\\n\".squish)",
       "render_path": null,
       "location": {
         "type": "method",
         "class": "DashboardData::Snapshots",
-        "method": "coding_rhythm_snapshot"
+        "method": "query_snapshot"
       },
-      "user_input": "Sql.to_seconds(\"sum(gap)\")",
-      "confidence": "Medium",
-      "cwe_id": [
-        89
-      ],
-      "note": "ClickHouse dashboard SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; filters are compiled by Active Record."
-    },
-    {
-      "warning_type": "SQL Injection",
-      "warning_code": 0,
-      "fingerprint": "c174a8e5e21514cef2e3d05bf77c21266c693afcb5b72d2ea679580039d3f032",
-      "check_name": "SQL",
-      "message": "Possible SQL injection",
-      "file": "app/services/dashboard_data/snapshots.rb",
-      "line": 238,
-      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "connection.select_rows(\"SELECT key.1 AS dimension, key.2 AS bucket, key.3 AS week_key,\\n       #{Sql.to_seconds(\"sum(gap)\")} AS duration, count() AS heartbeat_count\\nFROM (\\n  SELECT * FROM (\\n    SELECT time, #{\"project, language, editor, operating_system, category\"}, #{Sql.capped_gap(timeout)} AS gap\\n    FROM (#{scope.unscope(:order, :select).select(:id, :time, *[:project, :language, :editor, :operating_system, :category]).to_sql}) AS timeline_heartbeats\\n    WINDOW w AS #{Sql.window}\\n  ) AS heartbeats\\n  WHERE #{filter_sql}\\n)\\nARRAY JOIN [#{\"('total', NULL, NULL), #{*[:project, :language, :editor, :operating_system, :category].map do\n \"('#{:BRAKEMAN_SAFE_LITERAL}', #{:BRAKEMAN_SAFE_LITERAL}, NULL)\"\n end}, #{\"if(time BETWEEN #{week_ranges(user.timezone).last[1]} AND #{week_ranges(user.timezone).first[2]}, ('weekly_project', project, toString(toMonday(#{Sql.local_datetime(user.timezone)}))), ('skip', NULL, NULL))\"}, #{\"('coding_rhythm', concat(toString(toDayOfWeek(#{Sql.local_datetime(user.timezone)})), '-', toString(toHour(#{Sql.local_datetime(user.timezone)}))), NULL)\"}\"}] AS key\\nWHERE key.1 != 'skip'\\nGROUP BY key\\n\".squish)",
-      "render_path": null,
-      "location": {
-        "type": "method",
-        "class": "DashboardData::Snapshots",
-        "method": "filtered_query_snapshot"
-      },
-      "user_input": "Sql.to_seconds(\"sum(gap)\")",
+      "user_input": "Sql.to_seconds(\"sum(key.4)\")",
       "confidence": "Medium",
       "cwe_id": [
         89

@@ -134,6 +134,7 @@ module Api
           end
 
           heartbeats = user.heartbeats.with_excluded.where(time: start_time.to_i..end_time.to_i).order(:time)
+          rows = heartbeats.with_hidden_flag.to_a
 
           render json: {
             user_id: user.id,
@@ -141,7 +142,7 @@ module Api
             start_date: start_time.to_date.iso8601,
             end_date: end_time.to_date.iso8601,
             timezone: user.timezone,
-            heartbeats: heartbeats.with_hidden_flag.map { |hb|
+            heartbeats: rows.map { |hb|
               {
                 id: hb.id,
                 time: Time.at(hb.time).utc.iso8601,
@@ -169,7 +170,7 @@ module Api
                 hidden: hb.hidden
               }
             },
-            total_heartbeats: heartbeats.count,
+            total_heartbeats: rows.size,
             total_duration: heartbeats.duration_seconds || 0
           }
         end

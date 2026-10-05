@@ -53,7 +53,8 @@ class DashboardStatsTest < ActiveSupport::TestCase
 
     scope = user.heartbeats
 
-    assert_equal scope.group(:project).duration_seconds, DashboardData::Snapshots.project_grouped_durations(scope)
+    snapshot = DashboardData::Snapshots.aggregate_query_snapshot(user:, scope:)
+    assert_equal scope.group(:project).duration_seconds, snapshot[:grouped_durations][:project]
   end
 
   test "all-time dashboard data can be served from rollups" do

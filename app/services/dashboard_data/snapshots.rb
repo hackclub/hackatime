@@ -11,20 +11,6 @@ module DashboardData
     def timeout = Heartbeat.heartbeat_timeout_duration.to_i
     def connection = Heartbeat.connection
 
-    def grouped_durations_snapshot(scope)
-      GROUPED_DIMENSIONS.index_with do |field|
-        field == :project ? project_grouped_durations(scope) : Heartbeat.attributed_durations_by(scope, field)
-      end
-    end
-
-    # Project durations partition gaps by project (a gap only counts between two
-    # heartbeats of the same project). NULL project is its own bucket.
-    def project_grouped_durations(scope)
-      durations = scope.group(:project).duration_seconds
-      durations.delete(nil) if durations[nil].to_i.zero?
-      durations
-    end
-
     def project_details_snapshot(scope:)
       inner = scope.with_valid_timestamps.where.not(project: [ nil, "" ]).unscope(:order, :select)
         .select(:id, :time, :project, :language)
@@ -53,30 +39,6 @@ module DashboardData
           languages: Array(languages).compact_blank
         }
       end
-    end
-
-    def weekly_project_stats(user:, scope:)
-      ranges = week_ranges(user.timezone)
-      result = ranges.to_h { |week_key, *_| [ week_key, {} ] }
-      week = "toMonday(#{Sql.local_datetime(user.timezone)})"
-
-      inner = scope.with_valid_timestamps.unscope(:order, :select)
-        .where(time: ranges.last[1]..ranges.first[2])
-        .select(:id, :time, :project)
-
-      connection.select_rows(<<~SQL.squish).each do |week_key, project, duration|
-        SELECT toString(week) AS week_key, project, #{Sql.to_seconds('sum(gap)')} AS duration
-        FROM (
-          SELECT project, #{week} AS week, #{Sql.capped_gap(timeout)} AS gap
-          FROM (#{inner.to_sql}) AS weekly_heartbeats
-          WINDOW w AS #{Sql.window([ :project, week ])}
-        )
-        GROUP BY week, project
-      SQL
-        result[week_key][project] = duration.to_i if result.key?(week_key)
-      end
-
-      result
     end
 
     def today_stats_snapshot(user:, scope:)
@@ -144,28 +106,6 @@ module DashboardData
       }
     end
 
-    # Hour-of-week heatmap. Gaps are global (ordered over the whole scope) and
-    # attributed to the local weekday/hour of the heartbeat that ends them.
-    def coding_rhythm_snapshot(user:, scope:)
-      local = Sql.local_datetime(user.timezone)
-      inner = scope.with_valid_timestamps.unscope(:order, :select).select(:id, :time)
-
-      rows = connection.select_rows(<<~SQL.squish)
-        SELECT weekday, hour, #{Sql.to_seconds('sum(gap)')} AS duration
-        FROM (
-          SELECT toDayOfWeek(#{local}) AS weekday, toHour(#{local}) AS hour, #{Sql.capped_gap(timeout)} AS gap
-          FROM (#{inner.to_sql}) AS rhythm_heartbeats
-          WINDOW w AS #{Sql.window}
-        )
-        GROUP BY weekday, hour
-      SQL
-
-      {
-        timezone: user.timezone,
-        duration_by_slot: rows.to_h { |weekday, hour, duration| [ "#{weekday}-#{hour}", duration.to_i ] }
-      }
-    end
-
     def coding_rhythm_result(payload, timezone:)
       durations = payload&.fetch("duration_by_slot", nil) || payload&.fetch(:duration_by_slot, nil) || {}
       {
@@ -201,7 +141,7 @@ module DashboardData
       # The block may narrow its relation in place (where!), so give it a copy.
       filtered = yield timeline.spawn
       filter_sql = post_window_filter_sql(timeline, filtered)
-      filtered_query_snapshot(user:, scope: timeline, filter_sql:)
+      query_snapshot(user:, scope: timeline, filter_sql:)
     end
 
     def post_window_filter_sql(timeline, filtered)
@@ -213,33 +153,51 @@ module DashboardData
       connection.to_sql(extra.ast)
     end
 
-    def filtered_query_snapshot(user:, scope:, filter_sql: "1")
+    # Live aggregate snapshot used by the unfiltered non-rollup dashboard path.
+    # Returns the same shape as the rollup-derived aggregate snapshot.
+    def aggregate_query_snapshot(user:, scope:) = query_snapshot(user:, scope: scope.with_valid_timestamps)
+
+    # Every dashboard aggregate in one query. Gaps are measured on the timeline
+    # (`scope`). Without filter_sql, project and weekly project buckets use gaps
+    # partitioned by project (and week), as the rollup does; with it, every
+    # bucket uses the timeline gap of its kept heartbeats.
+    def query_snapshot(user:, scope:, filter_sql: nil)
       local = Sql.local_datetime(user.timezone)
+      week = "toMonday(#{local})"
       ranges = week_ranges(user.timezone)
-      week_from, week_to = ranges.last[1], ranges.first[2]
+      partitioned = filter_sql.nil?
+      project_gap, week_gap = partitioned ? %w[project_gap project_week_gap] : %w[gap gap]
       inner = scope.unscope(:order, :select).select(:id, :time, *GROUPED_DIMENSIONS)
 
+      gaps = [ "#{Sql.capped_gap(timeout)} AS gap" ]
+      windows = [ "w AS #{Sql.window}" ]
+      if partitioned
+        gaps << "#{Sql.capped_gap(timeout, window: 'wp')} AS project_gap" << "#{Sql.capped_gap(timeout, window: 'wpw')} AS project_week_gap"
+        windows << "wp AS #{Sql.window(:project)}" << "wpw AS #{Sql.window([ :project, week ])}"
+      end
+
       keys = [
-        "('total', NULL, NULL)",
-        *GROUPED_DIMENSIONS.map { |field| "('#{field}', #{field}, NULL)" },
-        "if(time BETWEEN #{week_from} AND #{week_to}, ('weekly_project', project, toString(toMonday(#{local}))), ('skip', NULL, NULL))",
-        "('coding_rhythm', concat(toString(toDayOfWeek(#{local})), '-', toString(toHour(#{local}))), NULL)"
+        "('total', NULL, NULL, gap)",
+        "('project', project, NULL, #{project_gap})",
+        *(GROUPED_DIMENSIONS - [ :project ]).map { |field| "('#{field}', #{field}, NULL, gap)" },
+        "if(time BETWEEN #{ranges.last[1]} AND #{ranges.first[2]}, ('weekly_project', project, toString(#{week}), #{week_gap}), ('skip', NULL, NULL, 0.))",
+        "('coding_rhythm', concat(toString(toDayOfWeek(#{local})), '-', toString(toHour(#{local}))), NULL, gap)"
       ]
 
       rows = connection.select_rows(<<~SQL.squish)
         SELECT key.1 AS dimension, key.2 AS bucket, key.3 AS week_key,
-               #{Sql.to_seconds('sum(gap)')} AS duration, count() AS heartbeat_count
+               #{Sql.to_seconds('sum(key.4)')} AS duration, count() AS heartbeat_count
         FROM (
           SELECT * FROM (
-            SELECT time, #{GROUPED_DIMENSIONS.join(', ')}, #{Sql.capped_gap(timeout)} AS gap
+            SELECT time, #{GROUPED_DIMENSIONS.join(', ')}, #{gaps.join(', ')}
             FROM (#{inner.to_sql}) AS timeline_heartbeats
-            WINDOW w AS #{Sql.window}
+            WINDOW #{windows.join(', ')}
           ) AS heartbeats
-          WHERE #{filter_sql}
+          WHERE #{filter_sql || '1'}
         )
         ARRAY JOIN [#{keys.join(', ')}] AS key
         WHERE key.1 != 'skip'
-        GROUP BY key
+        GROUP BY dimension, bucket, week_key
       SQL
 
       snapshot = {
@@ -259,23 +217,13 @@ module DashboardData
           snapshot[:weekly_project_stats][week_key][bucket] = duration if snapshot[:weekly_project_stats].key?(week_key)
         when "coding_rhythm"
           snapshot[:coding_rhythm][:duration_by_slot][bucket] = duration
+        when "project"
+          snapshot[:grouped_durations][:project][bucket] = duration unless bucket.nil? && duration.zero?
         else
-          snapshot[:grouped_durations].fetch(dimension.to_sym)[bucket] = duration
+          snapshot[:grouped_durations][dimension.to_sym][bucket] = duration if bucket.present?
         end
       end
       snapshot
-    end
-
-    # Live aggregate snapshot used by the unfiltered non-rollup dashboard path.
-    # Returns the same shape as the rollup-derived aggregate snapshot.
-    def aggregate_query_snapshot(user:, scope:)
-      {
-        total_time: scope.duration_seconds,
-        total_heartbeats: scope.with_valid_timestamps.count,
-        grouped_durations: grouped_durations_snapshot(scope),
-        weekly_project_stats: weekly_project_stats(user: user, scope: scope),
-        coding_rhythm: coding_rhythm_snapshot(user: user, scope: scope)
-      }
     end
 
     # Reject project entries that should not appear in dashboard summaries.

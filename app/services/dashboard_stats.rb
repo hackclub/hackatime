@@ -1,5 +1,5 @@
 class DashboardStats
-  FILTER_OPTIONS_CACHE_VERSION = "v3".freeze
+  FILTER_OPTIONS_CACHE_VERSION = "v4".freeze
   FILTERS = %i[project language operating_system editor category].freeze
 
   attr_reader :user, :params
@@ -111,14 +111,12 @@ class DashboardStats
 
   def live_raw_filter_options
     archive_key = ActiveSupport::Digest.hexdigest(archived_project_names.to_json)
-    cache_keys = FILTERS.index_with { |field| "user_#{user.id}_dashboard_filter_options_#{field}_#{FILTER_OPTIONS_CACHE_VERSION}_#{archive_key}_#{user.heartbeat_cache_version}" }
-    reverse_lookup = cache_keys.invert
+    cache_key = "user_#{user.id}_dashboard_filter_options_#{FILTER_OPTIONS_CACHE_VERSION}_#{archive_key}_#{user.heartbeat_cache_version}"
 
-    cached = Rails.cache.fetch_multi(*cache_keys.values, expires_in: 15.minutes) do |cache_key|
-      dashboard_heartbeats.distinct.pluck(reverse_lookup.fetch(cache_key)).compact_blank.sort
+    Rails.cache.fetch(cache_key, expires_in: 15.minutes) do
+      values = dashboard_heartbeats.pick(*FILTERS.map { |field| Arel.sql("groupUniqArray(#{field})") })
+      FILTERS.zip(values).to_h { |field, options| [ field, Array(options).compact_blank.sort ] }
     end
-
-    cache_keys.transform_values { |cache_key| cached.fetch(cache_key, []) }
   end
 
   def rollup_filter_options = rollup_snapshot&.fetch(:filter_options)
