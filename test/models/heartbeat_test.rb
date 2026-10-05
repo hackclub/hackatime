@@ -88,6 +88,8 @@ class HeartbeatTest < ActiveSupport::TestCase
 
     assert_equal 240, total
     assert_equal({ "ruby" => 60, "python" => 120, "javascript" => 60 }, buckets)
+    assert_equal [ total, { language: buckets, editor: { "vscode" => 240 } } ],
+      Heartbeat.attributed_durations_by_fields(scope, %i[language editor])
     assert_equal total, buckets.values.sum
     assert_not_includes buckets.keys, "Unknown"
     assert_not_includes buckets.keys, nil

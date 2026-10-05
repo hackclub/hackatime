@@ -187,29 +187,6 @@
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "c0fac245ceba81e8494a3a04b9c48157c0bd6a0884f977f80b9d8457c47fe216",
-      "check_name": "SQL",
-      "message": "Possible SQL injection",
-      "file": "app/models/concerns/heartbeatable.rb",
-      "line": 226,
-      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "connection.select_rows(\"SELECT bucket, #{DurationSql.to_seconds(\"sum(gap)\")}\\nFROM (\\n  SELECT #{connection.quote_column_name(field.to_s)} AS bucket, #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap\\n  FROM (#{scope.with_valid_timestamps.unscope(:group, :select, :order).select(:id, :time, field).to_sql}) AS attribution_heartbeats\\n  WINDOW w AS #{DurationSql.window}\\n)\\nWHERE bucket IS NOT NULL AND bucket != ''\\nGROUP BY bucket\\n\".squish)",
-      "render_path": null,
-      "location": {
-        "type": "method",
-        "class": "Heartbeatable",
-        "method": "attributed_durations_by"
-      },
-      "user_input": "DurationSql.to_seconds(\"sum(gap)\")",
-      "confidence": "Medium",
-      "cwe_id": [
-        89
-      ],
-      "note": "ClickHouse duration SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; grouped columns come from code, never from params."
-    },
-    {
-      "warning_type": "SQL Injection",
-      "warning_code": 0,
       "fingerprint": "c068503d487d7ed8fe0bc9f99005890c3680729fdc79183afe633f66dade96de",
       "check_name": "SQL",
       "message": "Possible SQL injection",
@@ -482,6 +459,29 @@
         89
       ],
       "note": "ClickHouse dashboard SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; filters are compiled by Active Record."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "b0502b8cd854f561e53119da8fa11b7aecc2564209255216981ca46b825b8ba0",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 232,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_rows(\"SELECT key.1, key.2, #{DurationSql.to_seconds(\"sum(gap)\")}\\nFROM (\\n  SELECT #{\"#{*fields.map do\n connection.quote_column_name(field.to_s)\n end}, #{\"#{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap\"}\"}\\n  FROM (#{scope.with_valid_timestamps.unscope(:group, :select, :order).select(:id, :time, *fields).to_sql}) AS attribution_heartbeats\\n  WINDOW w AS #{DurationSql.window}\\n)\\nARRAY JOIN [#{([\"('', NULL)\"] + fields.zip(fields.map do\n connection.quote_column_name(field.to_s)\n end).map do\n \"(#{connection.quote(field.to_s)}, toString(#{column}))\"\n end).join(\", \")}] AS key\\nGROUP BY key\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeatable",
+        "method": "attributed_durations_by_fields"
+      },
+      "user_input": "DurationSql.to_seconds(\"sum(gap)\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse duration SQL wrapping an Active Record relation (to_sql). Field names are quoted identifiers from code, never from params."
     }
   ],
   "brakeman_version": "8.1.0"

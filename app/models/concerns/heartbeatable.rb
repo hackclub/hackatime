@@ -216,18 +216,31 @@ module Heartbeatable
     # Global gaps (ordered over the whole scope), attributed to the bucket of
     # the heartbeat that ends each gap. Empty and NULL buckets are dropped.
     def attributed_durations_by(scope, field)
+      attributed_durations_by_fields(scope, [ field ]).last.fetch(field.to_sym).reject { |bucket, _| bucket.blank? }
+    end
+
+    # The total and attributed_durations_by for several fields from one scan, as
+    # [total, { field => { value => seconds } }]. NULL and empty buckets are kept.
+    def attributed_durations_by_fields(scope, fields)
       scope = scope.with_valid_timestamps.unscope(:group, :select, :order)
-      column = connection.quote_column_name(field.to_s)
-      connection.select_rows(<<~SQL.squish).to_h { |bucket, duration| [ bucket, duration.to_i ] }
-        SELECT bucket, #{DurationSql.to_seconds('sum(gap)')}
+      columns = fields.map { |field| connection.quote_column_name(field.to_s) }
+      keys = [ "('', NULL)" ] + fields.zip(columns).map { |field, column| "(#{connection.quote(field.to_s)}, toString(#{column}))" }
+
+      result = fields.to_h { |field| [ field.to_sym, {} ] }
+      total = 0
+      connection.select_rows(<<~SQL.squish).each do |field, bucket, seconds|
+        SELECT key.1, key.2, #{DurationSql.to_seconds('sum(gap)')}
         FROM (
-          SELECT #{column} AS bucket, #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap
-          FROM (#{scope.select(:id, :time, field).to_sql}) AS attribution_heartbeats
+          SELECT #{[ *columns, "#{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap" ].join(', ')}
+          FROM (#{scope.select(:id, :time, *fields).to_sql}) AS attribution_heartbeats
           WINDOW w AS #{DurationSql.window}
         )
-        WHERE bucket IS NOT NULL AND bucket != ''
-        GROUP BY bucket
+        ARRAY JOIN [#{keys.join(', ')}] AS key
+        GROUP BY key
       SQL
+        field.empty? ? total = seconds.to_i : result[field.to_sym][bucket] = seconds.to_i
+      end
+      [ total, result ]
     end
 
     def duration_seconds(scope = all)
