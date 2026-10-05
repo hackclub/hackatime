@@ -87,10 +87,10 @@ class WakatimeService
     summary[:range] = "all_time"
     summary[:human_readable_range] = "All Time"
 
-    groups = { languages: :language, projects: :project }.filter_map { |filter, column| column if @specific_filters.include?(filter) }.index_with(&:itself)
-    @total_seconds, @grouped_durations = Heartbeat.grouped_duration_seconds(@scope, groups) if groups.any? || !@boundary_aware
-    if @boundary_aware
-      @total_seconds = Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date, excluded_categories: @exclude_categories) || 0
+    @total_seconds = if @boundary_aware
+      Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date, excluded_categories: @exclude_categories) || 0
+    else
+      @scope.duration_seconds || 0
     end
     summary[:total_seconds] = @total_seconds
 
@@ -115,7 +115,7 @@ class WakatimeService
 
   def generate_summary_chunk(group_by)
     result = []
-    @grouped_durations.fetch(group_by).each do |key, value|
+    @scope.group(group_by).duration_seconds.each do |key, value|
       entry = {
         name: @raw_names ? (key.presence || "Other") : transform_display_name(group_by, key),
         total_seconds: value,
