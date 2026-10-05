@@ -72,7 +72,10 @@ CREATE TABLE heartbeats
     `deleted_at` Nullable(DateTime('UTC')) CODEC(Delta(4), ZSTD(1)),
     `created_at` DateTime('UTC') CODEC(Delta(4), ZSTD(1)),
     `updated_at` DateTime('UTC') CODEC(Delta(4), ZSTD(1)),
-    INDEX time_minmax time TYPE minmax GRANULARITY 1
+    INDEX time_minmax time TYPE minmax GRANULARITY 1,
+    INDEX ip_address_bloom ip_address TYPE bloom_filter(0.01) GRANULARITY 1,
+    INDEX machine_bloom machine TYPE bloom_filter(0.01) GRANULARITY 1,
+    INDEX created_at_minmax created_at TYPE minmax GRANULARITY 1
 )
 ENGINE = MergeTree
 ORDER BY (user_id, time, id)
@@ -89,6 +92,7 @@ ORDER BY (version)
 SETTINGS index_granularity = 8192;
 
 INSERT INTO schema_migrations (version) VALUES
+('20261005000001'),
 ('20261004000003'),
 ('20261004000002'),
 ('20261004000001');
