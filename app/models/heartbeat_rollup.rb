@@ -29,16 +29,29 @@ class HeartbeatRollup < ClickhouseRecord
   class << self
     # Builds the user's rollup as a new generation, publishes it and removes
     # older generations. Returns false if a newer generation was published first.
-    def rebuild!(user)
+    #
+    # The generation it replaces is kept until the next rebuild: a reader that
+    # loaded the previous HeartbeatRollupState just before this publish still
+    # queries that generation, and deleting it here would show that reader an
+    # empty dashboard. Pass keep_replaced: false to remove it at once (account
+    # deletion).
+    def rebuild!(user, keep_replaced: true)
       generation = Process.clock_gettime(Process::CLOCK_REALTIME, :microsecond)
       timezone = user.timezone
       # Read before building so an exclusion change during the build leaves the
       # published version stale rather than silently skipped.
       heartbeat_cache_version = user.heartbeat_cache_version
+      replaced = HeartbeatRollupState.where(user_id: user.id).pick(:generation)
 
       insert_generation!(user:, generation:, timezone:)
       published = HeartbeatRollupState.publish!(user_id: user.id, generation:, timezone:, heartbeat_cache_version:)
-      delete_generations!(user.id, published ? "generation < #{generation}" : "generation = #{generation}")
+      if !published
+        delete_generations!(user.id, "generation = #{generation}")
+      elsif keep_replaced && replaced
+        delete_generations!(user.id, "generation < #{Integer(replaced)}")
+      else
+        delete_generations!(user.id, "generation < #{generation}")
+      end
       published
     end
 
