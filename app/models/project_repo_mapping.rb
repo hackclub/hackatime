@@ -24,8 +24,8 @@ class ProjectRepoMapping < ApplicationRecord
 
   # Each user's most recently coded project (direct heartbeats in the last five
   # minutes) that has an active mapping: { user_id => ProjectRepoMapping }.
-  def self.currently_active_by_user
-    Rails.cache.fetch("project_repo_mappings/currently_active_by_user", expires_in: Heartbeat::SITE_ACTIVITY_CACHE_TTL) do
+  def self.currently_active_by_user(force: false)
+    Rails.cache.fetch("project_repo_mappings/currently_active_by_user", expires_in: Heartbeat::SITE_ACTIVITY_CACHE_TTL, force:) do
       recent = Heartbeat.where(source_type: :direct_entry).where("time > ?", 5.minutes.ago.to_f)
         .where.not(project: nil).group(:user_id, :project)
         .pluck(:user_id, :project, Arel.sql("max(time)"))

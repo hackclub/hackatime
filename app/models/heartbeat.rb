@@ -42,14 +42,15 @@ class Heartbeat < ClickhouseRecord
   after_create :schedule_dashboard_rollup_refresh
 
   # Site-wide activity for the footer and homepage. Each scans every user's
-  # recent heartbeats, so results are shared for a minute.
-  SITE_ACTIVITY_CACHE_TTL = 1.minute
+  # recent heartbeats, so SiteActivityCacheJob refreshes them every minute and
+  # requests only compute them if that job falls behind.
+  SITE_ACTIVITY_CACHE_TTL = 5.minutes
 
   def self.recent_count = recent_counts[:recent_count]
   def self.recent_imported_count = recent_counts[:recent_imported_count]
 
-  def self.recent_counts
-    Rails.cache.fetch("heartbeats/recent_counts", expires_in: SITE_ACTIVITY_CACHE_TTL) do
+  def self.recent_counts(force: false)
+    Rails.cache.fetch("heartbeats/recent_counts", expires_in: SITE_ACTIVITY_CACHE_TTL, force:) do
       direct = source_types.fetch("direct_entry")
       recent_count, recent_imported_count = recent.pluck(Arel.sql("count()"), Arel.sql("countIf(source_type != #{direct})")).first
       { recent_count:, recent_imported_count: }
@@ -57,8 +58,8 @@ class Heartbeat < ClickhouseRecord
   end
 
   # Distinct coding users per hour over the last 24 hours, newest first.
-  def self.active_users_by_hour
-    Rails.cache.fetch("heartbeats/active_users_by_hour", expires_in: SITE_ACTIVITY_CACHE_TTL) do
+  def self.active_users_by_hour(force: false)
+    Rails.cache.fetch("heartbeats/active_users_by_hour", expires_in: SITE_ACTIVITY_CACHE_TTL, force:) do
       hours = coding_only.with_valid_timestamps
         .where("time > ?", 24.hours.ago.to_f).where("time < ?", Time.current.to_f)
         .group(Arel.sql("hour")).order(Arel.sql("hour DESC"))
@@ -69,8 +70,8 @@ class Heartbeat < ClickhouseRecord
     end
   end
 
-  def self.minutes_logged_last_hour
-    Rails.cache.fetch("heartbeats/minutes_logged_last_hour", expires_in: SITE_ACTIVITY_CACHE_TTL) do
+  def self.minutes_logged_last_hour(force: false)
+    Rails.cache.fetch("heartbeats/minutes_logged_last_hour", expires_in: SITE_ACTIVITY_CACHE_TTL, force:) do
       coding_only.with_valid_timestamps.where(time: 1.hour.ago.to_f..Time.current.to_f).duration_seconds / 60
     end
   end

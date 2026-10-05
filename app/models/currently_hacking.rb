@@ -1,19 +1,19 @@
 # frozen_string_literal: true
 
-# Users sending heartbeats right now. Shared site-wide for a minute.
+# Users sending heartbeats right now, refreshed by SiteActivityCacheJob.
 class CurrentlyHacking
   WINDOW = 5.minutes
 
-  def self.count
-    Rails.cache.fetch("currently_hacking/count", expires_in: Heartbeat::SITE_ACTIVITY_CACHE_TTL) do
+  def self.count(force: false)
+    Rails.cache.fetch("currently_hacking/count", expires_in: Heartbeat::SITE_ACTIVITY_CACHE_TTL, force:) do
       User.where(id: recent_heartbeats.distinct.pluck(:user_id)).count
     end
   end
 
   # { users: [User], active_projects: { user_id => ProjectRepoMapping or nil } },
   # users with a mapped active project first.
-  def self.data
-    Rails.cache.fetch("currently_hacking/data", expires_in: Heartbeat::SITE_ACTIVITY_CACHE_TTL) do
+  def self.data(force: false)
+    Rails.cache.fetch("currently_hacking/data", expires_in: Heartbeat::SITE_ACTIVITY_CACHE_TTL, force:) do
       latest_projects = recent_heartbeats.group(:user_id).pluck(:user_id, Arel.sql("argMax(project, (time, id))")).to_h
 
       users = User.where(id: latest_projects.keys).includes(:project_repo_mappings, :email_addresses).to_a

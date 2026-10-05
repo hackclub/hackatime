@@ -39,6 +39,10 @@ Rails.application.configure do
       args: [ :last_7_days ],
       kwargs: { force_update: true }
     },
+    site_activity_cache: {
+      cron: "* * * * *",
+      class: "SiteActivityCacheJob"
+    },
     sailors_log_poll: {
       cron: "*/2 * * * *",
       class: "SailorsLogPollForChangesJob"
