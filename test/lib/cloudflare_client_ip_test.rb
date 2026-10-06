@@ -51,6 +51,26 @@ class CloudflareClientIpTest < ActiveSupport::TestCase
     assert_client_ip ATTACKER, env
   end
 
+  test "ignores a client-supplied Forwarded header" do
+    env = call_middleware(
+      "REMOTE_ADDR" => "127.0.0.1",
+      "HTTP_X_FORWARDED_FOR" => "#{CLOUDFLARE_EDGE}, #{PROXY}",
+      "HTTP_FORWARDED" => "for=#{ATTACKER}, for=#{CLOUDFLARE_EDGE}"
+    )
+
+    assert_client_ip CLIENT, env
+  end
+
+  test "ignores a Forwarded header that forges a Cloudflare edge" do
+    env = call_middleware(
+      "REMOTE_ADDR" => "127.0.0.1",
+      "HTTP_X_FORWARDED_FOR" => ATTACKER,
+      "HTTP_FORWARDED" => "for=198.51.100.10, for=#{CLOUDFLARE_EDGE}"
+    )
+
+    assert_client_ip ATTACKER, env
+  end
+
   test "ignores an invalid CF-Connecting-IP" do
     env = call_middleware(
       "REMOTE_ADDR" => "127.0.0.1",
