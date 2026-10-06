@@ -1,7 +1,7 @@
 class Settings::SlackGithubController < Settings::BaseController
   def update
     if @user.update(slack_github_params)
-      @user.update_slack_status if @user.uses_slack_status?
+      UserSlackStatusUpdateJob.perform_later(@user.id) if @user.uses_slack_status?
       redirect_to my_settings_slack_github_path, notice: "Settings updated successfully"
     else
       flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
