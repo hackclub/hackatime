@@ -59,16 +59,23 @@ class RackAttackTest < ActiveSupport::TestCase
     assert_nil discriminator_for("posts by ip", path: "/oauth/token", method: :post)
   end
 
-  test "OAuth token exchanges are grouped by client ID from the body" do
-    assert_equal "client:app-uid",
+  test "OAuth token exchanges are grouped by client ID from the body and IP" do
+    assert_equal "client:app-uid:198.51.100.20",
       discriminator_for("oauth tokens by client", path: "/oauth/token", method: :post, params: { client_id: "app-uid" })
   end
 
-  test "OAuth token exchanges are grouped by client ID from basic authentication" do
+  test "OAuth token exchanges are grouped by client ID from basic authentication and IP" do
     authorization = ActionController::HttpAuthentication::Basic.encode_credentials("app-uid", "secret")
 
-    assert_equal "client:app-uid",
+    assert_equal "client:app-uid:198.51.100.20",
       discriminator_for("oauth tokens by client", path: "/oauth/token", method: :post, authorization:)
+  end
+
+  test "OAuth token exchanges from other IPs do not share an application's allowance" do
+    params = { client_id: "app-uid" }
+
+    refute_equal discriminator_for("oauth tokens by client", path: "/oauth/token", method: :post, params:),
+      discriminator_for("oauth tokens by client", path: "/oauth/token", method: :post, params:, remote_addr: "203.0.113.50")
   end
 
   test "OAuth token exchanges without a client ID are grouped by IP" do
@@ -78,8 +85,8 @@ class RackAttackTest < ActiveSupport::TestCase
 
   private
 
-  def discriminator_for(throttle, path: "/", method: :get, params: {}, authorization: nil)
-    env = Rack::MockRequest.env_for(path, "REMOTE_ADDR" => "198.51.100.20", method: method.to_s.upcase, params:)
+  def discriminator_for(throttle, path: "/", method: :get, params: {}, authorization: nil, remote_addr: "198.51.100.20")
+    env = Rack::MockRequest.env_for(path, "REMOTE_ADDR" => remote_addr, method: method.to_s.upcase, params:)
     env["HTTP_AUTHORIZATION"] = authorization if authorization
     request = Rack::Attack::Request.new(env)
 

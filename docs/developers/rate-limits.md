@@ -13,7 +13,7 @@ Hackatime rate limits API requests by who is making them. Requests without crede
 | Admin API with an Admin API key | 5,000 requests per minute | Admin API key |
 | Admin API with OAuth | 5,000 requests per minute | Hackatime user |
 | Rejected credentials | 300 requests per minute | Client IP address |
-| OAuth token endpoint (`POST /oauth/token`) | 300 requests per minute | OAuth application |
+| OAuth token endpoint (`POST /oauth/token`) | 300 requests per minute | OAuth application and client IP address |
 | OAuth token endpoint (`POST /oauth/token`) | 1,200 requests per five minutes | Client IP address |
 
 Authenticated requests are not counted towards IP address limits on these routes:
@@ -30,7 +30,7 @@ All OAuth access tokens and API keys belonging to the same user share one allowa
 
 Requests to these routes with credentials that are invalid, expired or lack permission count towards the rejected credentials limit for the client IP address. Once it is reached, every request with credentials to these routes from that address is rejected until the window resets, so fix or remove invalid credentials instead of retrying them. On public user stats, invalid credentials still count even though the response falls back to public data.
 
-Token exchanges are limited per OAuth application, so an integration that signs in many users from one server does not share an IP address allowance with other traffic.
+Each OAuth application has its own token exchange allowance from each IP address, so an integration that signs in many users from one server does not share an allowance with other traffic from that address.
 
 Each HTTP request counts once. For example, one bulk heartbeat request counts as one request, not as one request per heartbeat in its body.
 

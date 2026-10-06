@@ -46,8 +46,9 @@ class Rack::Attack
     req.post? && req.path == "/oauth/token"
   end
 
-  # Integrations exchange tokens for all their users from one server, so share
-  # the allowance per OAuth app rather than per IP.
+  # Integrations exchange tokens for all their users from one server, so give
+  # each OAuth app its own allowance from that IP. Client IDs are public, so the
+  # IP stays in the key to stop others using up an app's allowance.
   def self.oauth_client_id(req)
     basic_auth = Rack::Auth::Basic::Request.new(req.env)
     return basic_auth.username.presence if basic_auth.provided? && basic_auth.basic?
@@ -80,7 +81,7 @@ class Rack::Attack
   Rack::Attack.throttle("oauth tokens by client", limit: 300, period: 1.minute) do |req|
     if oauth_token_request?(req)
       client_id = oauth_client_id(req)
-      client_id ? "client:#{client_id}" : "ip:#{req.ip}"
+      client_id ? "client:#{client_id}:#{req.ip}" : "ip:#{req.ip}"
     end
   end
 
