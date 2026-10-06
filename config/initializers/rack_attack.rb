@@ -1,7 +1,9 @@
 # config/initializers/rack_attack.rb
 
 class Rack::Attack
-  Rack::Attack.enabled = true
+  # cloudflare-rails, which provides req.cloudflare? and trusts Cloudflare
+  # proxies, is only bundled in production.
+  Rack::Attack.enabled = Rails.env.production?
 
   if ENV["RACK_ATTACK_BYPASS"].present?
     begin
@@ -28,6 +30,19 @@ class Rack::Attack
     )
   end
 
+  def self.oauth_token_request?(req)
+    req.post? && req.path == "/oauth/token"
+  end
+
+  # Integrations exchange tokens for all their users from one server, so share
+  # the allowance per OAuth app rather than per IP.
+  def self.oauth_client_id(req)
+    basic_auth = Rack::Auth::Basic::Request.new(req.env)
+    return basic_auth.username.presence if basic_auth.provided? && basic_auth.basic?
+
+    req.params["client_id"].presence
+  end
+
   # Always allow requests from bogon ips
   # (blocklist & throttles are skipped)
   Rack::Attack.safelist("allow from bogon ips") do |req|
@@ -43,11 +58,22 @@ class Rack::Attack
   end
 
   Rack::Attack.throttle("general", limit: 300, period: 1.minute) do |req|
-    req.ip unless req.path.start_with?("/assets") || authenticated_api_request?(req)
+    req.ip unless req.path.start_with?("/assets") || authenticated_api_request?(req) || oauth_token_request?(req)
   end
 
   Rack::Attack.throttle("posts by ip", limit: 60, period: 5.minutes) do |req|
-    req.ip if req.post? && !authenticated_api_request?(req)
+    req.ip if req.post? && !authenticated_api_request?(req) && !oauth_token_request?(req)
+  end
+
+  Rack::Attack.throttle("oauth tokens by client", limit: 300, period: 1.minute) do |req|
+    if oauth_token_request?(req)
+      client_id = oauth_client_id(req)
+      client_id ? "client:#{client_id}" : "ip:#{req.ip}"
+    end
+  end
+
+  Rack::Attack.throttle("oauth tokens by ip", limit: 1200, period: 5.minutes) do |req|
+    req.ip if oauth_token_request?(req)
   end
 
   Rack::Attack.throttle("documentation feedback by ip", limit: 20, period: 1.hour) do |req|

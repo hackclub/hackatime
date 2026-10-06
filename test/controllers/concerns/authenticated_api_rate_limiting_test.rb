@@ -65,4 +65,47 @@ class AuthenticatedApiRateLimitingTest < ActionController::TestCase
       assert_response :success
     end
   end
+
+  test "limits rejected credentials by IP before authentication" do
+    @request.headers["X-User-ID"] = nil
+
+    travel_to Time.utc(2026, 8, 27, 12, 0, 30) do
+      300.times do
+        get :index
+        assert_response :unauthorized
+      end
+
+      get :index
+      assert_response :too_many_requests
+      assert_equal "30", response.headers["Retry-After"]
+
+      @request.headers["X-User-ID"] = "1"
+      get :index
+      assert_response :too_many_requests
+
+      travel 30.seconds
+      get :index
+      assert_response :success
+    end
+  end
+
+  test "does not count successful requests as rejected credentials" do
+    travel_to Time.utc(2026, 8, 27, 12, 0, 30) do
+      299.times { get :index }
+
+      @request.headers["X-User-ID"] = nil
+      get :index
+      assert_response :unauthorized
+    end
+  end
+
+  test "does not limit rejected credentials safelisted by Rack Attack" do
+    @request.headers["X-User-ID"] = nil
+
+    301.times do
+      @request.set_header("rack.attack.match_type", :safelist)
+      get :index
+      assert_response :unauthorized
+    end
+  end
 end

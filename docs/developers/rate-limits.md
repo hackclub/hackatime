@@ -11,6 +11,9 @@ Hackatime rate limits API requests to keep integrations responsive without makin
 | User-authenticated APIs | 300 requests per minute | Hackatime user |
 | Admin API with an Admin API key | 300 requests per minute | Admin API key |
 | Admin API with OAuth | 300 requests per minute | Hackatime user |
+| Rejected credentials on authenticated APIs | 300 requests per minute | Client IP address |
+| OAuth token endpoint (`POST /oauth/token`) | 300 requests per minute | OAuth application |
+| OAuth token endpoint (`POST /oauth/token`) | 1,200 requests per five minutes | Client IP address |
 | Public and legacy API routes | 300 requests per minute | Client IP address |
 | All `/api/` routes | 10,000 requests per hour | Client IP address |
 
@@ -24,9 +27,13 @@ User-authenticated APIs include:
 
 All OAuth access tokens and API keys belonging to the same user share one allowance across these routes. Rotating a key or using another OAuth application does not create a new allowance. Each Admin API key has its own allowance, while Admin API OAuth tokens are grouped by the authorising user.
 
+Requests to these routes that fail authentication or authorisation count towards a separate limit for the client IP address. Once it is reached, every request to these routes from that address is rejected until the window resets, so fix or remove invalid credentials instead of retrying them.
+
+Token exchanges are limited per OAuth application, so an integration that signs in many users from one server does not share an IP address allowance with other traffic.
+
 Each HTTP request counts once. For example, one bulk heartbeat request counts as one request, not as one request per heartbeat in its body.
 
-Unauthenticated POST requests outside these authenticated API families also have a limit of 60 requests per five minutes per client IP address.
+Unauthenticated POST requests outside these authenticated API families and the OAuth token endpoint also have a limit of 60 requests per five minutes per client IP address.
 
 ## Handling a rate-limit response
 

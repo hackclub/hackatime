@@ -16,7 +16,7 @@ module Api
       def authenticated_api_rate_limit_identity
         return "admin_api_key:#{current_admin_api_key.id}" if current_admin_api_key
 
-        "oauth_user:#{current_user.id}"
+        "user:#{current_user.id}"
       end
 
       def authenticate_admin!
