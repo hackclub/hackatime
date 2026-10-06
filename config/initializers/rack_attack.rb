@@ -23,11 +23,23 @@ class Rack::Attack
     TOKENS = [].freeze
   end
 
-  def self.authenticated_api_request?(req)
-    req.path.start_with?(
-      "/api/v1/authenticated/", "/api/v1/my/heartbeats",
-      "/api/hackatime/v1/", "/api/admin/"
+  # Routes using AuthenticatedApiRateLimiting, which limits requests with
+  # credentials per user or admin credential, and rejected credentials per IP.
+  CREDENTIAL_LIMITED_API_PATH = %r{
+    \A/api/(
+      v1/authenticated/ | v1/my/heartbeats | hackatime/v1/ | admin/ |
+      v1/stats(\.json)?\z | v1/users/lookup_ |
+      v1/users/[^/]+/(stats|heartbeats/spans|projects|project/)
     )
+  }x
+
+  # Matches AuthenticatedApiRateLimiting#api_credentials_presented?
+  def self.api_credentials?(req)
+    req.get_header("HTTP_AUTHORIZATION").present? || req.GET["api_key"].present?
+  end
+
+  def self.credential_limited_api_request?(req)
+    req.path.match?(CREDENTIAL_LIMITED_API_PATH) && api_credentials?(req)
   end
 
   def self.oauth_token_request?(req)
@@ -58,11 +70,11 @@ class Rack::Attack
   end
 
   Rack::Attack.throttle("general", limit: 300, period: 1.minute) do |req|
-    req.ip unless req.path.start_with?("/assets") || authenticated_api_request?(req) || oauth_token_request?(req)
+    req.ip unless req.path.start_with?("/assets") || credential_limited_api_request?(req) || oauth_token_request?(req)
   end
 
   Rack::Attack.throttle("posts by ip", limit: 60, period: 5.minutes) do |req|
-    req.ip if req.post? && !authenticated_api_request?(req) && !oauth_token_request?(req)
+    req.ip if req.post? && !credential_limited_api_request?(req) && !oauth_token_request?(req)
   end
 
   Rack::Attack.throttle("oauth tokens by client", limit: 300, period: 1.minute) do |req|
@@ -85,7 +97,7 @@ class Rack::Attack
   end
 
   Rack::Attack.throttle("api requests", limit: 10000, period: 1.hour) do |req|
-    req.ip if req.path.start_with?("/api/")
+    req.ip if req.path.start_with?("/api/") && !credential_limited_api_request?(req)
   end
 
   # lets actually log things? thanks

@@ -17,7 +17,7 @@ module Api
 
         def authorize_oauth_scopes! = doorkeeper_authorize!(*required_oauth_scopes)
 
-        def authenticated_api_rate_limit_identity = "user:#{current_user.id}"
+        def authenticated_api_rate_limit_identity = current_user && "user:#{current_user.id}"
 
         def current_user
           @current_user ||= User.find(doorkeeper_token.resource_owner_id) if doorkeeper_token

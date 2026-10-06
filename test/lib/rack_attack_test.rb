@@ -1,19 +1,45 @@
 require "test_helper"
 
 class RackAttackTest < ActiveSupport::TestCase
-  AUTHENTICATED_API_PATHS = [
+  CREDENTIAL_LIMITED_API_PATHS = [
     "/api/v1/authenticated/projects",
     "/api/v1/my/heartbeats",
     "/api/hackatime/v1/users/current/heartbeats",
-    "/api/admin/v1/user/info"
+    "/api/admin/v1/user/info",
+    "/api/v1/stats",
+    "/api/v1/users/lookup_email/someone@example.com",
+    "/api/v1/users/someone/stats",
+    "/api/v1/users/someone/projects/details"
   ].freeze
 
-  test "general throttle excludes authenticated API paths" do
-    AUTHENTICATED_API_PATHS.each { |path| assert_nil discriminator_for("general", path:), path }
+  IP_THROTTLES = [ "general", "posts by ip", "api requests" ].freeze
+
+  test "IP throttles exclude API requests with credentials on credential-limited routes" do
+    CREDENTIAL_LIMITED_API_PATHS.each do |path|
+      IP_THROTTLES.each do |throttle|
+        assert_nil discriminator_for(throttle, path:, method: :post, authorization: "Bearer token"), "#{throttle} #{path}"
+      end
+    end
   end
 
-  test "post throttle excludes authenticated API paths" do
-    AUTHENTICATED_API_PATHS.each { |path| assert_nil discriminator_for("posts by ip", path:, method: :post), path }
+  test "IP throttles treat an api_key query parameter as credentials" do
+    path = "/api/hackatime/v1/users/current/heartbeats?api_key=token"
+
+    IP_THROTTLES.each { |throttle| assert_nil discriminator_for(throttle, path:, method: :post), throttle }
+  end
+
+  test "IP throttles limit credential-limited routes without credentials" do
+    CREDENTIAL_LIMITED_API_PATHS.each do |path|
+      IP_THROTTLES.each do |throttle|
+        assert_equal "198.51.100.20", discriminator_for(throttle, path:, method: :post), "#{throttle} #{path}"
+      end
+    end
+  end
+
+  test "IP throttles limit other API routes with credentials" do
+    [ "/api/v1/users/someone/trust_factor", "/api/v1/leaderboard", "/api/internal/revoke" ].each do |path|
+      assert_equal "198.51.100.20", discriminator_for("api requests", path:, authorization: "Bearer token"), path
+    end
   end
 
   test "general throttle groups anonymous requests by IP" do

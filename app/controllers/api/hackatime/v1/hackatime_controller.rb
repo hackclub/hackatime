@@ -239,7 +239,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
 
   def check_lockout = (render_forbidden("Account pending deletion") if @user&.pending_deletion?)
 
-  def authenticated_api_rate_limit_identity = "user:#{@user.id}"
+  def authenticated_api_rate_limit_identity = @user && "user:#{@user.id}"
 
   def set_user
     @user = api_user_from_credentials(

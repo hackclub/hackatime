@@ -13,10 +13,12 @@ module Api
 
       private
 
+      def admin_api_rate_limit? = true
+
       def authenticated_api_rate_limit_identity
         return "admin_api_key:#{current_admin_api_key.id}" if current_admin_api_key
 
-        "user:#{current_user.id}"
+        current_user && "user:#{current_user.id}"
       end
 
       def authenticate_admin!

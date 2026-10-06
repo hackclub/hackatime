@@ -40,7 +40,7 @@ class Api::V1::My::HeartbeatsController < ApplicationController
 
   private
 
-  def authenticated_api_rate_limit_identity = "user:#{current_user.id}"
+  def authenticated_api_rate_limit_identity = current_user && "user:#{current_user.id}"
 
   def ensure_authenticated!
     @current_user = api_user_from_credentials(

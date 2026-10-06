@@ -138,7 +138,7 @@ RSpec.describe 'Api::Hackatime::V1::Compatibility', type: :request do
             reset_at: { type: :string, format: :date_time, example: '2024-03-20T15:30:30Z' }
           }
         header 'Retry-After', schema: { type: :string, example: '30' }, description: 'Seconds until the rate limit resets'
-        header 'X-RateLimit-Limit', schema: { type: :string, example: '300' }
+        header 'X-RateLimit-Limit', schema: { type: :string, example: '600' }
         header 'X-RateLimit-Remaining', schema: { type: :string, example: '0' }
         header 'X-RateLimit-Reset', schema: { type: :string, example: '1710948630' }
         header 'X-RateLimit-Reset-At', schema: { type: :string, example: '2024-03-20T15:30:30Z' }
