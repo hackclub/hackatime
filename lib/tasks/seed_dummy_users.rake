@@ -25,11 +25,12 @@ namespace :seed do
 
       hbs = src.sample(rand(50..200)).map do |h|
         t = rand(24.hours.ago..Time.current)
-        TO_COPY.to_h { |a| [ a, h.send(a) ] }.merge(user_id: u.id, time: t, source_type: h.source_type || 0,
-                                                   created_at: t, updated_at: t)
+        Heartbeat.row_for_insert(TO_COPY.to_h { |a| [ a, h.send(a) ] }.merge(
+          user_id: u.id, time: t.to_f, source_type: h.source_type || 0, created_at: t, updated_at: t
+        ))
       end
 
-      Heartbeat.insert_all(hbs) if hbs.any?
+      Heartbeat.insert_rows!(hbs, sync: true) if hbs.any?
       puts "#{i + 1}/100: #{u.username} (#{hbs.count} hbs)"
     end
   end
@@ -38,7 +39,9 @@ namespace :seed do
     ids = User.where("github_uid LIKE ?", "dummy_%").ids
     return puts "no dummies found (except for you)" if ids.empty?
 
-    Heartbeat.unscoped.where(user_id: ids).delete_all
+    Heartbeat.connection.with_response_format(nil) do
+      Heartbeat.connection.execute("DELETE FROM heartbeats WHERE user_id IN (#{ids.map { |id| Integer(id) }.join(', ')})")
+    end
     LeaderboardEntry.where(user_id: ids).delete_all
     User.where(id: ids).delete_all
     puts "exploded #{ids.count} dummies"

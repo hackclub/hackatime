@@ -52,7 +52,7 @@ class AnonymizeUserServiceTest < ActiveSupport::TestCase
     assert_equal 0, user.sign_in_tokens.count
   end
 
-  test "anonymization soft deletes active heartbeats" do
+  test "anonymization soft deletes active heartbeats and their rollup" do
     user = create(:user, username: "hb_cleanup_#{SecureRandom.hex(4)}")
     heartbeat = create(:heartbeat, user: user,
       entity: "src/app.rb",
@@ -62,10 +62,12 @@ class AnonymizeUserServiceTest < ActiveSupport::TestCase
       project: "anonymize",
       source_type: :test_entry
     )
+    HeartbeatRollup.rebuild!(user)
 
     AnonymizeUserService.call(user)
 
     assert heartbeat.reload.deleted_at.present?
+    assert_equal 0, HeartbeatRollup.where(user_id: user.id).count
   end
 
   test "anonymization removes legacy encrypted import credentials" do

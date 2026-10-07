@@ -2,15 +2,36 @@ ENV["RAILS_ENV"] ||= "test"
 require_relative "../config/environment"
 require "rails/test_help"
 require "inertia_rails/minitest"
+require_relative "support/clickhouse_test_database"
 
 module ActiveSupport
   class TestCase
     # Run tests in parallel with specified workers
     parallelize(workers: ENV.fetch("PARALLEL_WORKERS", 2).to_i)
 
+    # ClickHouse cannot roll back; ClickhouseTestDatabase truncates it instead.
+    skip_transactional_tests_for_database :clickhouse
+
+    # Test files that load WebMock are already loaded here, and each worker's
+    # ClickHouse database is created over HTTP right after the fork.
+    parallelize_before_fork { ClickhouseTestDatabase.allow_through_webmock! }
+    setup { ClickhouseTestDatabase.reset! }
+
     include FactoryBot::Syntax::Methods
   end
 end
+
+# A request runs with its own CurrentAttributes, so a heartbeat exclusion it
+# creates or revokes resets only the request's snapshot. Drop the test's own
+# snapshot afterwards so the test's later heartbeat reads see the change.
+module ResetHeartbeatExclusionSnapshotAfterRequest
+  def process(...)
+    super
+  ensure
+    HeartbeatExclusion.reset_snapshot!
+  end
+end
+ActionDispatch::Integration::Session.prepend(ResetHeartbeatExclusionSnapshotAfterRequest)
 
 module SystemTestAuthHelper
   def sign_in_as(user)

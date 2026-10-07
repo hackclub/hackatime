@@ -112,7 +112,7 @@ module Api
                 total_coding_time: valid.duration_seconds || 0,
                 languages_used: valid.distinct.pluck(:language).compact.count,
                 projects_worked_on: valid.distinct.pluck(:project).compact.count,
-                days_active: valid.distinct.count("DATE(to_timestamp(CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END))")
+                days_active: valid.distinct.count("toDate(toDateTime(toInt64(CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END), 'UTC'))")
               }
             }
           }
@@ -134,6 +134,7 @@ module Api
           end
 
           heartbeats = user.heartbeats.with_excluded.where(time: start_time.to_i..end_time.to_i).order(:time)
+          rows = heartbeats.with_hidden_flag.to_a
 
           render json: {
             user_id: user.id,
@@ -141,7 +142,7 @@ module Api
             start_date: start_time.to_date.iso8601,
             end_date: end_time.to_date.iso8601,
             timezone: user.timezone,
-            heartbeats: heartbeats.with_hidden_flag.map { |hb|
+            heartbeats: rows.map { |hb|
               {
                 id: hb.id,
                 time: Time.at(hb.time).utc.iso8601,
@@ -169,7 +170,7 @@ module Api
                 hidden: hb.hidden
               }
             },
-            total_heartbeats: heartbeats.count,
+            total_heartbeats: rows.size,
             total_duration: heartbeats.duration_seconds || 0
           }
         end
@@ -188,7 +189,7 @@ module Api
           project_stats = base_heartbeats
             .select(:project, "COUNT(*) as heartbeat_count", "MIN(time) as first_heartbeat",
                     "MAX(time) as last_heartbeat",
-                    "ARRAY_AGG(DISTINCT language) FILTER (WHERE language IS NOT NULL) as languages")
+                    "arraySort(groupUniqArrayIf(language, language IS NOT NULL)) as languages")
             .group(:project).order(Arel.sql("COUNT(*) DESC"))
 
           durations = base_heartbeats.group(:project).duration_seconds
@@ -308,7 +309,7 @@ module Api
 
           total_count = query.count
           source_types = Heartbeat.source_types.invert
-          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS, Arel.sql(HeartbeatExclusion::HIDDEN_SQL))
+          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS, Arel.sql(HeartbeatExclusion.hidden_sql))
           ja4s_by_id = Ja4.where(id: rows.filter_map { |*, ja4_id, _hidden| ja4_id }.uniq).index_by(&:id)
           heartbeats = rows.map do |id, time, created_at, lineno, cursorpos, is_write, project, language, entity, branch, category, dependencies, editor, machine, operating_system, type, project_root_count, user_agent, line_additions, line_deletions, ip_address, lines, source_type, ja4_id, hidden|
             {

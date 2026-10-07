@@ -3,49 +3,486 @@
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "06ca3650eaeb8d28e062c1c6dcbeab95fb2ccd0c5bb49165ad469bcb6b791d3e",
+      "fingerprint": "e3f7c1bea9bb97461d9c1e4e04d765a5a541e46b011e341b378d1824ee2f83ff",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/controllers/api/admin/v1/admin_controller.rb",
+      "line": 95,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Heartbeat.connection.select_all(\"#{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}\\nWITH base_heartbeats AS (\\n    SELECT id, time, lineno, cursorpos,\\n           toStartOfDay(toDateTime(toInt64(floor(time)), 'UTC')) AS day_start,\\n           #{HeartbeatExclusion.hidden_sql} AS hidden\\n    FROM heartbeats\\n    WHERE user_id = #{Integer(find_user_by_id.id)}\\n      AND deleted_at IS NULL\\n      AND time >= #{Integer(Time.utc(params[:year].to_i, params[:month].to_i, 1).to_i)} AND time <= #{Integer((Time.utc((params[:year].to_i + 1), 1, 1).to_i or Time.utc(params[:year].to_i, (params[:month].to_i + 1), 1).to_i))}\\n    LIMIT 1000000\\n),\\ndaily_stats AS (\\n    SELECT *,\\n           greatest(1, coalesce(max(lineno) OVER (PARTITION BY day_start), 1)) AS max_lineno,\\n           greatest(1, coalesce(max(cursorpos) OVER (PARTITION BY day_start), 1)) AS max_cursorpos\\n    FROM base_heartbeats\\n),\\nquantized_heartbeats AS (\\n    SELECT *,\\n           round(2 + ((time - toUnixTimestamp(day_start)) / 86400) * 396) AS qx,\\n           round(2 + (1 - lineno / max_lineno) * 96) AS qy_lineno,\\n           round(2 + (1 - cursorpos / max_cursorpos) * 96) AS qy_cursorpos\\n    FROM daily_stats\\n)\\nSELECT time, lineno, cursorpos, hidden FROM (\\n  #{lambda do\n \"(SELECT time, lineno, cursorpos, hidden\\n FROM quantized_heartbeats\\n WHERE #{condition}\\n ORDER BY time ASC, id ASC\\n LIMIT 1 BY day_start, qx, #{y_column ? (\"#{y_column}, \") : (\"\")}hidden)\\n\"\n end.call(\"qy_lineno\", \"lineno IS NOT NULL\")}\\n  UNION DISTINCT\\n  #{lambda do\n \"(SELECT time, lineno, cursorpos, hidden\\n FROM quantized_heartbeats\\n WHERE #{condition}\\n ORDER BY time ASC, id ASC\\n LIMIT 1 BY day_start, qx, #{y_column ? (\"#{y_column}, \") : (\"\")}hidden)\\n\"\n end.call(\"qy_cursorpos\", \"cursorpos IS NOT NULL\")}\\n  UNION DISTINCT\\n  #{lambda do\n \"(SELECT time, lineno, cursorpos, hidden\\n FROM quantized_heartbeats\\n WHERE #{condition}\\n ORDER BY time ASC, id ASC\\n LIMIT 1 BY day_start, qx, #{y_column ? (\"#{y_column}, \") : (\"\")}hidden)\\n\"\n end.call(nil, \"lineno IS NULL AND cursorpos IS NULL\")}\\n)\\nORDER BY time ASC, hidden ASC\\n\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Api::Admin::V1::AdminController",
+        "method": "visualization_quantized"
+      },
+      "user_input": "HeartbeatExclusion.hidden_sql",
+      "confidence": "High",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse SQL. Interpolated values are Integer() casts of parsed params and the compiled exclusion predicate, whose values are quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "be0ac91e1d29094424f79ccac8372ccae4f903763f1828c338659d92e4c9d20b",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/controllers/api/admin/v1/admin_controller.rb",
+      "line": 130,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Heartbeat.connection.select_all(\"#{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}\\nWITH combos AS (#{\"SELECT user_id, machine, ip_address,\\n       min(time) AS first_seen, max(time) AS last_seen,\\n       toBool(min(#{HeartbeatExclusion.hidden_sql})) AS hidden\\nFROM heartbeats\\nWHERE machine IS NOT NULL\\n  AND ip_address IS NOT NULL\\n  AND deleted_at IS NULL\\n  AND time >= #{Integer((params[:lookback_days] or 30).to_i.clamp(1, 365).days.ago.to_i)}\\nGROUP BY user_id, machine, ip_address\\n\"})\\nSELECT\\n    r1.user_id AS user_a_id,\\n    r2.user_id AS user_b_id,\\n    r1.machine AS machine,\\n    r1.ip_address AS ip_address,\\n    r1.first_seen AS user_a_first_seen_on_combo,\\n    r1.last_seen AS user_a_last_seen_on_combo,\\n    r2.first_seen AS user_b_first_seen_on_combo,\\n    r2.last_seen AS user_b_last_seen_on_combo,\\n    r1.hidden AS user_a_hidden,\\n    r2.hidden AS user_b_hidden\\nFROM combos AS r1\\nINNER JOIN combos AS r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address\\nWHERE r1.user_id < r2.user_id\\nLIMIT 5000\\n\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Api::Admin::V1::AdminController",
+        "method": "alt_candidates"
+      },
+      "user_input": "HeartbeatExclusion.hidden_sql",
+      "confidence": "High",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse SQL. Interpolated values are Integer() casts of parsed params and the compiled exclusion predicate, whose values are quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "5a0be4264e58f5ce2231409d4dde40c713610a7d247f6e762ac72a7a61a857d9",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/controllers/api/admin/v1/heartbeats_controller.rb",
+      "line": 27,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Heartbeat.connection.select_all(\"#{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}\\nWITH combos AS (#{\"SELECT user_id, machine, ip_address,\\n       min(time) AS first_seen, max(time) AS last_seen,\\n       toBool(min(#{HeartbeatExclusion.hidden_sql})) AS hidden\\nFROM heartbeats\\nWHERE machine IS NOT NULL\\n  AND ip_address IS NOT NULL\\n  AND deleted_at IS NULL\\n  AND time > #{Integer((params[:lookback_days] or 30).to_i.clamp(1, 365).days.ago.to_i)}\\nGROUP BY user_id, machine, ip_address\\n\"})\\nSELECT\\n  r1.user_id  AS user_a_id,\\n  r2.user_id  AS user_b_id,\\n  r1.machine AS machine,\\n  r1.ip_address AS ip_address,\\n  r1.first_seen AS user_a_first_seen,\\n  r1.last_seen  AS user_a_last_seen,\\n  r2.first_seen AS user_b_first_seen,\\n  r2.last_seen  AS user_b_last_seen,\\n  r1.hidden     AS user_a_hidden,\\n  r2.hidden     AS user_b_hidden\\nFROM combos AS r1\\nINNER JOIN combos AS r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address\\nWHERE r1.user_id < r2.user_id\\nLIMIT #{Integer(parse_limit)}\\n\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Api::Admin::V1::HeartbeatsController",
+        "method": "ip_machine_pairs"
+      },
+      "user_input": "HeartbeatExclusion.hidden_sql",
+      "confidence": "High",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse SQL. Interpolated values are Integer() casts of parsed params and the compiled exclusion predicate, whose values are quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "250c15d3a0abf4e7a8b95da73c551d0c2c0cb3b063e94dca2f628049416b7a6b",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/controllers/api/admin/v1/heartbeats_controller.rb",
+      "line": 56,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Heartbeat.connection.select_all(\"#{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}\\nWITH user_machines AS (\\n  SELECT machine, user_id, toBool(min(#{HeartbeatExclusion.hidden_sql})) AS hidden\\n  FROM heartbeats\\n  WHERE machine IS NOT NULL\\n    AND deleted_at IS NULL\\n    AND time > #{Integer((params[:lookback_days] or 30).to_i.clamp(1, 365).days.ago.to_i)}\\n  GROUP BY machine, user_id\\n)\\nSELECT\\n  machine,\\n  count() AS machine_frequency,\\n  arraySort(groupArray(user_id)) AS user_ids,\\n  arraySort(groupArrayIf(user_id, hidden)) AS hidden_user_ids\\nFROM user_machines\\nGROUP BY machine\\nHAVING count() > 1\\nORDER BY machine_frequency DESC, machine ASC\\nLIMIT #{Integer(parse_limit)}\\n\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Api::Admin::V1::HeartbeatsController",
+        "method": "shared_machines"
+      },
+      "user_input": "HeartbeatExclusion.hidden_sql",
+      "confidence": "High",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse SQL. Interpolated values are Integer() casts of parsed params and the compiled exclusion predicate, whose values are quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "d6362c9fd69283e3dec24e4feaa07e32e82e567751c93b14b6afbac99e3ae2a7",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/mailers/weekly_summary_mailer.rb",
+      "line": 41,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Arel.sql(\"toDate(#{Heartbeatable::DurationSql.local_datetime(@timezone_label)})\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "WeeklySummaryMailer",
+        "method": "active_days_count"
+      },
+      "user_input": "Heartbeatable::DurationSql.local_datetime(@timezone_label)",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "The timezone is validated against the tz database and quoted by DurationSql.timezone_literal."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "0868d26de0be59eb728a77471fd7185c511dbe0865367b18a1cc41b4f137e1fa",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 136,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_rows(\"SELECT user_id, day, #{DurationSql.to_seconds(\"sum(gap)\")} AS duration\\nFROM (\\n  SELECT user_id, #{\"toDate(#{DurationSql.local_datetime(timezone)})\"} AS day,\\n         #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap\\n  FROM (#{where(:user_id => ids).where.not(:category => \"browsing\").with_valid_timestamps.where(:time => (([start_date, 31.days.ago].max.to_f..Time.current.to_f))).excluding_browser_time.select(:user_id, :time, :id).to_sql}) AS streak_heartbeats\\n  WINDOW w AS #{DurationSql.window([\"user_id\", \"#{\"toDate(#{DurationSql.local_datetime(timezone)})\"}\"])}\\n)\\nGROUP BY user_id, day\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeatable",
+        "method": "daily_streaks_for_users"
+      },
+      "user_input": "DurationSql.to_seconds(\"sum(gap)\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse duration SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; grouped columns come from code, never from params."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "f0e4090856cedd721b9d93b272a36f97f90db8a012959b02dfb1e35ae469f767",
       "check_name": "SQL",
       "message": "Possible SQL injection",
       "file": "app/models/concerns/heartbeatable.rb",
       "line": 175,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Arel.sql(\"DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '#{(user_timezone or \"UTC\")}')\")",
+      "code": "connection.select_rows(\"SELECT day, #{DurationSql.to_seconds(\"sum(gap)\")}\\nFROM (\\n  SELECT #{\"toDate(#{DurationSql.local_datetime(valid_timezone(user_timezone))})\"} AS day, #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap\\n  FROM (#{with_valid_timestamps.where(:time => ((start_date.to_f..end_date.to_f))).unscope(:group, :order, :select).select(:time, :id).to_sql}) AS daily_heartbeats\\n  WINDOW w AS #{DurationSql.window(\"toDate(#{DurationSql.local_datetime(valid_timezone(user_timezone))})\")}\\n)\\nGROUP BY day\\n\".squish)",
       "render_path": null,
       "location": {
         "type": "method",
         "class": "Heartbeatable",
         "method": "daily_durations"
       },
-      "user_input": "user_timezone",
+      "user_input": "DurationSql.to_seconds(\"sum(gap)\")",
       "confidence": "Medium",
       "cwe_id": [
         89
       ],
-      "note": ""
+      "note": "ClickHouse duration SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; grouped columns come from code, never from params."
     },
     {
       "warning_type": "SQL Injection",
       "warning_code": 0,
-      "fingerprint": "db41fbf90d0feb7b7c1c11545d498447162cf5e54e091d2ddcfcaba28b2513f6",
+      "fingerprint": "83b174e3ddf188fa28ca18ea60b9939dc897c2d272fa2dd1929df1ab12a1b23c",
       "check_name": "SQL",
       "message": "Possible SQL injection",
-      "file": "app/jobs/one_time/generate_unique_heartbeat_hashes_job.rb",
-      "line": 32,
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 202,
       "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
-      "code": "Heartbeat.where(:id => chunk.map do\n index = 1\nputs(\"Processing heartbeat #{heartbeat.id} (#{1} of #{batch.size})\")\nfield_hash = Heartbeat.generate_fields_hash(heartbeat.attributes)\nputs(\"Field hash: #{Heartbeat.generate_fields_hash(heartbeat.attributes)}\")\n[heartbeat.id, Heartbeat.generate_fields_hash(heartbeat.attributes)]\n end.map(&:first)).update_all(\"fields_hash = CASE #{chunk.map do\n index = 1\nputs(\"Processing heartbeat #{heartbeat.id} (#{1} of #{batch.size})\")\nfield_hash = Heartbeat.generate_fields_hash(heartbeat.attributes)\nputs(\"Field hash: #{Heartbeat.generate_fields_hash(heartbeat.attributes)}\")\n[heartbeat.id, Heartbeat.generate_fields_hash(heartbeat.attributes)]\n end.map do\n \"WHEN id = #{id} THEN '#{hash}'\"\n end.join(\" \")} END\")",
+      "code": "connection.select_all(\"SELECT local_date,\\n       project,\\n       ai_model,\\n       #{DurationSql.to_seconds(\"sum(gap)\")} AS duration,\\n       toInt64(ifNull(sum(in_ai_input_tokens), 0)) AS ai_input_tokens,\\n       toInt64(count(in_ai_input_tokens)) AS ai_input_token_count,\\n       toInt64(ifNull(sum(in_ai_output_tokens), 0)) AS ai_output_tokens,\\n       toInt64(count(in_ai_output_tokens)) AS ai_output_token_count,\\n       toInt64(ifNull(sum(in_ai_line_changes), 0)) AS ai_line_changes\\nFROM (\\n  SELECT #{\"toDate(#{DurationSql.local_datetime(valid_timezone(timezone))})\"} AS local_date, project, ai_model, ai_input_tokens AS in_ai_input_tokens,\\n         ai_output_tokens AS in_ai_output_tokens, ai_line_changes AS in_ai_line_changes,\\n         least(if(row_number() OVER wd = 1, 0, lagInFrame(time) OVER wd - time), #{heartbeat_timeout_duration.to_i}) AS gap\\n  FROM (#{scope.with_valid_timestamps.unscope(:group, :order, :select).select(:id, :time, :project, :ai_model, :ai_input_tokens, :ai_output_tokens, :ai_line_changes).to_sql}) AS daily_summary_heartbeats\\n  WINDOW wd AS (PARTITION BY #{\"toDate(#{DurationSql.local_datetime(valid_timezone(timezone))})\"} ORDER BY time DESC, id DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\\n)\\nGROUP BY local_date, project, ai_model\\nORDER BY local_date, project, ai_model\\n\".squish)",
       "render_path": null,
       "location": {
         "type": "method",
-        "class": "OneTime::GenerateUniqueHeartbeatHashesJob",
-        "method": "perform"
+        "class": "Heartbeatable",
+        "method": "daily_activity_summary_rows"
       },
-      "user_input": "Heartbeat.generate_fields_hash(heartbeat.attributes)",
+      "user_input": "DurationSql.to_seconds(\"sum(gap)\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse duration SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; grouped columns come from code, never from params."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "c068503d487d7ed8fe0bc9f99005890c3680729fdc79183afe633f66dade96de",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 247,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Arel.sql(\"#{(scope.with_valid_timestamps.group_values.first.to_s or connection.quote_column_name(scope.with_valid_timestamps.group_values.first))} AS grouped_time\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeatable",
+        "method": "duration_seconds"
+      },
+      "user_input": "scope.with_valid_timestamps.group_values.first",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse duration SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; grouped columns come from code, never from params."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "10386e67bc29e341299387904c3ff3e9d7ec4ec82fefe687dacc15be61e55e6a",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 250,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_rows(\"SELECT grouped_time, #{DurationSql.to_seconds(\"sum(gap)\")}\\nFROM (\\n  SELECT grouped_time, #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap\\n  FROM (#{scope.with_valid_timestamps.unscope(:group, :order, :select).select(Arel.sql(\"#{(scope.with_valid_timestamps.group_values.first.to_s or connection.quote_column_name(scope.with_valid_timestamps.group_values.first))} AS grouped_time\"), :time, :id).to_sql}) AS grouped_heartbeats\\n  WINDOW w AS #{DurationSql.window(\"grouped_time\")}\\n)\\nGROUP BY grouped_time\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeatable",
+        "method": "duration_seconds"
+      },
+      "user_input": "DurationSql.to_seconds(\"sum(gap)\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse duration SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; grouped columns come from code, never from params."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "a7cd3fbb5e4b71adc380d3bd2c7f8be309c2708a8c4f49ab5fd2b43718025a69",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 261,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_value(\"SELECT #{DurationSql.to_seconds(\"ifNull(sum(gap), 0)\")}\\nFROM (\\n  SELECT #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap\\n  FROM (#{scope.with_valid_timestamps.unscope(:order, :select).select(:time, :id).to_sql}) AS duration_heartbeats\\n  WINDOW w AS #{DurationSql.window}\\n)\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeatable",
+        "method": "duration_seconds"
+      },
+      "user_input": "DurationSql.to_seconds(\"ifNull(sum(gap), 0)\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse duration SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; grouped columns come from code, never from params."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "dc32863e42f3f54f6b303203b5d75ca9648d8b90ce94d449db6fc2b97ca4beee",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 289,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_value(\"SELECT #{DurationSql.to_seconds(\"ifNull(sum(gap), 0)\")}\\nFROM (\\n  SELECT time, #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap\\n  FROM (#{(scope.with_valid_timestamps.model.all.with_valid_timestamps.where.not(\"lower(category) IN (?)\", excluded_categories).where(:BRAKEMAN_SAFE_LITERAL => scope.with_valid_timestamps.where_values_hash[:BRAKEMAN_SAFE_LITERAL]).where(\"time >= ? OR time = ?\", start_time.to_f, scope.with_valid_timestamps.model.all.with_valid_timestamps.where.not(\"lower(category) IN (?)\", excluded_categories).where(:BRAKEMAN_SAFE_LITERAL => scope.with_valid_timestamps.where_values_hash[:BRAKEMAN_SAFE_LITERAL]).where(\"time < ?\", start_time.to_f).maximum(:time)).where(\"time <= ?\", end_time.to_f) or scope.with_valid_timestamps.model.all.with_valid_timestamps.where.not(\"lower(category) IN (?)\", excluded_categories).where(:BRAKEMAN_SAFE_LITERAL => scope.with_valid_timestamps.where_values_hash[:BRAKEMAN_SAFE_LITERAL]).where(:time => ((start_time.to_f..end_time.to_f)))).unscope(:order, :select).select(:time, :id).to_sql}) AS boundary_heartbeats\\n  WINDOW w AS #{DurationSql.window}\\n)\\nWHERE time >= #{start_time.to_f}\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeatable",
+        "method": "duration_seconds_boundary_aware"
+      },
+      "user_input": "DurationSql.to_seconds(\"ifNull(sum(gap), 0)\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse duration SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; grouped columns come from code, never from params."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "8bad044da21bcb9d2fd996ba20be81573753861c422ed7bf15e64a4cf6d89fed",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/heartbeat.rb",
+      "line": 34,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "Arel.sql(\"#{HeartbeatExclusion.hidden_sql} AS hidden\")",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeat",
+        "method": null
+      },
+      "user_input": "HeartbeatExclusion.hidden_sql",
       "confidence": "High",
       "cwe_id": [
         89
       ],
-      "note": ""
+      "note": "ClickHouse SQL built from Integer() ids, quoted values and the compiled exclusion predicate, whose values are quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "1755d1f2e7fc3d50afd7bcc826ec78355dc62afd8a209c0805c319cdff991042",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/heartbeat.rb",
+      "line": 197,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.execute(\"/* #{HeartbeatExclusion::INCLUDE_HIDDEN_TAG} */\\nUPDATE #{quoted_table_name} SET deleted_at = #{if (value and type_for_attribute(:deleted_at).serialize(value)).nil? then\n  \"NULL\"\nelse\n  connection.quote((value and type_for_attribute(:deleted_at).serialize(value)))\nend}\\nWHERE #{\"#{\"user_id = #{Integer(user_id)}\"} AND #{only} AND #{\"id IN (#{ids.map do\n Integer(id)\n end.join(\", \")})\"}\"}\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeat",
+        "method": "Heartbeat.set_deleted_at!"
+      },
+      "user_input": "Integer(user_id)",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse SQL built from Integer() ids, quoted values and the compiled exclusion predicate, whose values are quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "8760e7d34acbcb6450ff250b969058f55aaa8683c0c01c177cad04a9b125aa4a",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/heartbeat_rollup.rb",
+      "line": 173,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.execute(\"INSERT INTO #{quoted_table_name}\\n  (user_id, generation, local_date, hour, #{\"project, language, editor, operating_system, category\"}, heartbeats,\\n   duration, project_duration, day_duration, project_week_duration, first_time, last_time)\\nSELECT #{Integer(user.id)}, #{Integer(generation)}, local_date, hour, #{\"project, language, editor, operating_system, category\"}, count(),\\n       sum(gap), sum(project_gap), sum(day_gap), sum(project_week_gap), min(time), max(time)\\nFROM (\\n  SELECT time, #{\"project, language, editor, operating_system, category\"}, toDate32(local_time) AS local_date, toHour(local_time) AS hour,\\n         #{Heartbeatable::DurationSql.capped_gap(Heartbeat.heartbeat_timeout_duration.to_i, :window => \"w\")} AS gap,\\n         #{Heartbeatable::DurationSql.capped_gap(Heartbeat.heartbeat_timeout_duration.to_i, :window => \"wp\")} AS project_gap,\\n         #{Heartbeatable::DurationSql.capped_gap(Heartbeat.heartbeat_timeout_duration.to_i, :window => \"wd\")} AS day_gap,\\n         #{Heartbeatable::DurationSql.capped_gap(Heartbeat.heartbeat_timeout_duration.to_i, :window => \"wpw\")} AS project_week_gap\\n  FROM (\\n    SELECT *, #{Heartbeatable::DurationSql.local_datetime(timezone)} AS local_time\\n    FROM (#{user.heartbeats_excluding_archived_projects.with_valid_timestamps.unscope(:order, :select).select(:id, :time, *[:project, :language, :editor, :operating_system, :category]).to_sql}) AS source_heartbeats\\n  ) AS local_heartbeats\\n  WINDOW w AS #{Heartbeatable::DurationSql.window},\\n         wp AS #{Heartbeatable::DurationSql.window(:project)},\\n         wd AS #{Heartbeatable::DurationSql.window(\"toDate32(local_time)\")},\\n         wpw AS #{Heartbeatable::DurationSql.window([\"project\", \"toMonday(local_time)\"])}\\n)\\nGROUP BY local_date, hour, #{\"project, language, editor, operating_system, category\"}\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "HeartbeatRollup",
+        "method": "self.insert_generation!"
+      },
+      "user_input": "Integer(user.id)",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse rollup SQL. Ids are Integer() casts, dates are quoted and timezones are validated and quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "31a3f0ee33b4c89105af8b69e5a13136e9271aeb182ef6b6011099564997bd6e",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/heartbeat_rollup.rb",
+      "line": 182,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.execute(\"DELETE FROM #{quoted_table_name} WHERE user_id = #{Integer(user_id)} AND #{condition}\\nSETTINGS lightweight_delete_mode = 'lightweight_update_force'\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "HeartbeatRollup",
+        "method": "self.delete_generations!"
+      },
+      "user_input": "Integer(user_id)",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse rollup SQL. Ids are Integer() casts, dates are quoted and timezones are validated and quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "e7ae98e6c2af2c67695f07c7ce3d5b5992cf1c4d7d9102e22622fbd4c4b1ff4a",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/heartbeat_rollup.rb",
+      "line": 201,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_rows(\"SELECT grouping(#{\"project, language, editor, operating_system, category, slot, week, graph_date, today_language, today_editor\"}) AS set_mask, #{\"project, language, editor, operating_system, category, slot, week, graph_date, today_language, today_editor\"},\\n       toInt64(round(sum(duration))) AS seconds,\\n       toInt64(round(sum(project_duration))) AS project_seconds,\\n       toInt64(round(sum(day_duration))) AS day_seconds,\\n       toInt64(round(sum(project_week_duration))) AS project_week_seconds,\\n       toInt64(sum(heartbeats)) AS heartbeat_count,\\n       min(first_time) AS first_heartbeat,\\n       max(last_time) AS last_heartbeat,\\n       arraySort(groupUniqArrayIf(language, language != '')) AS project_languages,\\n       toInt64(round(sumIf(day_duration, #{\"local_date = toDate(#{quote_clickhouse(today)})\"}))) AS today_seconds\\nFROM (\\n  SELECT *,\\n         concat(toString(toDayOfWeek(local_date)), '-', toString(hour)) AS slot,\\n         if(local_date >= toDate(#{quote_clickhouse(week_start)}), toString(toMonday(local_date)), NULL) AS week,\\n         if(local_date BETWEEN toDate(#{quote_clickhouse(graph_start)}) AND toDate(#{quote_clickhouse(today)}), toString(local_date), NULL) AS graph_date,\\n         if(#{\"local_date = toDate(#{quote_clickhouse(today)})\"}, language, NULL) AS today_language,\\n         if(#{\"local_date = toDate(#{quote_clickhouse(today)})\"}, editor, NULL) AS today_editor\\n  FROM #{quoted_table_name}\\n  WHERE user_id = #{Integer(state.user_id)} AND generation = #{Integer(state.generation)}\\n)\\nGROUP BY GROUPING SETS (#{[[], [\"project\"], [\"language\"], [\"editor\"], [\"operating_system\"], [\"category\"], [\"slot\"], [\"week\", \"project\"], [\"graph_date\"], [\"today_language\"], [\"today_editor\"]].map do\n \"(#{columns.join(\", \")})\"\n end.join(\", \")})\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "HeartbeatRollup",
+        "method": "self.snapshot_rows"
+      },
+      "user_input": "quote_clickhouse(today)",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse rollup SQL. Ids are Integer() casts, dates are quoted and timezones are validated and quoted."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "5e7ee075b394e14c53e31cac9f86e0982fb9959218992739bc42bd04f72129ce",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/dashboard_data/snapshots.rb",
+      "line": 42,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_rows(\"SELECT project,\\n       count() AS heartbeat_count,\\n       min(time) AS first_heartbeat,\\n       max(time) AS last_heartbeat,\\n       arraySort(groupUniqArrayIf(language, language IS NOT NULL AND language != '')) AS languages,\\n       #{Sql.to_seconds(\"sum(gap)\")} AS duration\\nFROM (\\n  SELECT project, time, language, #{Sql.capped_gap(timeout)} AS gap\\n  FROM (#{scope.with_valid_timestamps.where.not(:project => ([nil, \"\"])).unscope(:order, :select).select(:id, :time, :project, :language).to_sql}) AS project_detail_heartbeats\\n  WINDOW w AS #{Sql.window(:project)}\\n)\\nGROUP BY project\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "DashboardData::Snapshots",
+        "method": "project_details_snapshot"
+      },
+      "user_input": "Sql.to_seconds(\"sum(gap)\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse dashboard SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; filters are compiled by Active Record."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "2b90047c9c3c1da003103a782f8343a6ea76b4a45759fb4e40f1c9eb93d626d7",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 281,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_rows(\"SELECT key.1, key.2, #{DurationSql.to_seconds(\"sum(gap)\")}\\nFROM (\\n  SELECT key, #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap\\n  FROM (#{scope.with_valid_timestamps.unscope(:group, :order, :select).select(:id, :time, *groups.values.grep(Symbol)).to_sql}) AS grouped_heartbeats\\n  ARRAY JOIN [#{([\"('', NULL)\"] + groups.map do\n expr = connection.quote_column_name(expr) if expr.is_a?(Symbol)\n\"(#{connection.quote(name.to_s)}, toString(#{(expr or connection.quote_column_name(expr))}))\"\n\n end).join(\", \")}] AS key\\n  WINDOW w AS #{DurationSql.window(\"key\")}\\n)\\nGROUP BY key\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeatable",
+        "method": "grouped_duration_seconds"
+      },
+      "user_input": "DurationSql.to_seconds(\"sum(gap)\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse duration SQL wrapping an Active Record relation (to_sql). Group names are quoted, columns are quoted identifiers and expressions come from code (validated timezones only)."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "ef7ccb7dcd112d475c5e47382d6a39a7c00bbc1e3f5e43f3add16e20752c9584",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/services/dashboard_data/snapshots.rb",
+      "line": 189,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_rows(\"SELECT key.1 AS dimension, key.2 AS bucket, key.3 AS week_key,\\n       #{Sql.to_seconds(\"sum(key.4)\")} AS duration, count() AS heartbeat_count\\nFROM (\\n  SELECT * FROM (\\n    SELECT time, #{\"project, language, editor, operating_system, category\"}, #{\"#{\"#{Sql.capped_gap(timeout)} AS gap\"}, #{\"#{Sql.capped_gap(timeout, :window => \"wp\")} AS project_gap\"}, #{\"#{Sql.capped_gap(timeout, :window => \"wpw\")} AS project_week_gap\"}\"}\\n    FROM (#{scope.unscope(:order, :select).select(:id, :time, *[:project, :language, :editor, :operating_system, :category]).to_sql}) AS timeline_heartbeats\\n    WINDOW #{\"#{\"w AS #{Sql.window}\"}, #{\"wp AS #{Sql.window(:project)}\"}, #{\"wpw AS #{Sql.window([:project, \"toMonday(#{Sql.local_datetime(user.timezone)})\"])}\"}\"}\\n  ) AS heartbeats\\n  WHERE #{(filter_sql or \"1\")}\\n)\\nARRAY JOIN [#{\"('total', NULL, NULL, gap), #{\"('project', project, NULL, #{project_gap})\"}, #{*([:project, :language, :editor, :operating_system, :category] - [:project]).map do\n \"('#{field}', #{field}, NULL, gap)\"\n end}, #{\"if(time BETWEEN #{week_ranges(user.timezone).last[1]} AND #{week_ranges(user.timezone).first[2]}, ('weekly_project', project, toString(#{\"toMonday(#{Sql.local_datetime(user.timezone)})\"}), #{week_gap}), ('skip', NULL, NULL, 0.))\"}, #{\"('coding_rhythm', concat(toString(toDayOfWeek(#{Sql.local_datetime(user.timezone)})), '-', toString(toHour(#{Sql.local_datetime(user.timezone)}))), NULL, gap)\"}\"}] AS key\\nWHERE key.1 != 'skip'\\nGROUP BY dimension, bucket, week_key\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "DashboardData::Snapshots",
+        "method": "query_snapshot"
+      },
+      "user_input": "Sql.to_seconds(\"sum(key.4)\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse dashboard SQL wrapping Active Record relations (to_sql). Timezones are validated and quoted; filters are compiled by Active Record."
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "b0502b8cd854f561e53119da8fa11b7aecc2564209255216981ca46b825b8ba0",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/models/concerns/heartbeatable.rb",
+      "line": 232,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": "connection.select_rows(\"SELECT key.1, key.2, #{DurationSql.to_seconds(\"sum(gap)\")}\\nFROM (\\n  SELECT #{\"#{*fields.map do\n connection.quote_column_name(field.to_s)\n end}, #{\"#{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap\"}\"}\\n  FROM (#{scope.with_valid_timestamps.unscope(:group, :select, :order).select(:id, :time, *fields).to_sql}) AS attribution_heartbeats\\n  WINDOW w AS #{DurationSql.window}\\n)\\nARRAY JOIN [#{([\"('', NULL)\"] + fields.zip(fields.map do\n connection.quote_column_name(field.to_s)\n end).map do\n \"(#{connection.quote(field.to_s)}, toString(#{column}))\"\n end).join(\", \")}] AS key\\nGROUP BY key\\n\".squish)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Heartbeatable",
+        "method": "attributed_durations_by_fields"
+      },
+      "user_input": "DurationSql.to_seconds(\"sum(gap)\")",
+      "confidence": "Medium",
+      "cwe_id": [
+        89
+      ],
+      "note": "ClickHouse duration SQL wrapping an Active Record relation (to_sql). Field names are quoted identifiers from code, never from params."
     }
   ],
-  "brakeman_version": "7.0.2"
+  "brakeman_version": "8.1.0"
 }

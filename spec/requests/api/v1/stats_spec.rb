@@ -4,21 +4,21 @@ RSpec.describe 'Api::V1::Stats', type: :request do
   path '/api/v1/stats' do
     get('Get total coding time') do
       tags 'Stats'
-      description 'Returns the total coding time for all users, optionally filtered by user or date range. Requires an active Admin API Key supplied via the Bearer header.'
+      description 'Returns the total coding time for one user, optionally within a date range. Pass username or user_email. Requires an active Admin API Key supplied via the Bearer header.'
       security [ { Bearer: [] } ]
       produces 'text/plain'
 
       parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD), defaults to 10 years ago'
       parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD), defaults to today'
-      parameter name: :username, in: :query, type: :string, description: 'Filter by username (optional)'
-      parameter name: :user_email, in: :query, type: :string, description: 'Filter by user email (optional)'
+      parameter name: :username, in: :query, type: :string, description: 'Username of the user. Either username or user_email is required.'
+      parameter name: :user_email, in: :query, type: :string, description: 'Email address of the user. Either username or user_email is required.'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:api_key) { nil }
         let(:start_date) { '2023-01-01' }
         let(:end_date) { '2023-12-31' }
-        let(:username) { nil }
+        let(:username) { 'testuser' }
         let(:user_email) { nil }
         schema type: :integer, example: 123456
         run_test! do |response|
@@ -29,6 +29,17 @@ RSpec.describe 'Api::V1::Stats', type: :request do
 
       response(401, 'unauthorized — Returned when the Admin API Key is missing, revoked, or incorrect. (Auth is bypassed in the development environment.)') do
         let(:Authorization) { "Bearer wrong-token" }
+        let(:api_key) { nil }
+        let(:start_date) { '2023-01-01' }
+        let(:end_date) { '2023-12-31' }
+        let(:username) { nil }
+        let(:user_email) { nil }
+        schema '$ref' => '#/components/schemas/Error'
+        run_test!
+      end
+
+      response(400, 'bad request — Returned when neither username nor user_email is given.') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:api_key) { nil }
         let(:start_date) { '2023-01-01' }
         let(:end_date) { '2023-12-31' }
@@ -54,7 +65,7 @@ RSpec.describe 'Api::V1::Stats', type: :request do
         let(:api_key) { nil }
         let(:start_date) { 'invalid-date' }
         let(:end_date) { '2023-12-31' }
-        let(:username) { nil }
+        let(:username) { 'testuser' }
         let(:user_email) { nil }
         schema '$ref' => '#/components/schemas/Error'
         run_test!

@@ -8,8 +8,8 @@ class SyncAllUserRepoEventsJob < ApplicationJob
     Rails.logger.info "Kicking off SyncAllUserRepoEventsJob"
 
     # Users with GitHub auth that had heartbeats in the last 6 hours
-    users = User.where.not(github_access_token: nil).where.not(github_username: nil)
-                .joins(:heartbeats).where("heartbeats.created_at >= ?", 6.hours.ago).distinct
+    active_user_ids = Heartbeat.where("created_at >= ?", 6.hours.ago).distinct.pluck(:user_id)
+    users = User.where.not(github_access_token: nil).where.not(github_username: nil).where(id: active_user_ids)
 
     if users.empty?
       Rails.logger.info "No users eligible for GitHub event sync at this time."

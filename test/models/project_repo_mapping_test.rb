@@ -83,4 +83,38 @@ class ProjectRepoMappingTest < ActiveSupport::TestCase
     assert_predicate mapping.reload, :archived?
     assert_not_requested :get, "https://api.github.com/repos/example/repository"
   end
+
+  test "currently active projects are each user's latest mapped project and skip soft-deleted heartbeats" do
+    Rails.cache.delete("project_repo_mappings/currently_active_by_user")
+    user = create(:user)
+    create(:project_repo_mapping, user: user, project_name: "live")
+    create(:project_repo_mapping, user: user, project_name: "ghost")
+
+    create_recent_heartbeat(user: user, project: "live", time: 1.minute.ago.to_f)
+    # a soft-deleted recent heartbeat must NOT resurrect "ghost" as active
+    create_recent_heartbeat(user: user, project: "ghost", time: 30.seconds.ago.to_f, deleted_at: Time.current)
+
+    result = ProjectRepoMapping.currently_active_by_user
+
+    assert_equal [ user.id ], result.keys
+    assert_equal "live", result[user.id].project_name
+  end
+
+  test "currently active projects exclude old heartbeats and non-direct source types" do
+    Rails.cache.delete("project_repo_mappings/currently_active_by_user")
+    user = create(:user)
+    create(:project_repo_mapping, user: user, project_name: "stale")
+    create(:project_repo_mapping, user: user, project_name: "imported")
+
+    create_recent_heartbeat(user: user, project: "stale", time: 10.minutes.ago.to_f)
+    create_recent_heartbeat(user: user, project: "imported", time: 1.minute.ago.to_f, source_type: :wakapi_import)
+
+    assert_empty ProjectRepoMapping.currently_active_by_user
+  end
+
+  private
+
+  def create_recent_heartbeat(user:, project:, **attrs)
+    create(:heartbeat, user:, project:, entity: "src/#{project}.rb", source_type: :direct_entry, time: Time.current.to_f, **attrs)
+  end
 end

@@ -1,162 +1,87 @@
 module DashboardData
+  # Dashboard aggregates computed live from heartbeats, using the duration rules
+  # in Heartbeatable::DurationSql.
   module Snapshots
     GROUPED_DIMENSIONS = %i[project language editor operating_system category].freeze
-    WEEKLY_PROJECT_DIMENSION = "weekly_project".freeze
-    # Keep indexed predecessor probes bounded; broad selections favour one scan.
-    PREDECESSOR_LOOKUP_LIMIT = 1_000
+
+    Sql = Heartbeatable::DurationSql
 
     module_function
 
-    def grouped_durations_snapshot(scope)
-      GROUPED_DIMENSIONS.index_with do |field|
-        field == :project ? project_grouped_durations(scope) : Heartbeat.attributed_durations_by(scope, field)
-      end
-    end
-
-    def project_grouped_durations(scope)
-      non_null = scope.where.not(project: nil).group(:project).duration_seconds
-      return non_null if scope.where(project: nil).none?
-
-      null_duration = scope.where(project: nil).duration_seconds
-      return non_null if null_duration.zero?
-
-      non_null.merge(nil => null_duration)
-    end
+    def timeout = Heartbeat.heartbeat_timeout_duration.to_i
+    def connection = Heartbeat.connection
 
     def project_details_snapshot(scope:)
-      timeout = Heartbeat.heartbeat_timeout_duration.to_i
-      relation_sql = scope.with_valid_timestamps
-        .where.not(project: [ nil, "" ], time: nil)
+      inner = scope.with_valid_timestamps.where.not(project: [ nil, "" ]).unscope(:order, :select)
         .select(:id, :time, :project, :language)
-        .to_sql
 
-      rows = Heartbeat.connection.select_all(<<~SQL.squish)
-        SELECT grouped_time,
-               COUNT(*)::integer AS heartbeat_count,
-               MIN(time) AS first_heartbeat,
-               MAX(time) AS last_heartbeat,
-               ARRAY_REMOVE(ARRAY_AGG(DISTINCT NULLIF(language, '')), NULL) AS languages,
-               COALESCE(SUM(diff), 0)::integer AS duration
+      rows = connection.select_rows(<<~SQL.squish)
+        SELECT project,
+               count() AS heartbeat_count,
+               min(time) AS first_heartbeat,
+               max(time) AS last_heartbeat,
+               arraySort(groupUniqArrayIf(language, language IS NOT NULL AND language != '')) AS languages,
+               #{Sql.to_seconds('sum(gap)')} AS duration
         FROM (
-          SELECT project AS grouped_time,
-                 time,
-                 language,
-                 CASE
-                   WHEN LAG(time) OVER (PARTITION BY project ORDER BY time, id) IS NULL THEN 0
-                   ELSE LEAST(time - LAG(time) OVER (PARTITION BY project ORDER BY time, id), #{timeout})
-                 END AS diff
-          FROM (#{relation_sql}) project_detail_heartbeats
-        ) diffs
-        GROUP BY grouped_time
+          SELECT project, time, language, #{Sql.capped_gap(timeout)} AS gap
+          FROM (#{inner.to_sql}) AS project_detail_heartbeats
+          WINDOW w AS #{Sql.window(:project)}
+        )
+        GROUP BY project
       SQL
 
-      rows.each_with_object({}) do |row, result|
-        result[row["grouped_time"]] = {
-          total_seconds: row["duration"].to_i,
-          total_heartbeats: row["heartbeat_count"].to_i,
-          first_heartbeat: row["first_heartbeat"],
-          last_heartbeat: row["last_heartbeat"],
-          languages: pg_array(row["languages"]).compact_blank
+      rows.each_with_object({}) do |(project, count, first, last, languages, duration), result|
+        result[project] = {
+          total_seconds: duration.to_i,
+          total_heartbeats: count.to_i,
+          first_heartbeat: first&.to_f,
+          last_heartbeat: last&.to_f,
+          languages: Array(languages).compact_blank
         }
       end
-    end
-
-    def pg_array(value)
-      return value if value.is_a?(Array)
-      return [] if value.blank?
-
-      PG::TextDecoder::Array.new.decode(value.to_s)
-    end
-
-    def weekly_project_stats(user:, scope:)
-      ranges = week_ranges(user.timezone)
-      result = ranges.to_h { |week_key, *_| [ week_key, {} ] }
-
-      relation_sql = scope.with_valid_timestamps
-        .where.not(time: nil)
-        .where(time: ranges.last[1]..ranges.first[2])
-        .select(:id, :time, :project)
-        .to_sql
-
-      quoted_timezone = Heartbeat.connection.quote(user.timezone)
-      week_group_sql = "DATE_TRUNC('week', to_timestamp(time) AT TIME ZONE #{quoted_timezone})"
-
-      rows = Heartbeat.connection.select_all(<<~SQL.squish)
-        SELECT TO_CHAR(week_group, 'YYYY-MM-DD') AS week_key,
-               grouped_time,
-               COALESCE(SUM(diff), 0)::integer AS duration
-        FROM (
-          SELECT project AS grouped_time,
-                 #{week_group_sql} AS week_group,
-                 CASE
-                   WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
-                   ELSE LEAST(
-                     time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id),
-                     #{Heartbeat.heartbeat_timeout_duration.to_i}
-                   )
-                 END AS diff
-          FROM (#{relation_sql}) dashboard_heartbeats
-        ) diffs
-        GROUP BY week_group, grouped_time
-        ORDER BY week_key DESC, grouped_time
-      SQL
-
-      rows.each do |row|
-        result[row["week_key"]][row["grouped_time"]] = row["duration"].to_i
-      end
-
-      result
     end
 
     def today_stats_snapshot(user:, scope:)
       Time.use_zone(user.timezone) do
-        timeout = Heartbeat.heartbeat_timeout_duration.to_i
-        today_sql = scope.today.to_sql
+        today = scope.today.with_valid_timestamps.unscope(:order, :select)
+        counts = today.unscope(:select).group(:language, :editor).count
 
-        rows = Heartbeat.connection.select_all(<<~SQL.squish).to_a
-          WITH today_rows AS (#{today_sql}),
-               duration_calc AS (
-                 SELECT
-                   CASE WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
-                        ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout}) END AS diff
-                 FROM today_rows
-                 WHERE time IS NOT NULL AND time >= 0 AND time <= 253402300799
-               ),
-               total_duration AS (SELECT COALESCE(SUM(diff), 0)::integer AS total FROM duration_calc)
-          SELECT DISTINCT
-            language,
-            editor,
-            COUNT(*) OVER (PARTITION BY language) AS language_count,
-            COUNT(*) OVER (PARTITION BY editor) AS editor_count,
-            (SELECT total FROM total_duration) AS total_duration
-          FROM today_rows
-        SQL
+        language_counts = Hash.new(0)
+        editor_counts = Hash.new(0)
+        counts.each do |(language, editor), count|
+          language_counts[language] += count
+          editor_counts[editor] += count
+        end
 
-        language_categories = rows
-          .map { |row| [ row["language"], row["language_count"].to_i ] }
-          .reject { |language, _| language.blank? }
-          .uniq
-          .group_by { |language, _| language.categorize_language }
-          .transform_values { |pairs| pairs.sum { |_, count| count } }
-          .reject { |category, _| category.blank? }
-          .sort_by { |_, count| -count }
-          .map(&:first)
-
-        editor_keys = rows
-          .map { |row| [ row["editor"], row["editor_count"].to_i ] }
-          .reject { |editor, _| editor.blank? }
-          .uniq
-          .sort_by { |_, count| -count }
-          .map(&:first)
-
-        {
-          timezone: user.timezone,
-          today_date: Date.current.iso8601,
-          todays_duration_seconds: rows.first&.fetch("total_duration").to_i,
-          todays_language_categories: language_categories,
-          todays_editor_keys: editor_keys
-        }
+        today_stats_payload(
+          timezone: user.timezone, today_date: Date.current.iso8601, duration_seconds: Heartbeat.duration_seconds(today),
+          language_counts:, editor_counts:
+        )
       end
+    end
+
+    # Today's duration plus language categories and editors, most used first.
+    def today_stats_payload(timezone:, today_date:, duration_seconds:, language_counts:, editor_counts:)
+      language_categories = language_counts
+        .reject { |language, _| language.blank? }
+        .group_by { |language, _| language.categorize_language }
+        .transform_values { |pairs| pairs.sum { |_, count| count } }
+        .reject { |category, _| category.blank? }
+        .sort_by { |_, count| -count }
+        .map(&:first)
+
+      editor_keys = editor_counts
+        .reject { |editor, _| editor.blank? }
+        .sort_by { |_, count| -count }
+        .map(&:first)
+
+      {
+        timezone: timezone,
+        today_date: today_date,
+        todays_duration_seconds: duration_seconds,
+        todays_language_categories: language_categories,
+        todays_editor_keys: editor_keys
+      }
     end
 
     def activity_graph_snapshot(user:, scope:)
@@ -178,33 +103,6 @@ module DashboardData
         duration_by_date: duration_by_date.to_h.transform_keys { |date| date.to_s }.transform_values(&:to_i),
         busiest_day_seconds: 8.hours.to_i,
         timezone_label: ActiveSupport::TimeZone[timezone]&.to_s || timezone
-      }
-    end
-
-    def coding_rhythm_snapshot(user:, scope:)
-      relation_sql = scope.with_valid_timestamps.where.not(time: nil).select(:id, :time).to_sql
-      quoted_timezone = Heartbeat.connection.quote(user.timezone)
-      local_time_sql = "to_timestamp(time) AT TIME ZONE #{quoted_timezone}"
-      timeout = Heartbeat.heartbeat_timeout_duration.to_i
-
-      rows = Heartbeat.connection.select_all(<<~SQL.squish)
-        SELECT weekday, hour, COALESCE(SUM(diff), 0)::integer AS duration
-        FROM (
-          SELECT EXTRACT(ISODOW FROM #{local_time_sql})::integer AS weekday,
-                 EXTRACT(HOUR FROM #{local_time_sql})::integer AS hour,
-                 CASE
-                   WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
-                   ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout})
-                 END AS diff
-          FROM (#{relation_sql}) coding_rhythm_heartbeats
-        ) diffs
-        GROUP BY weekday, hour
-        ORDER BY weekday, hour
-      SQL
-
-      {
-        timezone: user.timezone,
-        duration_by_slot: rows.to_h { |row| [ "#{row['weekday']}-#{row['hour']}", row["duration"].to_i ] }
       }
     end
 
@@ -231,77 +129,77 @@ module DashboardData
       end
     end
 
+    # Filtered dashboard (project/language/editor/OS/category filters). The date
+    # range and archive/visibility eligibility sit INSIDE the gap window (they
+    # define the timeline); dimension filters apply AFTER it, so each kept
+    # heartbeat keeps the gap to the previous heartbeat on the whole timeline.
+    #
+    # `scope` is the timeline; the block narrows it to the filtered heartbeats
+    # and its where-clause is reused as the post-window filter.
     def adaptive_filtered_snapshot(user:, scope:)
-      matches = yield scope.with_valid_timestamps
-      attributed = if matches.reorder(nil).limit(PREDECESSOR_LOOKUP_LIMIT + 1).count <= PREDECESSOR_LOOKUP_LIMIT
-        predecessor_dashboard_scope(timeline: scope, matches: matches)
-      else
-        yield attributed_dashboard_scope(scope)
-      end
-      filtered_query_snapshot(user: user, scope: attributed)
+      timeline = scope.with_valid_timestamps
+      # The block may narrow its relation in place (where!), so give it a copy.
+      filtered = yield timeline.spawn
+      filter_sql = post_window_filter_sql(timeline, filtered)
+      query_snapshot(user:, scope: timeline, filter_sql:)
     end
 
-    def predecessor_dashboard_scope(timeline:, matches:)
-      current_sql = matches.reorder(nil).select(:id, :time, *GROUPED_DIMENSIONS).to_sql
-      previous_sql = timeline.with_valid_timestamps
-        .where("(heartbeats.time, heartbeats.id) < (current_heartbeat.time, current_heartbeat.id)")
-        .reorder(time: :desc, id: :desc).limit(1).select(:time).to_sql
-      timeout = Heartbeat.heartbeat_timeout_duration.to_i
-      attributed_sql = <<~SQL.squish
-        SELECT current_heartbeat.*,
-               LEAST(COALESCE(current_heartbeat.time - previous_heartbeat.time, 0), #{timeout}) AS duration
-        FROM (#{current_sql}) current_heartbeat
-        LEFT JOIN LATERAL (#{previous_sql}) previous_heartbeat ON TRUE
-      SQL
-      Heartbeat.unscoped.from("(#{attributed_sql}) heartbeats")
+    def post_window_filter_sql(timeline, filtered)
+      extra = filtered.where_clause - timeline.where_clause
+      return "1" if extra.empty?
+
+      # Column references stay qualified as heartbeats.<column>; the filtered
+      # query names its timeline subquery `heartbeats` so they resolve.
+      connection.to_sql(extra.ast)
     end
 
-    # Date range and archive eligibility belong inside this window; dashboard
-    # dimension filters belong outside it. Each gap belongs to the current row.
-    def attributed_dashboard_scope(scope)
-      timeout = Heartbeat.heartbeat_timeout_duration.to_i
-      timeline = scope.with_valid_timestamps.reorder(nil).select(
-        :id, :time, *GROUPED_DIMENSIONS,
-        Arel.sql("LEAST(COALESCE(time - LAG(time) OVER (ORDER BY time, id), 0), #{timeout}) AS duration")
-      )
-      Heartbeat.unscoped.from(timeline, :heartbeats)
-    end
+    # Live aggregate snapshot used by the unfiltered non-rollup dashboard path.
+    # Returns the same shape as the rollup-derived aggregate snapshot.
+    def aggregate_query_snapshot(user:, scope:) = query_snapshot(user:, scope: scope.with_valid_timestamps)
 
-    def filtered_query_snapshot(user:, scope:)
-      # Materialize after filtering so every aggregate reuses the same small set
-      # of attributed rows instead of sorting/windowing the full timeline again.
-      relation_sql = scope.select(:time, *GROUPED_DIMENSIONS, :duration).to_sql
-      timezone = Heartbeat.connection.quote(user.timezone)
-      local_time = "to_timestamp(time) AT TIME ZONE #{timezone}"
+    # Every dashboard aggregate in one query. Gaps are measured on the timeline
+    # (`scope`). Without filter_sql, project and weekly project buckets use gaps
+    # partitioned by project (and week), as the rollup does; with it, every
+    # bucket uses the timeline gap of its kept heartbeats.
+    def query_snapshot(user:, scope:, filter_sql: nil)
+      local = Sql.local_datetime(user.timezone)
+      week = "toMonday(#{local})"
       ranges = week_ranges(user.timezone)
-      week = "TO_CHAR(DATE_TRUNC('week', #{local_time}), 'YYYY-MM-DD')"
-      slot = "CONCAT(EXTRACT(ISODOW FROM #{local_time})::integer, '-', EXTRACT(HOUR FROM #{local_time})::integer)"
-      aggregates = [ <<~SQL.squish ]
-        SELECT 'total' AS dimension, NULL::text AS bucket, NULL::text AS week_key,
-               COALESCE(SUM(duration), 0) AS duration, COUNT(*) AS heartbeats
-        FROM filtered
-      SQL
-      GROUPED_DIMENSIONS.each do |field|
-        aggregates << <<~SQL.squish
-          SELECT '#{field}', #{field}::text, NULL::text, SUM(duration), NULL::bigint
-          FROM filtered GROUP BY #{field}
-        SQL
+      partitioned = filter_sql.nil?
+      project_gap, week_gap = partitioned ? %w[project_gap project_week_gap] : %w[gap gap]
+      inner = scope.unscope(:order, :select).select(:id, :time, *GROUPED_DIMENSIONS)
+
+      gaps = [ "#{Sql.capped_gap(timeout)} AS gap" ]
+      windows = [ "w AS #{Sql.window}" ]
+      if partitioned
+        gaps << "#{Sql.capped_gap(timeout, window: 'wp')} AS project_gap" << "#{Sql.capped_gap(timeout, window: 'wpw')} AS project_week_gap"
+        windows << "wp AS #{Sql.window(:project)}" << "wpw AS #{Sql.window([ :project, week ])}"
       end
-      aggregates << <<~SQL.squish
-        SELECT 'weekly_project', project::text, #{week}, SUM(duration), NULL::bigint
-        FROM filtered
-        WHERE time BETWEEN #{Heartbeat.connection.quote(ranges.last[1])} AND #{Heartbeat.connection.quote(ranges.first[2])}
-        GROUP BY #{week}, project
-      SQL
-      aggregates << <<~SQL.squish
-        SELECT 'coding_rhythm', #{slot}, NULL::text, SUM(duration), NULL::bigint
-        FROM filtered GROUP BY #{slot}
+
+      keys = [
+        "('total', NULL, NULL, gap)",
+        "('project', project, NULL, #{project_gap})",
+        *(GROUPED_DIMENSIONS - [ :project ]).map { |field| "('#{field}', #{field}, NULL, gap)" },
+        "if(time BETWEEN #{ranges.last[1]} AND #{ranges.first[2]}, ('weekly_project', project, toString(#{week}), #{week_gap}), ('skip', NULL, NULL, 0.))",
+        "('coding_rhythm', concat(toString(toDayOfWeek(#{local})), '-', toString(toHour(#{local}))), NULL, gap)"
+      ]
+
+      rows = connection.select_rows(<<~SQL.squish)
+        SELECT key.1 AS dimension, key.2 AS bucket, key.3 AS week_key,
+               #{Sql.to_seconds('sum(key.4)')} AS duration, count() AS heartbeat_count
+        FROM (
+          SELECT * FROM (
+            SELECT time, #{GROUPED_DIMENSIONS.join(', ')}, #{gaps.join(', ')}
+            FROM (#{inner.to_sql}) AS timeline_heartbeats
+            WINDOW #{windows.join(', ')}
+          ) AS heartbeats
+          WHERE #{filter_sql || '1'}
+        )
+        ARRAY JOIN [#{keys.join(', ')}] AS key
+        WHERE key.1 != 'skip'
+        GROUP BY dimension, bucket, week_key
       SQL
 
-      rows = Heartbeat.connection.select_all(<<~SQL.squish)
-        WITH filtered AS MATERIALIZED (#{relation_sql})
-        #{aggregates.join(' UNION ALL ')}
-      SQL
       snapshot = {
         total_time: 0,
         total_heartbeats: 0,
@@ -309,33 +207,23 @@ module DashboardData
         weekly_project_stats: ranges.to_h { |key, *_| [ key, {} ] },
         coding_rhythm: { timezone: user.timezone, duration_by_slot: {} }
       }
-      rows.each do |row|
-        duration = row["duration"].to_i
-        case row["dimension"]
+      rows.each do |dimension, bucket, week_key, duration, heartbeats|
+        duration = duration.to_i
+        case dimension
         when "total"
           snapshot[:total_time] = duration
-          snapshot[:total_heartbeats] = row["heartbeats"].to_i
+          snapshot[:total_heartbeats] = heartbeats.to_i
         when "weekly_project"
-          snapshot[:weekly_project_stats].fetch(row["week_key"])[row["bucket"]] = duration
+          snapshot[:weekly_project_stats][week_key][bucket] = duration if snapshot[:weekly_project_stats].key?(week_key)
         when "coding_rhythm"
-          snapshot[:coding_rhythm][:duration_by_slot][row["bucket"]] = duration
+          snapshot[:coding_rhythm][:duration_by_slot][bucket] = duration
+        when "project"
+          snapshot[:grouped_durations][:project][bucket] = duration unless bucket.nil? && duration.zero?
         else
-          snapshot[:grouped_durations].fetch(row["dimension"].to_sym)[row["bucket"]] = duration
+          snapshot[:grouped_durations][dimension.to_sym][bucket] = duration if bucket.present?
         end
       end
       snapshot
-    end
-
-    # Live aggregate snapshot used by the unfiltered non-rollup dashboard path.
-    # Returns the same shape as the rollup-derived aggregate snapshot.
-    def aggregate_query_snapshot(user:, scope:)
-      {
-        total_time: scope.duration_seconds,
-        total_heartbeats: scope.count,
-        grouped_durations: grouped_durations_snapshot(scope),
-        weekly_project_stats: weekly_project_stats(user: user, scope: scope),
-        coding_rhythm: coding_rhythm_snapshot(user: user, scope: scope)
-      }
     end
 
     # Reject project entries that should not appear in dashboard summaries.

@@ -49,25 +49,15 @@ class ProjectStatsQuery
 
   private
 
-  def build_project_row(
-    name:,
-    stat:,
-    repo_mapping:,
-    total_seconds: nil,
-    total_heartbeats: nil,
-    languages: nil,
-    first_heartbeat: nil,
-    last_heartbeat: nil
-  )
-    first_iso = format_heartbeat_time(first_heartbeat || stat[:first_heartbeat])
-    last_iso = format_heartbeat_time(last_heartbeat || stat[:last_heartbeat])
+  def build_project_row(name:, stat:, repo_mapping:)
+    last_iso = format_heartbeat_time(stat[:last_heartbeat])
     {
       name: name,
-      total_seconds: total_seconds || stat[:total_seconds],
-      languages: languages || stat[:languages] || [],
+      total_seconds: stat[:total_seconds],
+      languages: stat[:languages] || [],
       repo_url: repo_mapping&.repo_url,
-      total_heartbeats: total_heartbeats || stat[:total_heartbeats],
-      first_heartbeat: first_iso,
+      total_heartbeats: stat[:total_heartbeats],
+      first_heartbeat: format_heartbeat_time(stat[:first_heartbeat]),
       last_heartbeat: last_iso,
       most_recent_heartbeat: last_iso,
       archived: repo_mapping&.archived? || false
@@ -87,28 +77,14 @@ class ProjectStatsQuery
   end
 
   def rollup_project_details
-    rows = DashboardRollup.where(user_id: @user.id, dimension: DashboardRollup::PROJECT_DETAILS_DIMENSION, bucket_value_present: true).to_a
-    return if rows.empty?
-
-    DashboardRollupRefreshJob.schedule_for(@user.id, wait: 0.seconds) if DashboardRollup.dirty?(@user.id)
-
-    details_by_project = rows.index_by(&:bucket)
-    details_by_project.delete("")
-    return if details_by_project.empty?
+    details_by_project = DashboardStats.new(user: @user).rollup_snapshot&.fetch(:project_details)
+    return if details_by_project.blank?
 
     repo_mappings = @user.project_repo_mappings.where(project_name: details_by_project.keys).index_by(&:project_name)
 
-    details_by_project.filter_map { |name, rollup|
+    details_by_project.filter_map { |name, details|
       next if !@include_archived && repo_mappings[name]&.archived?
-      payload = rollup.payload.to_h
-      build_project_row(
-        name: name, stat: {}, repo_mapping: repo_mappings[name],
-        total_seconds: rollup.total_seconds.to_i,
-        total_heartbeats: rollup.source_heartbeats_count.to_i,
-        languages: Array(payload["languages"]).compact_blank,
-        first_heartbeat: payload["first_heartbeat"],
-        last_heartbeat: payload["last_heartbeat"]
-      )
+      build_project_row(name: name, stat: details, repo_mapping: repo_mappings[name])
     }.sort_by { |project| -project[:total_seconds] }
   end
 

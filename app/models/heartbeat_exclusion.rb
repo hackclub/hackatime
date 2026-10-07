@@ -5,45 +5,75 @@
 # match any active rule; Heartbeat.with_excluded bypasses that. Revoking a rule
 # restores its heartbeats and keeps the rule as history.
 class HeartbeatExclusion < ApplicationRecord
-  # Raw SQL over the heartbeats table must filter on VISIBLE_SQL to match model reads.
-  MATCHED_SQL = <<~SQL.squish.freeze
-    EXISTS (
-      SELECT 1 FROM heartbeat_exclusions
-      WHERE heartbeat_exclusions.user_id = heartbeats.user_id
-        AND heartbeat_exclusions.revoked_at IS NULL
-        AND (heartbeat_exclusions.project IS NULL OR heartbeat_exclusions.project = heartbeats.project)
-        AND (heartbeat_exclusions.starts_at IS NULL OR heartbeats.time >= EXTRACT(EPOCH FROM heartbeat_exclusions.starts_at))
-        AND (heartbeat_exclusions.ends_at IS NULL OR heartbeats.time < EXTRACT(EPOCH FROM heartbeat_exclusions.ends_at))
-    )
-  SQL
-  VISIBLE_SQL = "NOT #{MATCHED_SQL}".freeze
-  # Select-list form of MATCHED_SQL. The IN check is a hashed lookup, so the
-  # correlated EXISTS only runs for heartbeats of users with an active rule.
-  HIDDEN_SQL = <<~SQL.squish.freeze
-    (heartbeats.user_id IN (SELECT user_id FROM heartbeat_exclusions WHERE revoked_at IS NULL) AND #{MATCHED_SQL})
-  SQL
+  # Heartbeats live in ClickHouse and these rules live in Postgres, so the
+  # active rules are compiled into a constant ClickHouse predicate. The rule set
+  # is tiny (single digits) and is snapshotted once per request/job, so one
+  # PG query per execution keeps every heartbeat read in that execution
+  # consistent. Creating or revoking a rule resets the snapshot.
+
+  # Every compiled visibility predicate contains this marker, so the test-suite
+  # guard can tell filtered heartbeat SQL from unfiltered SQL.
+  VISIBLE_MARKER = "heartbeats:visible".freeze
 
   # Marks SQL that intentionally reads hidden heartbeats. Heartbeat.with_excluded
   # adds it; raw SQL that must include hidden rows embeds INCLUDE_HIDDEN_COMMENT.
   INCLUDE_HIDDEN_TAG = "heartbeats:include_hidden"
   INCLUDE_HIDDEN_COMMENT = "/* #{INCLUDE_HIDDEN_TAG} */".freeze
 
-  HEARTBEATS_TABLE_REFERENCE = /\b(?:FROM|JOIN)\s+"?heartbeats"?(?=[\s),;]|\z)/i
+  HEARTBEATS_TABLE_REFERENCE = /\b(?:FROM|JOIN|INTO|UPDATE)\s+(?:`?\w+`?\.)?`?heartbeats`?(?=[\s),;(]|\z)/i
+  HEARTBEATS_READ_REFERENCE = /\b(?:FROM|JOIN)\s+(?:`?\w+`?\.)?`?heartbeats`?(?=[\s),;]|\z)/i
   STATEMENT_VERB = %r{\A\s*(?:/\*.*?\*/\s*)*(\w+)}m
   # Record#reload and find(id) bypass default scopes to fetch one known row.
-  PRIMARY_KEY_LOOKUP = /\ASELECT [^;]* FROM "heartbeats" WHERE "heartbeats"\."id" = \$1 LIMIT \$2\z/
+  PRIMARY_KEY_LOOKUP = /\ASELECT (?:heartbeats\.\*|1 AS one) FROM heartbeats WHERE heartbeats\.id = \d+ LIMIT 1\z/
 
-  # True for SQL that reads heartbeats without filtering every reference with
-  # VISIBLE_SQL, or writes through the filter and so skips hidden rows, unless
-  # it carries INCLUDE_HIDDEN_TAG. The test suite raises on these.
+  # Per-execution snapshot of active rules: [[user_id, project, starts_epoch, ends_epoch], ...]
+  class Snapshot < ActiveSupport::CurrentAttributes
+    attribute :rules
+  end
+
+  def self.active_rules
+    Snapshot.rules ||= active.pluck(:user_id, :project, :starts_at, :ends_at)
+      .map { |user_id, project, starts_at, ends_at| [ user_id, project, starts_at&.to_r, ends_at&.to_r ] }
+      .freeze
+  end
+
+  def self.reset_snapshot! = Snapshot.rules = nil
+
+  # ClickHouse boolean expression that is true for heartbeats hidden by an
+  # active rule. Each rule is coalesced to 0, so a NULL project can never make
+  # the whole expression NULL. `table` qualifies columns for joins/self-joins.
+  def self.matched_sql(table: nil)
+    rules = active_rules
+    return "0 /* #{VISIBLE_MARKER} */" if rules.empty?
+
+    col = ->(name) { table ? "#{table}.#{name}" : name }
+    conn = Heartbeat.connection
+    clauses = rules.map do |user_id, project, starts_at, ends_at|
+      parts = [ "#{col.(:user_id)} = #{Integer(user_id)}" ]
+      parts << "#{col.(:project)} = #{conn.quote(project)}" unless project.nil?
+      parts << "#{col.(:time)} >= #{starts_at.to_f}" unless starts_at.nil?
+      parts << "#{col.(:time)} < #{ends_at.to_f}" unless ends_at.nil?
+      "coalesce(#{parts.join(' AND ')}, 0)"
+    end
+    "(#{clauses.join(' OR ')} /* #{VISIBLE_MARKER} */)"
+  end
+
+  def self.visible_sql(table: nil) = "NOT #{matched_sql(table:)}"
+  def self.hidden_sql(table: nil) = "toBool(#{matched_sql(table:)})"
+
+  # True for SQL that reads heartbeats without the visibility predicate, or
+  # writes through the filter and so skips hidden rows, unless it carries
+  # INCLUDE_HIDDEN_TAG. The test suite raises on these.
   def self.unguarded_heartbeat_sql?(sql)
     return false if sql.include?(INCLUDE_HIDDEN_TAG) || sql.match?(PRIMARY_KEY_LOOKUP)
 
-    filters = sql.scan(VISIBLE_SQL).size
+    filters = sql.scan(VISIBLE_MARKER).size
     case sql[STATEMENT_VERB, 1]&.upcase
-    when "UPDATE", "DELETE" then filters.positive?
-    when "INSERT" then false
-    else sql.scan(HEARTBEATS_TABLE_REFERENCE).size > filters
+    # Writes must reach hidden rows too, so they must not carry the filter.
+    when "UPDATE", "DELETE", "ALTER" then filters.positive?
+    # A plain INSERT ... VALUES reads nothing; INSERT ... SELECT reads like a SELECT.
+    when "INSERT" then sql.scan(HEARTBEATS_READ_REFERENCE).size > filters
+    else sql.scan(HEARTBEATS_READ_REFERENCE).size > filters
     end
   end
 
@@ -77,7 +107,15 @@ class HeartbeatExclusion < ApplicationRecord
 
   scope :active, -> { where(revoked_at: nil) }
 
-  def self.visibility_predicate = VisibilityPredicate.new(Arel.sql(VISIBLE_SQL))
+  # Rule changes must be visible to the rest of this request/job immediately,
+  # including later reads inside the same transaction, and a rolled-back
+  # change must not linger in the snapshot.
+  after_save :reset_snapshot
+  after_commit :reset_snapshot
+  after_rollback :reset_snapshot
+
+  # Built lazily per query so the default scope always reflects the snapshot.
+  def self.visibility_predicate = VisibilityPredicate.new(Arel.sql(visible_sql))
 
   # Resolves an admin-supplied poison cutoff to an instant.
   #
@@ -130,4 +168,8 @@ class HeartbeatExclusion < ApplicationRecord
   end
 
   def revoke!(by: nil) = update!(revoked_at: Time.current, revoked_by: by)
+
+  private
+
+  def reset_snapshot = self.class.reset_snapshot!
 end

@@ -3,22 +3,57 @@ module Heartbeatable
 
   BROWSER_EDITORS = %w[arc brave chrome chromium edge firefox floorp librewolf microsoft-edge opera opera-gx safari vivaldi waterfox zen].freeze
 
+  # Upper bound for a valid heartbeat timestamp (9999-12-31). Times outside
+  # [0, MAX_VALID_TIME] come from broken clients and are ignored everywhere.
+  MAX_VALID_TIME = 253402300799
+
   included do
     # Filter heartbeats to only include those with category equal to "coding"
     scope :coding_only, -> { where(category: "coding") }
     scope :excluding_browser_time, -> {
-      where("editor IS NULL OR LOWER(editor) NOT IN (?)", BROWSER_EDITORS)
+      where("editor IS NULL OR lower(editor) NOT IN (?)", BROWSER_EDITORS)
     }
     scope :leaderboard_eligible, -> {
       coding_only
         .excluding_browser_time
-        .where("project IS DISTINCT FROM ?", "<<LAST_PROJECT>>")
+        .where("project IS NULL OR project != ?", "<<LAST_PROJECT>>")
         .with_valid_timestamps
     }
 
-    # This is to prevent PG timestamp overflow errors if someones gives us a
-    # heartbeat with a time that is enormously far in the future.
-    scope :with_valid_timestamps, -> { where("time >= 0 AND time <= ?", 253402300799) }
+    scope :with_valid_timestamps, -> { where("time >= 0 AND time <= ?", MAX_VALID_TIME) }
+  end
+
+  # Duration SQL (ClickHouse).
+  #
+  # Duration is not stored. Each heartbeat contributes the gap since the
+  # previous heartbeat in its partition, capped at the timeout; the first
+  # heartbeat in a partition contributes zero. Rows are ordered by (time, id).
+  #
+  # ClickHouse's lagInFrame returns the type default (0.0) for the first row
+  # rather than NULL, so the first row is detected with row_number() instead.
+  module DurationSql
+    module_function
+
+    def capped_gap(timeout, window: "w")
+      "least(if(row_number() OVER #{window} = 1, 0, time - lagInFrame(time) OVER #{window}), #{Integer(timeout)})"
+    end
+
+    def window(partition_by = nil)
+      partition = partition_by.present? ? "PARTITION BY #{Array(partition_by).join(', ')} " : ""
+      "(#{partition}ORDER BY time, id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)"
+    end
+
+    # Integer seconds from a float sum. ClickHouse's round() and Postgres's
+    # float8 -> integer cast both round halves to even (2.5 -> 2).
+    def to_seconds(expr) = "toInt64(round(#{expr}))"
+
+    # Constant, validated timezone literal.
+    def timezone_literal(timezone)
+      zone = ActiveSupport::TimeZone[timezone.to_s]&.tzinfo&.name || (TZInfo::Timezone.get(timezone.to_s).name rescue "UTC")
+      Heartbeat.connection.quote(zone)
+    end
+
+    def local_datetime(timezone, column: "time") = "toDateTime(toInt64(floor(#{column})), #{timezone_literal(timezone)})"
   end
 
   class_methods do
@@ -29,48 +64,27 @@ module Heartbeatable
     def to_span(timeout_duration: nil)
       timeout_duration ||= heartbeat_timeout_duration.to_i
 
-      heartbeats = with_valid_timestamps.order(time: :asc, id: :asc)
-      return [] if heartbeats.empty?
-
-      sql = <<~SQL
-        SELECT
-          time,
-          LEAD(time) OVER (ORDER BY time, id) as next_time
-        FROM (#{heartbeats.to_sql}) AS heartbeats
-      SQL
-
-      results = connection.select_all(sql)
-      return [] if results.empty?
+      times = with_valid_timestamps.reorder(time: :asc, id: :asc).pluck(:time)
+      return [] if times.empty?
 
       spans = []
-      current_span_start = results.first["time"]
+      current_span_start = times.first
+      times.each_with_index do |current_time, index|
+        next_time = times[index + 1]
+        next unless next_time.nil? || (next_time - current_time) > timeout_duration
 
-      results.each do |row|
-        current_time = row["time"]
-        next_time = row["next_time"]
-
-        if next_time.nil? || (next_time - current_time) > timeout_duration
-          base_duration = (current_time - current_span_start).round
-
-          if next_time
-            gap_duration = [ next_time - current_time, timeout_duration ].min
-            total_duration = base_duration + gap_duration
-            end_time = current_time + gap_duration
-          else
-            total_duration = base_duration
-            end_time = current_time
-          end
-
-          if total_duration > 0
-            spans << {
-              start_time: current_span_start,
-              end_time: end_time,
-              duration: total_duration
-            }
-          end
-
-          current_span_start = next_time if next_time
+        base_duration = (current_time - current_span_start).round
+        if next_time
+          gap_duration = [ next_time - current_time, timeout_duration ].min
+          total_duration = base_duration + gap_duration
+          end_time = current_time + gap_duration
+        else
+          total_duration = base_duration
+          end_time = current_time
         end
+
+        spans << { start_time: current_span_start, end_time:, duration: total_duration } if total_duration > 0
+        current_span_start = next_time if next_time
       end
 
       spans
@@ -91,11 +105,14 @@ module Heartbeatable
     end
 
     def streak_cache_keys(user_ids, exclude_browser_time:)
-      prefix = exclude_browser_time ? "user_streak_without_browser_v3" : "user_streak_v3"
+      prefix = exclude_browser_time ? "user_streak_without_browser_v4" : "user_streak_v4"
       versions = HeartbeatExclusion.cache_versions(user_ids)
       user_ids.index_with { |id| "#{prefix}_#{id}_#{versions.fetch(id)}" }
     end
 
+    # Consecutive local days (ending today or yesterday) with at least 15
+    # minutes of non-browsing activity. One ClickHouse query per timezone, so
+    # local days are always computed with a constant timezone.
     def daily_streaks_for_users(user_ids, start_date: 31.days.ago, exclude_browser_time: false)
       return {} if user_ids.empty?
       start_date = [ start_date, 31.days.ago ].max
@@ -103,221 +120,226 @@ module Heartbeatable
       streak_cache = Rails.cache.read_multi(*cache_keys.values)
 
       uncached_users = user_ids.select { |id| streak_cache[cache_keys[id]].nil? }
-      return user_ids.index_with { |id| streak_cache[cache_keys[id]] || 0 } if uncached_users.empty?
-
-      day_group_sql = "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone)"
-      duration_start_sql = "LAG(time) OVER (PARTITION BY user_id, #{day_group_sql} ORDER BY time, #{quoted_table_name}.id) as duration_start"
-      raw_durations = joins(:user)
-        .where(user_id: uncached_users)
-        .where.not(category: "browsing")
-        .with_valid_timestamps
-        .where(time: start_date..Time.current)
-        .select(
-          Arel.sql("#{quoted_table_name}.time as duration_end"),
-          :user_id,
-          "users.timezone as user_timezone",
-          Arel.sql("#{day_group_sql} as day_group"),
-          Arel.sql(duration_start_sql)
-        )
-      raw_durations = raw_durations.excluding_browser_time if exclude_browser_time
-      capped_durations = with_capped_duration(raw_durations)
-
-      # Then aggregate the results
-      daily_durations = connection.select_all(
-        "SELECT user_id, user_timezone, day_group, COALESCE(SUM(duration), 0)::integer as duration
-         FROM (#{capped_durations.to_sql}) AS durations
-         GROUP BY user_id, user_timezone, day_group"
-      ).group_by { |row| row["user_id"] }
-       .transform_values do |rows|
-         timezone = rows.first["user_timezone"]
-
-         if timezone.blank?
-           Rails.logger.warn "nil tz, going to utc."
-           timezone = "UTC"
-         else
-           begin
-             TZInfo::Timezone.get(timezone)
-           rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
-             Rails.logger.warn "Invalid timezone for streak calculation: #{timezone}. Defaulting to UTC."
-             timezone = "UTC"
-           end
-         end
-
-         current_date = Time.current.in_time_zone(timezone).to_date
-         {
-           current_date: current_date,
-           days: rows.map do |row|
-             [ row["day_group"].to_date, row["duration"].to_i ]
-           end.sort_by { |date, _| date }.reverse
-         }
-       end
-
       result = user_ids.index_with { |id| streak_cache[cache_keys[id]] || 0 }
+      return result if uncached_users.empty?
 
-      # Then calculate streaks for each user
-      daily_durations.each do |user_id, data|
-        current_date = data[:current_date]
-        days = data[:days]
+      timezones = User.where(id: uncached_users).pluck(:id, :timezone).to_h
+      uncached_users.group_by { |id| valid_timezone(timezones[id]) }.each do |timezone, ids|
+        scope = where(user_id: ids).where.not(category: "browsing").with_valid_timestamps
+          .where(time: start_date.to_f..Time.current.to_f)
+        scope = scope.excluding_browser_time if exclude_browser_time
+        local_day = "toDate(#{DurationSql.local_datetime(timezone)})"
+        rows = connection.select_rows(<<~SQL.squish)
+          SELECT user_id, day, #{DurationSql.to_seconds('sum(gap)')} AS duration
+          FROM (
+            SELECT user_id, #{local_day} AS day,
+                   #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap
+            FROM (#{scope.select(:user_id, :time, :id).to_sql}) AS streak_heartbeats
+            WINDOW w AS #{DurationSql.window(%W[user_id #{local_day}])}
+          )
+          GROUP BY user_id, day
+        SQL
 
-        eligible_days = days.filter_map do |date, duration|
-          date if date <= current_date && duration >= 15 * 60
-        end
-
-        streak = 0
-        expected_date = eligible_days.first == current_date ? current_date : current_date - 1.day
-
-        eligible_days.each do |date|
-          if date == expected_date
-            streak += 1
-            expected_date -= 1.day
-          elsif date < expected_date
-            break
+        current_date = Time.current.in_time_zone(timezone).to_date
+        days_by_user = rows.group_by(&:first)
+        ids.each do |user_id|
+          eligible_days = days_by_user.fetch(user_id, [])
+            .filter_map { |_, day, duration| day.to_date if day.to_date <= current_date && duration.to_i >= 15 * 60 }
+            .sort.reverse
+          streak = 0
+          expected_date = eligible_days.first == current_date ? current_date : current_date - 1.day
+          eligible_days.each do |date|
+            if date == expected_date
+              streak += 1
+              expected_date -= 1.day
+            elsif date < expected_date
+              break
+            end
           end
+          result[user_id] = streak
+          Rails.cache.write(cache_keys.fetch(user_id), streak, expires_in: 1.hour)
         end
-
-        result[user_id] = streak
-
-        # Cache the streak for 1 hour
-        Rails.cache.write(cache_keys.fetch(user_id), streak, expires_in: 1.hour)
       end
 
       result
     end
 
     def daily_durations(user_timezone:, start_date: 365.days.ago, end_date: Time.current)
-      timezone = user_timezone
-      unless TZInfo::Timezone.all_identifiers.include?(timezone)
-        Rails.logger.warn "Invalid timezone provided to daily_durations: #{timezone}. Defaulting to UTC."
-        timezone = "UTC"
-      end
-
-      day_trunc = Arel.sql("DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE '#{timezone}')")
-      select(day_trunc.as("day_group")).where(time: start_date..end_date).group(day_trunc).duration_seconds
-        .map { |date, duration| [ date.to_date, duration ] }
+      timezone = valid_timezone(user_timezone)
+      day = "toDate(#{DurationSql.local_datetime(timezone)})"
+      relation = with_valid_timestamps.where(time: start_date.to_f..end_date.to_f).unscope(:group, :order, :select)
+      connection.select_rows(<<~SQL.squish).map { |date, duration| [ date.to_date, duration.to_i ] }
+        SELECT day, #{DurationSql.to_seconds('sum(gap)')}
+        FROM (
+          SELECT #{day} AS day, #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap
+          FROM (#{relation.select(:time, :id).to_sql}) AS daily_heartbeats
+          WINDOW w AS #{DurationSql.window(day)}
+        )
+        GROUP BY day
+      SQL
     end
 
+    # Per local day, project and AI model: duration (gap to the next heartbeat
+    # on the same local day, capped), AI token sums and counts. The "next"
+    # heartbeat is the previous row in descending (time, id) order, so the
+    # day's last heartbeat contributes 0.
     def daily_activity_summary_rows(scope:, timezone:)
-      quoted_timezone = connection.quote(timezone)
-      local_date_sql = "(to_timestamp(daily_summary_heartbeats.time) AT TIME ZONE #{quoted_timezone})::date"
-      summary_heartbeats = scope.with_valid_timestamps
-        .where.not(time: nil)
+      timezone = valid_timezone(timezone)
+      timeout = heartbeat_timeout_duration.to_i
+      day = "toDate(#{DurationSql.local_datetime(timezone)})"
+      summary = scope.with_valid_timestamps.unscope(:group, :order, :select)
         .select(:id, :time, :project, :ai_model, :ai_input_tokens, :ai_output_tokens, :ai_line_changes)
-      heartbeat_gaps = unscoped.from(summary_heartbeats, :daily_summary_heartbeats).select(<<~SQL.squish)
-        daily_summary_heartbeats.project,
-        daily_summary_heartbeats.ai_model,
-        daily_summary_heartbeats.ai_input_tokens,
-        daily_summary_heartbeats.ai_output_tokens,
-        daily_summary_heartbeats.ai_line_changes,
-        daily_summary_heartbeats.time AS duration_start,
-        #{local_date_sql} AS local_date,
-        LEAD(daily_summary_heartbeats.time) OVER (
-          PARTITION BY #{local_date_sql}
-          ORDER BY daily_summary_heartbeats.time, daily_summary_heartbeats.id
-        ) AS duration_end
-      SQL
-      capped_durations = with_capped_duration(heartbeat_gaps)
-
-      connection.select_all(<<~SQL.squish)
+      # Inner columns are renamed (in_*) because ClickHouse resolves an output
+      # alias like `AS ai_input_tokens` inside its own aggregate.
+      connection.select_all(<<~SQL.squish).to_a
         SELECT local_date,
                project,
                ai_model,
-               COALESCE(SUM(duration), 0)::integer AS duration,
-               COALESCE(SUM(ai_input_tokens), 0)::bigint AS ai_input_tokens,
-               COUNT(ai_input_tokens)::integer AS ai_input_token_count,
-               COALESCE(SUM(ai_output_tokens), 0)::bigint AS ai_output_tokens,
-               COUNT(ai_output_tokens)::integer AS ai_output_token_count,
-               COALESCE(SUM(ai_line_changes), 0)::bigint AS ai_line_changes
-        FROM (#{capped_durations.to_sql}) daily_durations
+               #{DurationSql.to_seconds('sum(gap)')} AS duration,
+               toInt64(ifNull(sum(in_ai_input_tokens), 0)) AS ai_input_tokens,
+               toInt64(count(in_ai_input_tokens)) AS ai_input_token_count,
+               toInt64(ifNull(sum(in_ai_output_tokens), 0)) AS ai_output_tokens,
+               toInt64(count(in_ai_output_tokens)) AS ai_output_token_count,
+               toInt64(ifNull(sum(in_ai_line_changes), 0)) AS ai_line_changes
+        FROM (
+          SELECT #{day} AS local_date, project, ai_model, ai_input_tokens AS in_ai_input_tokens,
+                 ai_output_tokens AS in_ai_output_tokens, ai_line_changes AS in_ai_line_changes,
+                 least(if(row_number() OVER wd = 1, 0, lagInFrame(time) OVER wd - time), #{timeout}) AS gap
+          FROM (#{summary.to_sql}) AS daily_summary_heartbeats
+          WINDOW wd AS (PARTITION BY #{day} ORDER BY time DESC, id DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+        )
         GROUP BY local_date, project, ai_model
         ORDER BY local_date, project, ai_model
       SQL
     end
 
+    # Global gaps (ordered over the whole scope), attributed to the bucket of
+    # the heartbeat that ends each gap. Empty and NULL buckets are dropped.
     def attributed_durations_by(scope, field)
-      scope = scope.with_valid_timestamps
-      field_expr = connection.quote_column_name(field.to_s)
-      attribution_heartbeats = scope.unscope(:group, :select, :order).select(:id, :time, field)
-      heartbeat_gaps = unscoped.from(attribution_heartbeats, :attribution_heartbeats).select(<<~SQL.squish)
-        attribution_heartbeats.#{field_expr} AS bucket,
-        LAG(attribution_heartbeats.time) OVER (
-          ORDER BY attribution_heartbeats.time, attribution_heartbeats.id
-        ) AS duration_start,
-        attribution_heartbeats.time AS duration_end
-      SQL
-      capped_durations = with_capped_duration(heartbeat_gaps)
+      attributed_durations_by_fields(scope, [ field ]).last.fetch(field.to_sym).reject { |bucket, _| bucket.blank? }
+    end
 
-      sql = <<~SQL.squish
-        SELECT bucket, COALESCE(SUM(duration), 0)::integer AS duration
-        FROM (#{capped_durations.to_sql}) attributed_durations
-        WHERE bucket IS NOT NULL AND bucket <> ''
-        GROUP BY bucket
-      SQL
+    # The total and attributed_durations_by for several fields from one scan, as
+    # [total, { field => { value => seconds } }]. NULL and empty buckets are kept.
+    def attributed_durations_by_fields(scope, fields)
+      scope = scope.with_valid_timestamps.unscope(:group, :select, :order)
+      columns = fields.map { |field| connection.quote_column_name(field.to_s) }
+      keys = [ "('', NULL)" ] + fields.zip(columns).map { |field, column| "(#{connection.quote(field.to_s)}, toString(#{column}))" }
 
-      connection.select_all(sql).each_with_object({}) { |row, hash| hash[row["bucket"]] = row["duration"].to_i }
+      result = fields.to_h { |field| [ field.to_sym, {} ] }
+      total = 0
+      connection.select_rows(<<~SQL.squish).each do |field, bucket, seconds|
+        SELECT key.1, key.2, #{DurationSql.to_seconds('sum(gap)')}
+        FROM (
+          SELECT #{[ *columns, "#{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap" ].join(', ')}
+          FROM (#{scope.select(:id, :time, *fields).to_sql}) AS attribution_heartbeats
+          WINDOW w AS #{DurationSql.window}
+        )
+        ARRAY JOIN [#{keys.join(', ')}] AS key
+        GROUP BY key
+      SQL
+        field.empty? ? total = seconds.to_i : result[field.to_sym][bucket] = seconds.to_i
+      end
+      [ total, result ]
     end
 
     def duration_seconds(scope = all)
       scope = scope.with_valid_timestamps
+      timeout = heartbeat_timeout_duration.to_i
 
       if scope.group_values.any?
         raise NotImplementedError, "Multiple group values are not supported" if scope.group_values.length > 1
 
         group_column = scope.group_values.first
-        # Don't quote if it's a SQL function (contains parentheses)
-        group_expr = group_column.to_s.include?("(") ? group_column : connection.quote_column_name(group_column)
+        # Don't quote if it's a SQL expression (contains parentheses)
+        group_expr = group_column.to_s.include?("(") ? group_column.to_s : connection.quote_column_name(group_column)
+        inner = scope.unscope(:group, :order, :select).select(Arel.sql("#{group_expr} AS grouped_time"), :time, :id)
 
-        heartbeat_gaps = scope.select("#{group_expr} as grouped_time, LAG(time) OVER (PARTITION BY #{group_expr} ORDER BY time, #{quoted_table_name}.id) as duration_start, time as duration_end")
-          .where.not(time: nil).unscope(:group)
-        capped_durations = with_capped_duration(heartbeat_gaps)
-
-        connection.select_all(
-          "SELECT grouped_time, COALESCE(SUM(duration), 0)::integer as duration FROM (#{capped_durations.to_sql}) AS durations GROUP BY grouped_time"
-        ).each_with_object({}) { |row, hash| hash[row["grouped_time"]] = row["duration"].to_i }
+        connection.select_rows(<<~SQL.squish).to_h { |group, duration| [ group, duration.to_i ] }
+          SELECT grouped_time, #{DurationSql.to_seconds('sum(gap)')}
+          FROM (
+            SELECT grouped_time, #{DurationSql.capped_gap(timeout)} AS gap
+            FROM (#{inner.to_sql}) AS grouped_heartbeats
+            WINDOW w AS #{DurationSql.window('grouped_time')}
+          )
+          GROUP BY grouped_time
+        SQL
       else
-        # when not grouped, return a single value
-        heartbeat_gaps = scope.select("LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) as duration_start, time as duration_end").where.not(time: nil)
-        capped_durations = with_capped_duration(heartbeat_gaps)
-        connection.select_value("SELECT COALESCE(SUM(duration), 0)::integer FROM (#{capped_durations.to_sql}) AS durations").to_i
+        inner = scope.unscope(:order, :select).select(:time, :id)
+        connection.select_value(<<~SQL.squish).to_i
+          SELECT #{DurationSql.to_seconds('ifNull(sum(gap), 0)')}
+          FROM (
+            SELECT #{DurationSql.capped_gap(timeout)} AS gap
+            FROM (#{inner.to_sql}) AS duration_heartbeats
+            WINDOW w AS #{DurationSql.window}
+          )
+        SQL
       end
     end
 
+    # The total and several groupings from one scan, as [total, { name => { value => seconds } }].
+    # Each grouping partitions gaps by its value, like scope.group(column).duration_seconds.
+    # `groups` maps a name to a column (Symbol) or a trusted SQL expression.
+    def grouped_duration_seconds(scope, groups)
+      columns = groups.values.grep(Symbol)
+      inner = scope.with_valid_timestamps.unscope(:group, :order, :select).select(:id, :time, *columns)
+      keys = [ "('', NULL)" ] + groups.map do |name, expr|
+        expr = connection.quote_column_name(expr) if expr.is_a?(Symbol)
+        "(#{connection.quote(name.to_s)}, toString(#{expr}))"
+      end
+
+      result = groups.keys.index_with { {} }
+      total = 0
+      connection.select_rows(<<~SQL.squish).each do |name, value, seconds|
+        SELECT key.1, key.2, #{DurationSql.to_seconds('sum(gap)')}
+        FROM (
+          SELECT key, #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap
+          FROM (#{inner.to_sql}) AS grouped_heartbeats
+          ARRAY JOIN [#{keys.join(', ')}] AS key
+          WINDOW w AS #{DurationSql.window('key')}
+        )
+        GROUP BY key
+      SQL
+        name.empty? ? total = seconds.to_i : result[name.to_sym][value] = seconds.to_i
+      end
+      [ total, result ]
+    end
+
+    # Duration within [start_time, end_time], also counting the gap from the
+    # last heartbeat before start_time to the first one inside the range.
     def duration_seconds_boundary_aware(scope, start_time, end_time, excluded_categories: [])
       scope = scope.with_valid_timestamps
       base_scope = scope.model.all.with_valid_timestamps
-      base_scope = base_scope.where.not("LOWER(category) IN (?)", excluded_categories) if excluded_categories.present?
+      base_scope = base_scope.where.not("lower(category) IN (?)", excluded_categories) if excluded_categories.present?
 
       where_values = scope.where_values_hash
       %w[user_id category project deleted_at].each do |key|
         base_scope = base_scope.where(key => where_values[key]) if where_values[key]
       end
 
-      # get the heartbeat before the start_time
-      boundary_heartbeat = base_scope.where("time < ?", start_time).order(time: :desc, id: :desc).limit(1).first
+      boundary_time = base_scope.where("time < ?", start_time.to_f).maximum(:time)
+      combined_scope = boundary_time ?
+        base_scope.where("time >= ? OR time = ?", start_time.to_f, boundary_time).where("time <= ?", end_time.to_f) :
+        base_scope.where(time: start_time.to_f..end_time.to_f)
 
-      # if it's not NULL, we'll use it
-      combined_scope = boundary_heartbeat ?
-        base_scope.where("time >= ? OR time = ?", start_time, boundary_heartbeat.time).where("time <= ?", end_time) :
-        base_scope.where(time: start_time..end_time)
-
-      # we calc w/ the boundary heartbeat, but we only sum within the orignal constraint
-      heartbeat_gaps = combined_scope
-        .select("LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) as duration_start, time as duration_end")
-        .where.not(time: nil).order(time: :asc, id: :asc)
-      capped_durations = with_capped_duration(heartbeat_gaps)
-
-      connection.select_value("SELECT COALESCE(SUM(duration), 0)::integer FROM (#{capped_durations.to_sql}) AS durations WHERE duration_end >= #{connection.quote(start_time)}").to_i
+      connection.select_value(<<~SQL.squish).to_i
+        SELECT #{DurationSql.to_seconds('ifNull(sum(gap), 0)')}
+        FROM (
+          SELECT time, #{DurationSql.capped_gap(heartbeat_timeout_duration.to_i)} AS gap
+          FROM (#{combined_scope.unscope(:order, :select).select(:time, :id).to_sql}) AS boundary_heartbeats
+          WINDOW w AS #{DurationSql.window}
+        )
+        WHERE time >= #{start_time.to_f}
+      SQL
     end
 
     private
 
-    def with_capped_duration(heartbeat_intervals)
-      timeout = heartbeat_timeout_duration.to_i
-
-      unscoped.from(heartbeat_intervals, :heartbeat_intervals).select(<<~SQL.squish)
-        heartbeat_intervals.*,
-        CASE WHEN heartbeat_intervals.duration_start IS NULL OR heartbeat_intervals.duration_end IS NULL THEN 0
-             ELSE LEAST(heartbeat_intervals.duration_end - heartbeat_intervals.duration_start, #{timeout}) END AS duration
-      SQL
+    def valid_timezone(timezone)
+      TZInfo::Timezone.get(timezone.to_s).name
+    rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
+      Rails.logger.warn "Invalid timezone #{timezone.inspect}; defaulting to UTC."
+      "UTC"
     end
   end
 end

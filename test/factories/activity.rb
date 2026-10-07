@@ -13,11 +13,6 @@ FactoryBot.define do
     user
   end
 
-  factory :dashboard_rollup do
-    user
-    dimension { DashboardRollup::TOTAL_DIMENSION }
-  end
-
   factory :ja4 do
     fingerprint { generate(:ja4_fingerprint) }
   end

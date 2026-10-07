@@ -14,12 +14,12 @@ class StaticPagesController < InertiaController
         return redirect_to "/my/projects?interval=custom&from=#{d}&to=#{d}" if d
       end
 
-      @show_wakatime_setup_notice = true if !current_user.heartbeats.exists? || params[:show_wakatime_setup_notice]
+      @show_wakatime_setup_notice = true if !dashboard_stats.heartbeats? || params[:show_wakatime_setup_notice]
 
       render inertia: "Home/SignedIn", props: signed_in_props
     else
       set_homepage_seo_content
-      @home_stats = Cache::HomeStatsJob.perform_now
+      @home_stats = HeartbeatRollup.site_totals
       render inertia: "Home/SignedOut", props: signed_out_props
     end
   end
@@ -37,7 +37,7 @@ class StaticPagesController < InertiaController
   end
 
   def currently_hacking
-    data = Cache::CurrentlyHackingJob.perform_now
+    data = CurrentlyHacking.data
     users = data[:users].map do |u|
       proj = data[:active_projects][u.id]
       {
@@ -54,7 +54,7 @@ class StaticPagesController < InertiaController
     render json: { count: users.size, users: users }
   end
 
-  def currently_hacking_count = render(json: { count: Cache::CurrentlyHackingCountJob.perform_now[:count] })
+  def currently_hacking_count = render(json: { count: CurrentlyHacking.count })
 
   def wakatime_alternative
     @meta_description = @og_description = @twitter_description = "Looking for a WakaTime alternative? Hackatime is a free, open source coding time tracker with all features unlocked. Compare features, pricing, and see why developers are switching."
@@ -116,6 +116,6 @@ class StaticPagesController < InertiaController
   end
 
   def initial_dashboard_stats_prop
-    dashboard_stats_payload if dashboard_stats.rollup_eligible? && dashboard_stats.rollups_available? && dashboard_stats.rollup_total_row
+    dashboard_stats_payload if dashboard_stats.rollup_eligible? && dashboard_stats.rollup_snapshot
   end
 end

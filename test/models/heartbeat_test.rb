@@ -47,6 +47,24 @@ class HeartbeatTest < ActiveSupport::TestCase
     assert_equal 0, Heartbeat.daily_streaks_for_users([ user.id ], exclude_browser_time: true)[user.id]
   end
 
+  test "grouped_duration_seconds matches separate grouped duration queries" do
+    user = create(:user)
+    base = Time.utc(2026, 4, 14, 23, 58).to_f
+    [ [ "ruby", "alpha" ], [ "python", "alpha" ], [ "ruby", nil ], [ "ruby", "beta" ], [ nil, "beta" ] ].each_with_index do |(language, project), i|
+      create(:heartbeat, user: user, category: "coding", language: language, project: project,
+        time: base + (i * 50), source_type: :test_entry)
+    end
+    scope = user.heartbeats
+
+    total, groups = Heartbeat.grouped_duration_seconds(scope, language: :language, project: :project,
+      day: "toDate(#{Heartbeatable::DurationSql.local_datetime('Asia/Tokyo')})")
+
+    assert_equal scope.duration_seconds, total
+    assert_equal scope.group(:language).duration_seconds, groups[:language]
+    assert_equal scope.group(:project).duration_seconds, groups[:project]
+    assert_equal({ "2026-04-15" => 200 }, groups[:day])
+  end
+
   test "attributed_durations_by sums to total duration when every heartbeat has the field" do
     user = create(:user)
     base = Time.current.to_i.to_f
@@ -70,6 +88,8 @@ class HeartbeatTest < ActiveSupport::TestCase
 
     assert_equal 240, total
     assert_equal({ "ruby" => 60, "python" => 120, "javascript" => 60 }, buckets)
+    assert_equal [ total, { language: buckets, editor: { "vscode" => 240 } } ],
+      Heartbeat.attributed_durations_by_fields(scope, %i[language editor])
     assert_equal total, buckets.values.sum
     assert_not_includes buckets.keys, "Unknown"
     assert_not_includes buckets.keys, nil
@@ -124,6 +144,17 @@ class HeartbeatTest < ActiveSupport::TestCase
         project: "heartbeat-test",
         source_type: :test_entry
       )
+    end
+  end
+
+  test "today includes the last fractional second of the local day" do
+    user = create(:user)
+    travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
+      last_second = Time.utc(2026, 4, 14, 23, 59, 59).to_f + 0.75
+      create(:heartbeat, user:, time: last_second, source_type: :test_entry)
+      create(:heartbeat, user:, time: Time.utc(2026, 4, 15).to_f, source_type: :test_entry)
+
+      assert_equal [ last_second ], Time.use_zone("UTC") { user.heartbeats.today.pluck(:time) }
     end
   end
 

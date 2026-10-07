@@ -47,83 +47,54 @@ module Api
             return render_error("invalid date")
           end
 
-          quantized_query = <<-SQL
+          # One point per (UTC day, x pixel, y pixel, hidden): the earliest heartbeat.
+          pixels = ->(y_column, condition) {
+            <<~SQL
+              (SELECT time, lineno, cursorpos, hidden
+               FROM quantized_heartbeats
+               WHERE #{condition}
+               ORDER BY time ASC, id ASC
+               LIMIT 1 BY day_start, qx, #{y_column ? "#{y_column}, " : ""}hidden)
+            SQL
+          }
+          quantized_query = <<~SQL
             #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
             WITH base_heartbeats AS (
-                SELECT
-                    id,
-                    "time",
-                    lineno,
-                    cursorpos,
-                    date_trunc('day', to_timestamp("time")) as day_start,
-                    #{HeartbeatExclusion::HIDDEN_SQL} AS hidden
+                SELECT id, time, lineno, cursorpos,
+                       toStartOfDay(toDateTime(toInt64(floor(time)), 'UTC')) AS day_start,
+                       #{HeartbeatExclusion.hidden_sql} AS hidden
                 FROM heartbeats
-                WHERE user_id = ?
-                AND deleted_at IS NULL
-                AND "time" >= ? AND "time" <= ?
+                WHERE user_id = #{Integer(user.id)}
+                  AND deleted_at IS NULL
+                  AND time >= #{Integer(start_epoch)} AND time <= #{Integer(end_epoch)}
                 LIMIT 1000000
             ),
             daily_stats AS (
-                SELECT
-                    *,
-                    GREATEST(1, MAX(lineno) OVER (PARTITION BY day_start)) as max_lineno,
-                    GREATEST(1, MAX(cursorpos) OVER (PARTITION BY day_start)) as max_cursorpos
+                SELECT *,
+                       greatest(1, coalesce(max(lineno) OVER (PARTITION BY day_start), 1)) AS max_lineno,
+                       greatest(1, coalesce(max(cursorpos) OVER (PARTITION BY day_start), 1)) AS max_cursorpos
                 FROM base_heartbeats
             ),
             quantized_heartbeats AS (
-                SELECT
-                    *,
-                    ROUND(2 + (("time" - extract(epoch from day_start)) / 86400) * (396)) as qx,
-                    ROUND(2 + (1 - CAST(lineno AS decimal) / max_lineno) * (96)) as qy_lineno,
-                    ROUND(2 + (1 - CAST(cursorpos AS decimal) / max_cursorpos) * (96)) as qy_cursorpos
+                SELECT *,
+                       round(2 + ((time - toUnixTimestamp(day_start)) / 86400) * 396) AS qx,
+                       round(2 + (1 - lineno / max_lineno) * 96) AS qy_lineno,
+                       round(2 + (1 - cursorpos / max_cursorpos) * 96) AS qy_cursorpos
                 FROM daily_stats
             )
-            SELECT "time", lineno, cursorpos, hidden
-            FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_lineno, hidden) "time", lineno, cursorpos, hidden
-                FROM quantized_heartbeats
-                WHERE lineno IS NOT NULL
-                ORDER BY day_start, qx, qy_lineno, hidden, "time" ASC, id ASC
-            ) AS lineno_pixels
-            UNION
-            SELECT "time", lineno, cursorpos, hidden
-            FROM (
-                SELECT DISTINCT ON (day_start, qx, qy_cursorpos, hidden) "time", lineno, cursorpos, hidden
-                FROM quantized_heartbeats
-                WHERE cursorpos IS NOT NULL
-                ORDER BY day_start, qx, qy_cursorpos, hidden, "time" ASC, id ASC
-            ) AS cursorpos_pixels
-            UNION
-            SELECT "time", lineno, cursorpos, hidden
-            FROM (
-                SELECT DISTINCT ON (day_start, qx, hidden) "time", lineno, cursorpos, hidden
-                FROM quantized_heartbeats
-                WHERE lineno IS NULL AND cursorpos IS NULL
-                ORDER BY day_start, qx, hidden, "time" ASC, id ASC
-            ) AS null_pixels
-            ORDER BY "time" ASC, hidden ASC
-          SQL
-
-          daily_totals_query = <<-SQL
-            #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
-            WITH heartbeats_with_gaps AS (
-              SELECT
-                date_trunc('day', to_timestamp("time"))::date as day,
-                "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time", id) as gap
-              FROM heartbeats
-              WHERE user_id = ? AND deleted_at IS NULL AND time >= ? AND time <= ?
+            SELECT time, lineno, cursorpos, hidden FROM (
+              #{pixels.call('qy_lineno', 'lineno IS NOT NULL')}
+              UNION DISTINCT
+              #{pixels.call('qy_cursorpos', 'cursorpos IS NOT NULL')}
+              UNION DISTINCT
+              #{pixels.call(nil, 'lineno IS NULL AND cursorpos IS NULL')}
             )
-            SELECT day, SUM(LEAST(gap, 120)) as total_seconds
-            FROM heartbeats_with_gaps
-            WHERE gap IS NOT NULL
-            GROUP BY day
+            ORDER BY time ASC, hidden ASC
           SQL
 
-          conn = ActiveRecord::Base.connection
-          quantized_result = conn.execute(ActiveRecord::Base.sanitize_sql([ quantized_query, user.id, start_epoch, end_epoch ]))
-          daily_totals_result = conn.execute(ActiveRecord::Base.sanitize_sql([ daily_totals_query, user.id, start_epoch, end_epoch ]))
-
-          daily_totals = daily_totals_result.each_with_object({}) { |row, h| h[row["day"]] = row["total_seconds"] }
+          quantized_result = Heartbeat.connection.select_all(quantized_query).to_a
+          daily_totals = Heartbeat.with_excluded.where(user_id: user.id)
+            .daily_durations(user_timezone: "UTC", start_date: Time.at(start_epoch), end_date: Time.at(end_epoch)).to_h
 
           points_by_day = quantized_result.each_with_object({}) do |row, hash|
             day = Time.at(row["time"]).to_date
@@ -142,63 +113,37 @@ module Api
           lookback_days = (params[:lookback_days] || 30).to_i.clamp(1, 365)
           cutoff = lookback_days.days.ago.to_i
 
-          query = <<-SQL
+          combos = <<~SQL
+            SELECT user_id, machine, ip_address,
+                   min(time) AS first_seen, max(time) AS last_seen,
+                   toBool(min(#{HeartbeatExclusion.hidden_sql})) AS hidden
+            FROM heartbeats
+            WHERE machine IS NOT NULL
+              AND ip_address IS NOT NULL
+              AND deleted_at IS NULL
+              AND time >= #{Integer(cutoff)}
+            GROUP BY user_id, machine, ip_address
+          SQL
+
+          result = Heartbeat.connection.select_all(<<~SQL)
             #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
+            WITH combos AS (#{combos})
             SELECT
                 r1.user_id AS user_a_id,
                 r2.user_id AS user_b_id,
-                r1.machine,
-                r1.ip_address,
-                r1.first_seen as user_a_first_seen_on_combo,
-                r1.last_seen as user_a_last_seen_on_combo,
-                r2.first_seen as user_b_first_seen_on_combo,
-                r2.last_seen as user_b_last_seen_on_combo,
-                r1.hidden as user_a_hidden,
-                r2.hidden as user_b_hidden
-            FROM
-                (
-                    SELECT
-                        user_id,
-                        machine,
-                        ip_address,
-                        MIN(time) as first_seen,
-                        MAX(time) as last_seen,
-                        BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) as hidden
-                    FROM heartbeats
-                    WHERE
-                        user_id IS NOT NULL
-                        AND machine IS NOT NULL
-                        AND ip_address IS NOT NULL
-                        AND deleted_at IS NULL
-                        AND time >= ?
-                    GROUP BY 1, 2, 3
-                ) r1
-            JOIN
-                (
-                    SELECT
-                        user_id,
-                        machine,
-                        ip_address,
-                        MIN(time) as first_seen,
-                        MAX(time) as last_seen,
-                        BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) as hidden
-                    FROM heartbeats
-                    WHERE
-                        user_id IS NOT NULL
-                        AND machine IS NOT NULL
-                        AND ip_address IS NOT NULL
-                        AND deleted_at IS NULL
-                        AND time >= ?
-                    GROUP BY 1, 2, 3
-                ) r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
-            WHERE
-                r1.user_id < r2.user_id
+                r1.machine AS machine,
+                r1.ip_address AS ip_address,
+                r1.first_seen AS user_a_first_seen_on_combo,
+                r1.last_seen AS user_a_last_seen_on_combo,
+                r2.first_seen AS user_b_first_seen_on_combo,
+                r2.last_seen AS user_b_last_seen_on_combo,
+                r1.hidden AS user_a_hidden,
+                r2.hidden AS user_b_hidden
+            FROM combos AS r1
+            INNER JOIN combos AS r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
+            WHERE r1.user_id < r2.user_id
             LIMIT 5000
           SQL
-
-          result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff, cutoff ])
-          )
 
           render json: { candidates: result.to_a }
         end

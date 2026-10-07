@@ -37,7 +37,6 @@ class DashboardStatsTest < ActiveSupport::TestCase
 
   test "project grouped durations preserve nil project values" do
     user = create(:user)
-    stats = build_stats(user)
 
     create(:heartbeat,
       user: user, time: Time.current.to_f - 60, project: nil,
@@ -54,7 +53,8 @@ class DashboardStatsTest < ActiveSupport::TestCase
 
     scope = user.heartbeats
 
-    assert_equal scope.group(:project).duration_seconds, stats.project_grouped_durations(scope)
+    snapshot = DashboardData::Snapshots.aggregate_query_snapshot(user:, scope:)
+    assert_equal scope.group(:project).duration_seconds, snapshot[:grouped_durations][:project]
   end
 
   test "all-time dashboard data can be served from rollups" do
@@ -70,10 +70,10 @@ class DashboardStatsTest < ActiveSupport::TestCase
         create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
       end
 
-      DashboardRollupRefreshService.new(user: user).call
+      HeartbeatRollup.rebuild!(user)
 
       stats = build_stats(user)
-      def stats.grouped_durations_snapshot(_scope) = raise("expected rollup-backed dashboard path")
+      def stats.query_result(*) = raise("expected rollup-backed dashboard path")
       def stats.live_raw_filter_options = raise("expected rollup-backed filter options path")
 
       result = stats.filterable_dashboard_data
@@ -85,24 +85,33 @@ class DashboardStatsTest < ActiveSupport::TestCase
     end
   end
 
-  test "all-time dashboard data falls back when rollup table is unavailable" do
+  test "dashboard falls back to live data and schedules a rebuild when there is no current rollup" do
     with_memory_cache_store do
       Rails.cache.clear
       user = create(:user)
-      stats = build_stats(user)
 
       travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
         create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         travel 1.minute
         create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
       end
+      clear_enqueued_jobs
+      Rails.cache.delete(DashboardRollupRefreshJob.enqueue_cache_key(user.id))
 
-      def stats.rollups_available? = false
+      stats = build_stats(user)
+      result = today_stats = activity_graph = nil
+      assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
+        result = stats.filterable_dashboard_data
+        today_stats = stats.today_stats_data
+        activity_graph = stats.activity_graph_data
+      end
 
-      result = stats.filterable_dashboard_data
-
+      assert_equal 1, enqueued_jobs.count { |job| job[:job] == DashboardRollupRefreshJob }
       assert_equal user.heartbeats.duration_seconds, result[:total_time]
       assert_equal "alpha", result["top_project"]
+      assert_equal [ "Ruby" ], result[:language]
+      assert_kind_of Hash, today_stats
+      assert_equal 60, activity_graph[:duration_by_date]["2026-04-14"]
     end
   end
 
@@ -170,7 +179,6 @@ class DashboardStatsTest < ActiveSupport::TestCase
       create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "XML", editor: "vscode", operating_system: "macos", category: "coding")
 
       stats = build_stats(user, params: { language: "XML" })
-      def stats.rollups_available? = false
 
       result = stats.filterable_dashboard_data
 
@@ -243,13 +251,12 @@ class DashboardStatsTest < ActiveSupport::TestCase
         operating_system: "macos",
         category: "coding"
       )
-      Heartbeat.insert_all!((1...heartbeat_count).map do |offset|
-        first.attributes.except("id").merge(
+      Heartbeat.insert_rows!((1...heartbeat_count).map do |offset|
+        Heartbeat.row_for_insert(first.attributes.except("id").merge(
           "time" => first.time + offset,
-          "language" => offset == 1 ? "Ruby" : "XML",
-          "fields_hash" => Digest::SHA256.hexdigest("filtered-timeline-#{first.id}-#{offset}")
-        )
-      end)
+          "language" => offset == 1 ? "Ruby" : "XML"
+        ))
+      end, sync: true)
 
       result = build_stats(user, params: { language: "XML" }).filterable_dashboard_data
 
@@ -261,7 +268,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
     end
   end
 
-  test "predecessor lookups preserve timestamp ties nil buckets and fractional durations" do
+  test "filtered timelines preserve timestamp ties nil buckets and fractional durations" do
     user = create(:user, timezone: "Europe/London")
     time = Time.utc(2026, 4, 13, 22, 59, 59).to_f
     create(:heartbeat, user: user, time: time, language: "Ruby", project: "beta")
@@ -269,17 +276,13 @@ class DashboardStatsTest < ActiveSupport::TestCase
     create(:heartbeat, user: user, time: time + 1.5, language: "Ruby", project: "beta")
     create(:heartbeat, user: user, time: time + 1.5, language: "XML", project: nil, entity: "other.xml")
     create(:heartbeat, user: user, time: time + 2.25, language: "XML", project: nil)
-    expected = DashboardData::Snapshots.filtered_query_snapshot(
-      user: user, scope: DashboardData::Snapshots.attributed_dashboard_scope(user.heartbeats).where(language: "XML")
-    )
     actual = DashboardData::Snapshots.adaptive_filtered_snapshot(user: user, scope: user.heartbeats) { |scope| scope.where(language: "XML") }
-    assert_equal expected, actual
     assert_equal 2, actual[:total_time]
     assert_equal({ nil => 2 }, actual[:grouped_durations][:project])
     assert_equal({ "2-0" => 2 }, actual[:coding_rhythm][:duration_by_slot])
   end
 
-  test "homepage rollup path falls back to live filter options when filter option rollup is missing" do
+  test "new heartbeats keep serving the published rollup and schedule a rebuild" do
     with_memory_cache_store do
       Rails.cache.clear
       user = create(:user)
@@ -290,90 +293,28 @@ class DashboardStatsTest < ActiveSupport::TestCase
         create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
       end
 
-      DashboardRollupRefreshService.new(user: user).call
-      DashboardRollup.find_by!(user: user, dimension: DashboardRollup::FILTER_OPTIONS_DIMENSION).destroy!
-
+      HeartbeatRollup.rebuild!(user)
       clear_enqueued_jobs
       Rails.cache.delete(DashboardRollupRefreshJob.enqueue_cache_key(user.id))
 
-      result = nil
       assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
-        result = build_stats(user).filterable_dashboard_data
-      end
-
-      assert_equal [ "alpha" ], result[:project]
-      assert_equal [ "Ruby" ], result[:language]
-    end
-  end
-
-  test "dirty rollup serves last rollup and schedules a refresh" do
-    with_memory_cache_store do
-      Rails.cache.clear
-      user = create(:user)
-
-      travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
-        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-        travel 1.minute
-        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-      end
-
-      DashboardRollupRefreshService.new(user: user).call
-      total_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::TOTAL_DIMENSION)
-
-      clear_enqueued_jobs
-      travel 1.minute do
-        create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
+        travel_to Time.utc(2026, 4, 14, 12, 2, 0) do
+          create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
+        end
       end
 
       stats = build_stats(user)
-      def stats.grouped_durations_snapshot(_scope) = raise("expected rollup-backed dashboard path")
+      def stats.query_result(*) = raise("expected rollup-backed dashboard path")
 
-      result = nil
-      assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ])
-      assert_no_enqueued_jobs(only: DashboardRollupRefreshJob) do
-        result = stats.filterable_dashboard_data
-      end
+      result = stats.filterable_dashboard_data
 
-      assert_equal total_row.total_seconds, result[:total_time]
-      assert_equal total_row.source_heartbeats_count, result[:total_heartbeats]
+      assert_equal 60, result[:total_time]
+      assert_equal 2, result[:total_heartbeats]
       assert_equal "alpha", result["top_project"]
       assert_equal [ "alpha" ], result[:project]
-    end
-  end
 
-  test "stale rollup fingerprint serves last rollup and schedules a refresh" do
-    with_memory_cache_store do
-      Rails.cache.clear
-      user = create(:user)
-
-      travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
-        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-        travel 1.minute
-        create_heartbeat(user, project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-      end
-
-      DashboardRollupRefreshService.new(user: user).call
-      total_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::TOTAL_DIMENSION)
-
-      travel 1.minute do
-        create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
-      end
-
-      DashboardRollup.clear_dirty(user.id)
-      Rails.cache.delete(DashboardRollupRefreshJob.enqueue_cache_key(user.id))
-
-      stats = build_stats(user)
-      def stats.grouped_durations_snapshot(_scope) = raise("expected rollup-backed dashboard path")
-
-      result = nil
-      assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
-        result = stats.filterable_dashboard_data
-      end
-
-      assert_equal total_row.total_seconds, result[:total_time]
-      assert_equal total_row.source_heartbeats_count, result[:total_heartbeats]
-      assert_equal "alpha", result["top_project"]
-      assert_equal [ "alpha" ], result[:project]
+      perform_enqueued_jobs(only: DashboardRollupRefreshJob)
+      assert_equal 120, build_stats(user).filterable_dashboard_data[:total_time]
     end
   end
 
@@ -387,10 +328,10 @@ class DashboardStatsTest < ActiveSupport::TestCase
         create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
 
-        DashboardRollupRefreshService.new(user: user).call
+        HeartbeatRollup.rebuild!(user)
 
         stats = build_stats(user)
-        def stats.live_today_stats_data = raise("expected rollup-backed today stats path")
+        def stats.today_stats_snapshot(_scope) = raise("expected rollup-backed today stats path")
         def stats.live_activity_graph_data = raise("expected rollup-backed activity graph path")
 
         today_stats = stats.today_stats_data
@@ -407,82 +348,6 @@ class DashboardStatsTest < ActiveSupport::TestCase
     end
   end
 
-  test "invalid today stats rollup recalculates only today stats and schedules a refresh" do
-    with_memory_cache_store do
-      Rails.cache.clear
-
-      travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
-        user = create(:user)
-        create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-        create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-        create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-
-        DashboardRollupRefreshService.new(user: user).call
-
-        today_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::TODAY_STATS_DIMENSION)
-        today_row.update!(payload: today_row.payload.merge("today_date" => "2026-04-13"))
-
-        stats = build_stats(user)
-        def stats.grouped_durations_snapshot(_scope) = raise("expected rollup-backed dashboard path")
-        def stats.live_today_stats_data = { source: :live_today }
-        def stats.live_activity_graph_data = raise("expected rollup-backed activity graph path")
-
-        clear_enqueued_jobs
-        Rails.cache.delete(DashboardRollupRefreshJob.enqueue_cache_key(user.id))
-
-        aggregate = today_stats = activity_graph = nil
-        assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
-          aggregate = stats.filterable_dashboard_data
-          today_stats = stats.today_stats_data
-          activity_graph = stats.activity_graph_data
-        end
-
-        assert_equal 120, aggregate[:total_time]
-        assert_equal({ source: :live_today }, today_stats)
-        assert_equal 120, activity_graph[:duration_by_date]["2026-04-14"]
-        assert_equal 1, enqueued_jobs.count { |job| job[:job] == DashboardRollupRefreshJob }
-      end
-    end
-  end
-
-  test "invalid activity graph rollup recalculates only activity graph and schedules a refresh" do
-    with_memory_cache_store do
-      Rails.cache.clear
-
-      travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
-        user = create(:user)
-        create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-        create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-        create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
-
-        DashboardRollupRefreshService.new(user: user).call
-
-        activity_row = DashboardRollup.find_by!(user: user, dimension: DashboardRollup::ACTIVITY_GRAPH_DIMENSION)
-        activity_row.update!(payload: activity_row.payload.merge("end_date" => "2026-04-13"))
-
-        stats = build_stats(user)
-        def stats.grouped_durations_snapshot(_scope) = raise("expected rollup-backed dashboard path")
-        def stats.live_today_stats_data = raise("expected rollup-backed today stats path")
-        def stats.live_activity_graph_data = { source: :live_activity }
-
-        clear_enqueued_jobs
-        Rails.cache.delete(DashboardRollupRefreshJob.enqueue_cache_key(user.id))
-
-        aggregate = today_stats = activity_graph = nil
-        assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
-          aggregate = stats.filterable_dashboard_data
-          today_stats = stats.today_stats_data
-          activity_graph = stats.activity_graph_data
-        end
-
-        assert_equal 120, aggregate[:total_time]
-        assert today_stats[:show_logged_time_sentence]
-        assert_equal({ source: :live_activity }, activity_graph)
-        assert_equal 1, enqueued_jobs.count { |job| job[:job] == DashboardRollupRefreshJob }
-      end
-    end
-  end
-
   test "selecting a remapped operating_system filter value matches the underlying raw rows" do
     with_memory_cache_store do
       Rails.cache.clear
@@ -493,7 +358,6 @@ class DashboardStatsTest < ActiveSupport::TestCase
       create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
 
       stats = build_stats(user, params: { operating_system: "macOS" })
-      def stats.rollups_available? = false
 
       result = stats.filterable_dashboard_data
 
@@ -516,7 +380,6 @@ class DashboardStatsTest < ActiveSupport::TestCase
       create(:project_repo_mapping, user: user, project_name: "archived").archive!
 
       stats = build_stats(user, params: { interval: "custom", from: "2026-04-14", to: "2026-04-14" })
-      def stats.rollups_available? = false
 
       result = stats.filterable_dashboard_data
 
@@ -537,7 +400,6 @@ class DashboardStatsTest < ActiveSupport::TestCase
       create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "ai coding")
 
       stats = build_stats(user, params: { category: "ai coding" })
-      def stats.rollups_available? = false
 
       result = stats.filterable_dashboard_data
 
@@ -566,7 +428,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
         end
       end
 
-      DashboardRollupRefreshService.new(user: user).call
+      HeartbeatRollup.rebuild!(user)
       result = build_stats(user).filterable_dashboard_data
 
       assert_equal "Linux", result["operating_system_stats"].keys.first
@@ -590,7 +452,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
         create_heartbeat_at(user, "2026-04-13 14:00:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-13 14:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
 
-        DashboardRollupRefreshService.new(user: user).call
+        HeartbeatRollup.rebuild!(user)
         result = build_stats(user).filterable_dashboard_data
 
         assert_equal "alpha", result["top_project"]
@@ -611,7 +473,6 @@ class DashboardStatsTest < ActiveSupport::TestCase
       create_heartbeat(user, project: "beta", language: "javascript", editor: "zed", operating_system: "linux", category: "coding")
 
       stats = build_stats(user, params: { editor: "VSCode" })
-      def stats.rollups_available? = false
 
       result = stats.filterable_dashboard_data
 
@@ -620,7 +481,7 @@ class DashboardStatsTest < ActiveSupport::TestCase
     end
   end
 
-  test "missing today stats and activity graph rollups recalculate only those fragments and schedule one refresh" do
+  test "a rollup built for another timezone is ignored and schedules one refresh" do
     with_memory_cache_store do
       Rails.cache.clear
 
@@ -630,14 +491,11 @@ class DashboardStatsTest < ActiveSupport::TestCase
         create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
         create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "ruby", editor: "vscode", operating_system: "macos", category: "coding")
 
-        DashboardRollupRefreshService.new(user: user).call
-        DashboardRollup.where(
-          user: user,
-          dimension: [ DashboardRollup::TODAY_STATS_DIMENSION, DashboardRollup::ACTIVITY_GRAPH_DIMENSION ]
-        ).delete_all
+        HeartbeatRollup.rebuild!(user)
+        user.update_column(:timezone, "Asia/Tokyo")
 
         stats = build_stats(user)
-        def stats.grouped_durations_snapshot(_scope) = raise("expected rollup-backed dashboard path")
+        def stats.live_raw_filter_options = { project: [ "alpha" ], language: [ "ruby" ], editor: [], operating_system: [], category: [] }
 
         clear_enqueued_jobs
         Rails.cache.delete(DashboardRollupRefreshJob.enqueue_cache_key(user.id))

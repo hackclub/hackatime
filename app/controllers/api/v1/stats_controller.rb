@@ -6,7 +6,8 @@ class Api::V1::StatsController < ApplicationController
   before_action :ensure_public_stats_allowed!, only: USER_LOOKUP_ACTIONS
 
   def show
-    # take either user_id with a start date & end date
+    return render_bad_request("username or user_email is required") if params[:username].blank? && params[:user_email].blank?
+
     start_date = parse_date_param(:start_date, default: 10.years.ago, boundary: :start)
     return if performed?
     end_date = parse_date_param(:end_date, default: Date.today.end_of_day, boundary: :end)

@@ -12,7 +12,7 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     user = create(:user)
     create(:project_repo_mapping, user: user, project_name: "alpha")
     create_project_heartbeats(user, "alpha")
-    DashboardRollupRefreshService.new(user: user).call
+    HeartbeatRollup.rebuild!(user)
 
     sign_in_as(user)
     get my_projects_path
@@ -57,7 +57,7 @@ class My::ProjectRepoMappingsControllerTest < ActionDispatch::IntegrationTest
     mapping = create(:project_repo_mapping, user: user, project_name: "beta")
     mapping.archive!
     create_project_heartbeats(user, "beta")
-    DashboardRollupRefreshService.new(user: user).call
+    HeartbeatRollup.rebuild!(user)
 
     sign_in_as(user)
     get my_projects_path(show_archived: true)

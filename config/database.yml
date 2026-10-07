@@ -2,6 +2,14 @@ default: &default
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 50 } %>
   timeout: 5000
 
+clickhouse: &clickhouse
+  adapter: clickhouse
+  url: <%= ENV["CLICKHOUSE_URL"] %>
+  migrations_paths: db/clickhouse_migrate
+  schema_format: sql
+  read_timeout: 120
+  write_timeout: 120
+
 development:
   primary:
     <<: *default
@@ -9,6 +17,9 @@ development:
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
     url: <%= ENV['DATABASE_URL'] %>
+  clickhouse:
+    <<: *clickhouse
+    database: <%= ENV.fetch("CLICKHOUSE_DATABASE", "hackatime_dev") %>
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -19,6 +30,10 @@ test:
     adapter: postgresql
     database: app_test
     url: <%= ENV['TEST_DATABASE_URL'] %>
+  clickhouse:
+    <<: *clickhouse
+    url: <%= ENV["CLICKHOUSE_TEST_URL"] %>
+    database: hackatime_test
 
 # Store production database in the storage/ directory, which by default
 # is mounted as a persistent Docker volume in config/deploy.yml.
@@ -34,3 +49,7 @@ production:
     adapter: postgresql
     encoding: unicode
     url: <%= ENV['DATABASE_URL'] %>
+  clickhouse:
+    <<: *clickhouse
+    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 16 }.to_i + 8 %>
+    database: <%= ENV.fetch("CLICKHOUSE_DATABASE", "hackatime") %>

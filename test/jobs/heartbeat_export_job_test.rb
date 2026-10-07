@@ -132,6 +132,18 @@ class HeartbeatExportJobTest < ActiveJob::TestCase
     end
   end
 
+  test "exports every heartbeat once in time order across batches with tied timestamps" do
+    base = Time.utc(2026, 2, 10, 12, 0, 0)
+    expected = [ 0, 0, 0, 60, 60, 120 ].each_with_index.map { |offset, index|
+      create_heartbeat(at_time: base + offset, entity: "src/#{index}.rb")
+    }.sort_by { |hb| [ hb.time, hb.id ] }.map(&:id)
+
+    exported = []
+    HeartbeatExportJob.new.send(:each_heartbeat_in_time_order, @user.heartbeats, batch_size: 2) { |hb| exported << hb.id }
+
+    assert_equal expected, exported
+  end
+
   private
 
   def create_heartbeat(at_time:, entity:)

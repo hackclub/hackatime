@@ -22,6 +22,13 @@ class AnonymizeUserService < ApplicationService
       ))
       destroy_associated_records
     end
+    # Heartbeats live in ClickHouse, which cannot join a Postgres transaction.
+    # Soft-delete them after the Postgres work commits; the statement is
+    # idempotent, and a failure raises so the deletion request stays pending
+    # and ProcessAccountDeletionsJob retries it.
+    Heartbeat.soft_delete_where!(user_id: user.id)
+    # Replaces the dashboard rollup with an empty one, removing the old rows.
+    HeartbeatRollup.rebuild!(user, keep_replaced: false)
   rescue StandardError => e
     report_error(e, message: "AnonymizeUserService failed for user #{user.id}", extra: { user_id: user.id })
     raise
@@ -45,7 +52,6 @@ class AnonymizeUserService < ApplicationService
     user.heartbeat_import_runs.destroy_all
     user.project_repo_mappings.destroy_all
     user.goals.destroy_all
-    Heartbeat.unscoped.where(user_id: user.id, deleted_at: nil).update_all(deleted_at: Time.current)
     user.access_grants.destroy_all
     user.access_tokens.destroy_all
   end

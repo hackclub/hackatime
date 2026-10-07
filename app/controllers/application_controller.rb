@@ -110,7 +110,5 @@ class ApplicationController < ActionController::Base
     response.headers["Cache-Control"] = "no-store"
   end
 
-  def active_users_graph_data
-    Cache::ActiveUsersGraphDataJob.perform_now
-  end
+  def active_users_graph_data = Heartbeat.active_users_by_hour
 end

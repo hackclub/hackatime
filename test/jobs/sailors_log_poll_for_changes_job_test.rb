@@ -20,10 +20,8 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
       user:, time: 3.weeks.ago.to_f, project: "nixos", category: "coding",
       entity: "/tmp/configuration.nix", type: "file", source_type: :direct_entry
     )
-    create(:dashboard_rollup,
-      user_id: user.id, dimension: "project", bucket_value: "nixos",
-      bucket_value_present: true, total_seconds: 22_209
-    )
+    # Plus the capped 120s gap to the direct heartbeat above: 22,209s in total.
+    create_rolled_up_project_time(user, "nixos", seconds: 22_089)
     stub_request(:get, "https://slack.com/api/users.info?user=#{user.slack_uid}")
       .to_return(status: 200, body: { ok: true, user: { profile: { display_name: "Sailor" } } }.to_json)
     slack_request = stub_request(:post, "https://slack.com/api/chat.postMessage")
@@ -48,10 +46,7 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
       user:, time: 3.weeks.ago.to_f, project: "imported", category: "coding",
       entity: "/tmp/imported.rb", type: "file", source_type: :wakapi_import
     )
-    create(:dashboard_rollup,
-      user_id: user.id, dimension: "project", bucket_value: "imported",
-      bucket_value_present: true, total_seconds: 3_700
-    )
+    create_rolled_up_project_time(user, "imported", seconds: 3_700)
 
     assert_no_difference -> { sailors_log.notifications.count } do
       SailorsLogPollForChangesJob.perform_now
@@ -67,14 +62,26 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
       user:, time: Time.current.to_f, project: "imported", category: "coding",
       entity: "/tmp/imported.rb", type: "file", source_type: :wakapi_import
     )
-    create(:dashboard_rollup,
-      user_id: user.id, dimension: "project", bucket_value: "imported",
-      bucket_value_present: true, total_seconds: 3_700
-    )
+    create_rolled_up_project_time(user, "imported", seconds: 3_700)
 
     assert_no_difference -> { sailors_log.notifications.count } do
       SailorsLogPollForChangesJob.perform_now
     end
     assert_equal 3_500, sailors_log.reload.projects_summary.fetch("imported")
+  end
+
+  private
+
+  # Heartbeats far in the past whose project time adds up to `seconds`, rolled up.
+  def create_rolled_up_project_time(user, project, seconds:)
+    full_gaps, remainder = seconds.divmod(120)
+    start = 5.weeks.ago.to_f
+    times = (0..full_gaps).map { |index| start + index * 120 }
+    times << times.last + remainder if remainder.positive?
+    Heartbeat.insert_rows!(times.map { |time|
+      Heartbeat.row_for_insert(user_id: user.id, time:, project:, category: "coding", source_type: :wakapi_import,
+        created_at: 5.weeks.ago, updated_at: 5.weeks.ago)
+    }, sync: true)
+    HeartbeatRollup.rebuild!(user)
   end
 end

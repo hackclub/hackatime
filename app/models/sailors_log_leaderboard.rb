@@ -45,8 +45,8 @@ class SailorsLogLeaderboard < ApplicationRecord
   def self.generate_leaderboard_stats(channel)
     slack_ids_in_channel = SailorsLogNotificationPreference.where(enabled: true, slack_channel_id: channel)
                                                            .distinct.pluck(:slack_uid)
-    users_in_channel = User.where(slack_uid: slack_ids_in_channel)
-    user_durations = Heartbeat.where(user: users_in_channel).today.group(:user_id).duration_seconds
+    user_ids_in_channel = User.where(slack_uid: slack_ids_in_channel).pluck(:id)
+    user_durations = Heartbeat.where(user_id: user_ids_in_channel).today.group(:user_id).duration_seconds
     top_user_ids = user_durations.sort_by { |_, duration| -duration }.first(10).map(&:first)
     users_by_id = User.where(id: top_user_ids).index_by(&:id)
 

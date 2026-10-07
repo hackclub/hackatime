@@ -113,8 +113,10 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       end_time = Time.current.end_of_day
 
       heartbeats = @user.heartbeats.where(time: start_time.to_i..end_time.to_i)
-      total_seconds = heartbeats.duration_seconds.to_i
-      days_covered = heartbeats.pluck(:time).map { |ts| Time.at(ts).in_time_zone(@user.timezone).to_date }.uniq.length
+      groups = %i[editor language machine project operating_system].index_with(&:itself)
+      groups[:day] = "toDate(#{Heartbeatable::DurationSql.local_datetime(@user.timezone)})"
+      total_seconds, durations = Heartbeat.grouped_duration_seconds(heartbeats, groups)
+      days_covered = durations[:day].size
       daily_average = days_covered > 0 ? (total_seconds.to_f / days_covered).round(1) : 0
       human_readable_total = format_hr(total_seconds)
 
@@ -146,11 +148,11 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
           human_readable_daily_average: format_hr(daily_average.to_i),
           is_coding_activity_visible: true,
           is_other_usage_visible: true,
-          editors: calculate_category_stats(heartbeats, "editor"),
-          languages: calculate_category_stats(heartbeats, "language"),
-          machines: calculate_category_stats(heartbeats, "machine"),
-          projects: calculate_category_stats(heartbeats, "project"),
-          operating_systems: calculate_category_stats(heartbeats, "operating_system"),
+          editors: calculate_category_stats(durations[:editor], "editor"),
+          languages: calculate_category_stats(durations[:language], "language"),
+          machines: calculate_category_stats(durations[:machine], "machine"),
+          projects: calculate_category_stats(durations[:project], "project"),
+          operating_systems: calculate_category_stats(durations[:operating_system], "operating_system"),
           categories: categories
         }
       }
@@ -181,8 +183,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     "#{h} hrs #{m} mins"
   end
 
-  def calculate_category_stats(heartbeats, category)
-    durations = heartbeats.group(category).duration_seconds
+  def calculate_category_stats(durations, category)
     total_duration = durations.values.sum.to_f
     return [] if total_duration == 0
 

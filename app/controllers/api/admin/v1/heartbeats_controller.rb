@@ -10,52 +10,39 @@ module Api
           limit = parse_limit
           cutoff = lookback_days.days.ago.to_i
 
-          query = <<-SQL
+          combos = <<~SQL
+            SELECT user_id, machine, ip_address,
+                   min(time) AS first_seen, max(time) AS last_seen,
+                   toBool(min(#{HeartbeatExclusion.hidden_sql})) AS hidden
+            FROM heartbeats
+            WHERE machine IS NOT NULL
+              AND ip_address IS NOT NULL
+              AND deleted_at IS NULL
+              AND time > #{Integer(cutoff)}
+            GROUP BY user_id, machine, ip_address
+          SQL
+
+          rows = Heartbeat.connection.select_all(<<~SQL).to_a
             #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
+            WITH combos AS (#{combos})
             SELECT
               r1.user_id  AS user_a_id,
               r2.user_id  AS user_b_id,
-              r1.machine,
-              r1.ip_address,
+              r1.machine AS machine,
+              r1.ip_address AS ip_address,
               r1.first_seen AS user_a_first_seen,
               r1.last_seen  AS user_a_last_seen,
               r2.first_seen AS user_b_first_seen,
               r2.last_seen  AS user_b_last_seen,
               r1.hidden     AS user_a_hidden,
               r2.hidden     AS user_b_hidden
-            FROM (
-              SELECT user_id, machine, ip_address,
-                     MIN(time) AS first_seen, MAX(time) AS last_seen,
-                     BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) AS hidden
-              FROM heartbeats
-              WHERE user_id IS NOT NULL
-                AND machine IS NOT NULL
-                AND ip_address IS NOT NULL
-                AND deleted_at IS NULL
-                AND time > ?
-              GROUP BY user_id, machine, ip_address
-            ) r1
-            JOIN (
-              SELECT user_id, machine, ip_address,
-                     MIN(time) AS first_seen, MAX(time) AS last_seen,
-                     BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) AS hidden
-              FROM heartbeats
-              WHERE user_id IS NOT NULL
-                AND machine IS NOT NULL
-                AND ip_address IS NOT NULL
-                AND deleted_at IS NULL
-                AND time > ?
-              GROUP BY user_id, machine, ip_address
-            ) r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
+            FROM combos AS r1
+            INNER JOIN combos AS r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
             WHERE r1.user_id < r2.user_id
-            LIMIT ?
+            LIMIT #{Integer(limit)}
           SQL
 
-          result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff, cutoff, limit ])
-          )
-
-          render json: { pairs: result.to_a }
+          render json: { pairs: rows }
         end
 
         def shared_machines
@@ -63,40 +50,33 @@ module Api
           limit = parse_limit
           cutoff = lookback_days.days.ago.to_i
 
-          query = <<-SQL
+          rows = Heartbeat.connection.select_all(<<~SQL).to_a
             #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
             WITH user_machines AS (
-              SELECT machine, user_id, BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) AS hidden
+              SELECT machine, user_id, toBool(min(#{HeartbeatExclusion.hidden_sql})) AS hidden
               FROM heartbeats
               WHERE machine IS NOT NULL
                 AND deleted_at IS NULL
-                AND time > ?
+                AND time > #{Integer(cutoff)}
               GROUP BY machine, user_id
-            ),
-            shared AS (
-              SELECT machine, COUNT(user_id) AS machine_frequency
-              FROM user_machines
-              GROUP BY machine
-              HAVING COUNT(user_id) > 1
             )
             SELECT
-              shared.machine,
-              shared.machine_frequency,
-              ARRAY_AGG(u.id ORDER BY u.id) AS user_ids,
-              COALESCE(ARRAY_AGG(u.id ORDER BY u.id) FILTER (WHERE user_machines.hidden), '{}') AS hidden_user_ids
-            FROM shared
-            JOIN user_machines ON user_machines.machine = shared.machine
-            JOIN users u ON u.id = user_machines.user_id
-            GROUP BY shared.machine, shared.machine_frequency
-            ORDER BY shared.machine_frequency DESC, shared.machine ASC
-            LIMIT ?
+              machine,
+              count() AS machine_frequency,
+              arraySort(groupArray(user_id)) AS user_ids,
+              arraySort(groupArrayIf(user_id, hidden)) AS hidden_user_ids
+            FROM user_machines
+            GROUP BY machine
+            HAVING count() > 1
+            ORDER BY machine_frequency DESC, machine ASC
+            LIMIT #{Integer(limit)}
           SQL
 
-          result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff, limit ])
-          )
-
-          render json: { machines: result.to_a }
+          # Keep the Postgres array text format ("{1,2}") existing clients parse.
+          machines = rows.map do |row|
+            row.merge(%w[user_ids hidden_user_ids].to_h { |key| [ key, "{#{row.fetch(key).join(',')}}" ] })
+          end
+          render json: { machines: }
         end
 
         private

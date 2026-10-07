@@ -7,6 +7,8 @@ gem "rails", "~> 8.1.2"
 gem "propshaft"
 # Use PostgreSQL as the database for Wakatime
 gem "pg"
+# Heartbeats live in ClickHouse
+gem "clickhouse-activerecord", "~> 1.7.0"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]

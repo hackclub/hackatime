@@ -29,6 +29,11 @@ jobs:
         continue-on-error: true
         run: bin/brakeman --no-pager -f sarif -o brakeman.sarif.json
 
+      # Warnings already reviewed in config/brakeman.ignore are marked as
+      # suppressed in the SARIF, but Code Scanning still opens alerts for them.
+      - name: Drop warnings reviewed in config/brakeman.ignore
+        run: jq '.runs[].results |= map(select(.suppressions == null))' brakeman.sarif.json > brakeman.reviewed.sarif.json && mv brakeman.reviewed.sarif.json brakeman.sarif.json
+
       - name: Upload SARIF to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v4.37.9
         with:
@@ -173,6 +178,8 @@ jobs:
 
   test:
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    env:
+      CLICKHOUSE_TEST_URL: clickhouse://hackatime:hackatime@localhost:8123/hackatime_test
 
     services:
       postgres:
@@ -188,6 +195,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Start ClickHouse
+        # Not a service container: it needs the repo's settings profile mounted.
+        run: |
+          docker run -d --name clickhouse -p 8123:8123 --ulimit nofile=262144:262144 \
+            -e CLICKHOUSE_USER=hackatime -e CLICKHOUSE_PASSWORD=hackatime -e CLICKHOUSE_DB=hackatime_test \
+            -v "$PWD/config/clickhouse/users.d/hackatime.xml:/etc/clickhouse-server/users.d/hackatime.xml:ro" \
+            clickhouse/clickhouse-server:26.9.10.4
+          for _ in $(seq 1 60); do curl -sf http://localhost:8123/ping && exit 0; sleep 1; done
+          docker logs clickhouse
+          exit 1
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -223,6 +241,8 @@ jobs:
 
   test_system:
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    env:
+      CLICKHOUSE_TEST_URL: clickhouse://hackatime:hackatime@localhost:8123/hackatime_test
 
     services:
       postgres:
@@ -238,6 +258,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Start ClickHouse
+        # Not a service container: it needs the repo's settings profile mounted.
+        run: |
+          docker run -d --name clickhouse -p 8123:8123 --ulimit nofile=262144:262144 \
+            -e CLICKHOUSE_USER=hackatime -e CLICKHOUSE_PASSWORD=hackatime -e CLICKHOUSE_DB=hackatime_test \
+            -v "$PWD/config/clickhouse/users.d/hackatime.xml:/etc/clickhouse-server/users.d/hackatime.xml:ro" \
+            clickhouse/clickhouse-server:26.9.10.4
+          for _ in $(seq 1 60); do curl -sf http://localhost:8123/ping && exit 0; sleep 1; done
+          docker logs clickhouse
+          exit 1
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1

@@ -10,6 +10,7 @@ class HeartbeatExportJob < ApplicationJob
     key: -> { "heartbeat_export_job_#{arguments.first}" }
   )
 
+  EXPORT_BATCH_SIZE = 10_000
   HEARTBEAT_EXPORT_FIELDS = %i[
     id entity type category project language editor operating_system machine branch
     user_agent is_write line_additions line_deletions lineno lines cursorpos dependencies
@@ -90,12 +91,27 @@ class HeartbeatExportJob < ApplicationJob
 
     file.write(%({"export_info":#{export_info.to_json},"heartbeats":[))
     first = true
-    heartbeats.find_each do |hb|
+    each_heartbeat_in_time_order(heartbeats) do |hb|
       file.write(",") unless first
       first = false
       file.write(export_row(hb).to_json)
     end
     file.write("]}")
+  end
+
+  # Keyset batches on ClickHouse's sort key (user_id, time, id). find_each would
+  # page by id alone, rescanning the user's rows for every batch.
+  def each_heartbeat_in_time_order(heartbeats, batch_size: EXPORT_BATCH_SIZE)
+    last = nil
+    loop do
+      batch = heartbeats.reorder(:time, :id).limit(batch_size)
+      batch = batch.where("time >= :time AND (time > :time OR id > :id)", time: last.time, id: last.id) if last
+      rows = batch.to_a
+      rows.each { |hb| yield hb }
+      break if rows.size < batch_size
+
+      last = rows.last
+    end
   end
 
   def export_row(hb)

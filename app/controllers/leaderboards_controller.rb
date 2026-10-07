@@ -74,7 +74,7 @@ class LeaderboardsController < InertiaController
       country_code: country_code
     )
 
-    active_projects = Cache::ActiveProjectsJob.perform_now
+    active_projects = ProjectRepoMapping.currently_active_by_user
 
     visible_entries = payload[:entries].reject do |e|
       e.dig(:user, :red) ||

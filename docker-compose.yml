@@ -17,8 +17,12 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=secureorpheus123
       - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_test
+      - CLICKHOUSE_URL=clickhouse://hackatime:hackatime@clickhouse:8123/hackatime_dev
+      - CLICKHOUSE_TEST_URL=clickhouse://hackatime:hackatime@clickhouse:8123/hackatime_test
     depends_on:
       db:
+        condition: service_healthy
+      clickhouse:
         condition: service_healthy
     command: ["sleep", "infinity"]
 
@@ -32,6 +36,8 @@ services:
       - RAILS_ENV=development
       - DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
       - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_test
+      - CLICKHOUSE_URL=clickhouse://hackatime:hackatime@clickhouse:8123/hackatime_dev
+      - CLICKHOUSE_TEST_URL=clickhouse://hackatime:hackatime@clickhouse:8123/hackatime_test
       - PUBLIC_URL=${PUBLIC_URL:-}
     entrypoint: []
     command: ["bin/rails", "server", "-b", "0.0.0.0", "-p", "3000", "-P", "/tmp/portal-server.pid"]
@@ -52,7 +58,30 @@ services:
     ports:
       - "5432:5432"
 
+  # Heartbeat store. Same image and settings profile as production.
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.9.10.4
+    environment:
+      - CLICKHOUSE_USER=hackatime
+      - CLICKHOUSE_PASSWORD=hackatime
+      - CLICKHOUSE_DB=hackatime_dev
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./config/clickhouse/users.d/hackatime.xml:/etc/clickhouse-server/users.d/hackatime.xml:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8123/ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    ports:
+      - "8123:8123"
+
 volumes:
   harbor_postgres_data:
+  clickhouse_data:
   bundle_cache:
   node_modules:
