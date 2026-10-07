@@ -100,13 +100,14 @@ class HeartbeatIngest
     language_from_placeholder = attrs[:language] == LAST_LANGUAGE_SENTINEL
     resolve_placeholders!(attrs, placeholder_state)
 
-    known_language = attrs[:language] if language_from_placeholder || LanguageUtils.find_name(attrs[:language])
-    inferred = LanguageUtils.fill_missing_language(known_language, entity: attrs[:entity])
-    attrs[:language] = inferred if inferred.present?
-
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     attrs[:user_agent] = attrs[:user_agent].presence || attrs.delete(:plugin).presence || @request_context[:user_agent].presence
     parsed_ua = WakatimeUserAgentParser.parse(attrs[:user_agent], category: attrs[:category])
+    editor = parsed_ua[:editor].presence || attrs[:editor].presence
+
+    known_language = attrs[:language] if language_from_placeholder || LanguageUtils.find_name(attrs[:language])
+    inferred = LanguageUtils.fill_missing_language(known_language, entity: attrs[:entity], editor:)
+    attrs[:language] = inferred if inferred.present?
 
     attrs.merge(
       user_id: @user.id,
@@ -114,7 +115,7 @@ class HeartbeatIngest
       ip_address: @request_context[:ip_address],
       ja4_id: resolved_ja4&.id,
       ai_model: attrs[:ai_model].presence || parsed_ua[:ai_model],
-      editor: parsed_ua[:editor].presence || attrs[:editor].presence,
+      editor:,
       operating_system: parsed_ua[:os].presence || attrs[:operating_system].presence,
       machine: @request_context[:machine].presence || attrs[:machine].presence
     ).slice(*Heartbeat.column_names.map(&:to_sym))
@@ -243,7 +244,7 @@ class HeartbeatIngest
       source_type: Heartbeat.source_types.fetch("wakapi_import")
     }
     resolve_placeholders!(attrs, placeholder_state)
-    attrs[:language] = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity])
+    attrs[:language] = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity], editor: attrs[:editor])
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     model_attributes = validated_model_attributes(attrs)
     normalized = model_attributes
