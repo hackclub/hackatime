@@ -560,12 +560,32 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal [ [ "idle", "Python" ] ], user.heartbeats.distinct.pluck(:editor, :language)
   end
 
-  test "import heartbeat ingest recognizes legacy hashes of IDLE heartbeats stored without a language" do
+  test "direct heartbeat ingest overrides the Groff language wakatime-cli sends for the IDLE shell" do
+    user = create(:user)
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "IDLE Shell 3.14.2",
+        language: "Groff",
+        project: "<<LAST_PROJECT>>",
+        time: 1_700_000_000.0,
+        type: "app",
+        user_agent: "wakatime/v2.26.14 (darwin-24.3.0-arm64) go1.26.8 IDLE/3.14.2-3.14.2 macos-wakatime/5.28.5"
+      } ]
+    )
+
+    assert_equal "Python", user.heartbeats.sole.language
+  end
+
+  test "import heartbeat ingest recognizes legacy hashes of IDLE heartbeats stored with the client language" do
     user = create(:user)
     raw = {
       category: "coding",
       editor: "idle",
-      entity: "*main.py*",
+      entity: "IDLE Shell 3.14.2",
+      language: "Groff",
       project: "<<LAST_PROJECT>>",
       time: 1_700_000_000.0,
       type: "app"

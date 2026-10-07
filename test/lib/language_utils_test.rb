@@ -49,10 +49,11 @@ class LanguageUtilsTest < Minitest::Test
       assert_equal "Python", LanguageUtils.fill_missing_language(nil, entity:, editor: "idle"), entity
     end
     assert_equal "Python", LanguageUtils.fill_missing_language("Unknown", entity: "*main.py*", editor: "IDLE")
+    assert_equal "Python", LanguageUtils.fill_missing_language("Groff", entity: "IDLE Shell 3.14.2", editor: "idle")
   end
 
-  def test_idle_fallback_keeps_client_languages_and_other_editors
-    assert_equal "Text", LanguageUtils.fill_missing_language("Text", entity: "notes.txt", editor: "idle")
+  def test_idle_fallback_leaves_other_editors_alone
+    assert_equal "Groff", LanguageUtils.fill_missing_language("Groff", entity: "IDLE Shell 3.14.2", editor: "terminal")
     assert_nil LanguageUtils.fill_missing_language(nil, entity: "*main.py*", editor: "terminal")
     assert_nil LanguageUtils.fill_missing_language(nil, entity: "*main.py*")
   end
