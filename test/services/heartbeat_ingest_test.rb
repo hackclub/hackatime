@@ -609,6 +609,33 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
   end
 
+  test "direct heartbeat ingest never stores the JetBrains AUTO_DETECTED placeholder" do
+    user = create(:user)
+    user_agent = "wakatime/v2.26.14 (linux-6.12.4-arch1-1-x86_64) go1.26.8 intellijidea/2025.2.1 intellijidea-wakatime/16.0.2"
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ "/home/dev/app/src/Main.java", "/home/dev/app/.gitkeep" ].each_with_index.map { |entity, i|
+        { entity:, language: "AUTO_DETECTED", time: 1_700_000_000.0 + i, type: "file", user_agent: }
+      }
+    )
+
+    assert_equal [ "Java", "Unknown" ], user.heartbeats.order(:time).pluck(:language)
+  end
+
+  test "import heartbeat ingest recognizes legacy hashes of JetBrains AUTO_DETECTED heartbeats" do
+    user = create(:user)
+    raw = { category: "coding", entity: "/a/Main.java", language: "AUTO_DETECTED", project: "app", time: 1_700_000_000.0, type: "file" }
+    create_legacy_imported_heartbeat(user, raw)
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(user: user, mode: :import, heartbeats: [ raw ])
+
+      assert_equal 1, result.duplicate_count
+    end
+  end
+
   test "import heartbeat ingest recognizes legacy hashes of IDLE heartbeats stored with the client language" do
     user = create(:user)
     raw = {

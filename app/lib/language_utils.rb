@@ -6,6 +6,7 @@ module LanguageUtils
   # This means that we can just override the language when we think it's incorrect, and Hackatime
   # will be accurate Most Of The Time(tm). Without this, it's the opposite!
   AUTHORITATIVE_EXTENSIONS = %w[.luau].freeze
+  AUTO_DETECTED = "AUTO_DETECTED"
 
   def self.data
     @data ||= begin
@@ -77,12 +78,20 @@ module LanguageUtils
   #
   # Browser entities are domains and URLs, not files, so their "extension" is a
   # TLD or IP octet (`github.com` is not DIGITAL Command Language). Never guess.
+  #
+  # The JetBrains plugin sometimes sends the literal `AUTO_DETECTED` instead of
+  # a language. Treat it as missing, and record Unknown if detection fails.
   def self.fill_missing_language(raw, entity:, editor: nil, type: nil)
-    return raw if %w[domain url].include?(type)
-
-    authoritative_language(entity) ||
-      (editor.to_s.casecmp?("idle") ? "Python" : nil) ||
-      legacy_fill_missing_language(raw, entity:)
+    auto_detected = raw == AUTO_DETECTED
+    raw = nil if auto_detected
+    filled = if %w[domain url].include?(type)
+      raw
+    else
+      authoritative_language(entity) ||
+        (editor.to_s.casecmp?("idle") ? "Python" : nil) ||
+        legacy_fill_missing_language(raw, entity:)
+    end
+    filled || (auto_detected ? "Unknown" : nil)
   end
 
   # The pre-override fill, without AUTHORITATIVE_EXTENSIONS. Kept so the import
