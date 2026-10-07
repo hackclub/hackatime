@@ -106,7 +106,7 @@ class HeartbeatIngest
     editor = parsed_ua[:editor].presence || attrs[:editor].presence
 
     known_language = attrs[:language] if language_from_placeholder || LanguageUtils.find_name(attrs[:language]) ||
-      attrs[:language] == LanguageUtils::AUTO_DETECTED
+      attrs[:language] == LanguageUtils::AUTO_DETECTED || %w[domain url].include?(attrs[:type])
     inferred = LanguageUtils.fill_missing_language(known_language, entity: attrs[:entity], editor:, type: attrs[:type])
     attrs[:language] = inferred if inferred.present? || known_language.present?
 

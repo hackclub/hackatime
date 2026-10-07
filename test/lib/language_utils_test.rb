@@ -56,22 +56,20 @@ class LanguageUtilsTest < Minitest::Test
     { "domain" => [ "github.com", "app.joinrunway.io", "http://10.0.0.1" ], "url" => [ "https://example.org/a.php" ] }.each do |type, entities|
       entities.each { |entity| assert_nil LanguageUtils.fill_missing_language(nil, entity:, type:), entity }
     end
-    assert_equal "TypeScript", LanguageUtils.fill_missing_language("TypeScript", entity: "github.com", type: "domain")
     assert_equal "DIGITAL Command Language", LanguageUtils.fill_missing_language(nil, entity: "run.com", type: "file")
   end
 
-  def test_browser_entities_drop_client_languages_guessed_from_the_host
+  def test_browser_entities_drop_every_client_language_except_onshape
     {
       "github.com" => "DIGITAL Command Language",
       "apstudents.collegeboard.org" => "Org",
       "http://192.168.0.1/" => "Groff",
-      "https://67movies.nl/watch" => "newLisp",
-      "github.com/acme/app/blob/main/build.sh" => "DIGITAL Command Language"
+      "github.com/acme/app/blob/main/README.md" => "Markdown",
+      "https://github.com" => "Python"
     }.each do |entity, language|
       assert_nil LanguageUtils.fill_missing_language(language, entity:, type: "url"), entity
     end
-    assert_equal "Python", LanguageUtils.fill_missing_language("Python", entity: "github.com", type: "domain")
-    assert_equal "Markdown", LanguageUtils.fill_missing_language("Markdown", entity: "github.com/acme/app/blob/main/README.md", type: "url")
+    assert_equal "Onshape", LanguageUtils.fill_missing_language("Onshape", entity: "https://cad.onshape.com/documents/1", type: "domain")
     assert_equal "Org", LanguageUtils.fill_missing_language("Org", entity: "/notes/todo.org", type: "file")
   end
 
