@@ -609,6 +609,21 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
   end
 
+  test "direct heartbeat ingest drops languages wakatime-cli guessed from a browser domain" do
+    user = create(:user)
+    user_agent = "wakatime/v2.26.14 (darwin-25.3.0-arm64) go1.26.8 GoogleChrome/154.0.8037.93-8037.93 macos-wakatime/5.28.5"
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ [ "github.com", "DIGITAL Command Language" ], [ "github.com", "Python" ] ].each_with_index.map { |(entity, language), i|
+        { entity:, language:, time: 1_700_000_000.0 + i, type: "domain", user_agent: }
+      }
+    )
+
+    assert_equal [ nil, "Python" ], user.heartbeats.order(:time).pluck(:language)
+  end
+
   test "direct heartbeat ingest never stores the JetBrains AUTO_DETECTED placeholder" do
     user = create(:user)
     user_agent = "wakatime/v2.26.14 (linux-6.12.4-arch1-1-x86_64) go1.26.8 intellijidea/2025.2.1 intellijidea-wakatime/16.0.2"

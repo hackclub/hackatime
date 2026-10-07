@@ -108,7 +108,7 @@ class HeartbeatIngest
     known_language = attrs[:language] if language_from_placeholder || LanguageUtils.find_name(attrs[:language]) ||
       attrs[:language] == LanguageUtils::AUTO_DETECTED
     inferred = LanguageUtils.fill_missing_language(known_language, entity: attrs[:entity], editor:, type: attrs[:type])
-    attrs[:language] = inferred if inferred.present?
+    attrs[:language] = inferred if inferred.present? || known_language.present?
 
     attrs.merge(
       user_id: @user.id,

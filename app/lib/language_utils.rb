@@ -64,6 +64,15 @@ module LanguageUtils
 
   def self.detect_from_entity(entity) = detect_from_filename(entity) || detect_from_extension(entity)
 
+  # Whether `raw` is a language that claims the entity host's "extension", i.e.
+  # what filename detection guesses for `github.com` (.com) or `10.0.0.1` (.1).
+  def self.host_extension_guess?(raw, entity)
+    name = find_name(raw) or return false
+    host = entity.to_s.sub(%r{\A[a-z][a-z0-9+.-]*://}i, "").split(%r{[/?#:]}, 2).first
+    ext = File.extname(host.to_s).downcase
+    ext.present? && data.dig(name, "extensions").to_a.any? { |e| e.casecmp?(ext) }
+  end
+
   def self.authoritative_language(entity)
     return nil if entity.blank?
     return nil unless AUTHORITATIVE_EXTENSIONS.include?(File.extname(entity).downcase)
@@ -77,7 +86,8 @@ module LanguageUtils
   # authoritative over whatever language the client sent.
   #
   # Browser entities are domains and URLs, not files, so their "extension" is a
-  # TLD or IP octet (`github.com` is not DIGITAL Command Language). Never guess.
+  # TLD or IP octet (`github.com` is not DIGITAL Command Language). Never guess,
+  # and drop the same guess when wakatime-cli (e.g. under macos-wakatime) made it.
   #
   # The JetBrains plugin sometimes sends the literal `AUTO_DETECTED` instead of
   # a language. Treat it as missing, and record Unknown if detection fails.
@@ -85,7 +95,7 @@ module LanguageUtils
     auto_detected = raw == AUTO_DETECTED
     raw = nil if auto_detected
     filled = if %w[domain url].include?(type)
-      raw
+      raw unless host_extension_guess?(raw, entity)
     else
       authoritative_language(entity) ||
         (editor.to_s.casecmp?("idle") ? "Python" : nil) ||
