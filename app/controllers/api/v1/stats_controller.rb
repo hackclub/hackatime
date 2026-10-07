@@ -3,6 +3,9 @@ class Api::V1::StatsController < ApplicationController
 
   before_action :authenticate_admin_api_key!, only: [ :show ], unless: -> { Rails.env.development? }
   before_action :set_user, only: USER_LOOKUP_ACTIONS
+  # Limits requests with credentials once the caller is known, before the
+  # lookup can fail.
+  include AuthenticatedApiRateLimiting
   before_action :ensure_public_stats_allowed!, only: USER_LOOKUP_ACTIONS
 
   def show
@@ -164,6 +167,18 @@ class Api::V1::StatsController < ApplicationController
   end
 
   private
+
+  def authenticated_api_rate_limited_action? = admin_api_rate_limit? || action_name.to_sym.in?(USER_LOOKUP_ACTIONS)
+
+  def admin_api_rate_limit? = action_name == "show"
+
+  def authenticated_api_rate_limit_identity
+    if admin_api_rate_limit?
+      @admin_api_key && "admin_api_key:#{@admin_api_key.id}"
+    else
+      @api_caller_user && "user:#{@api_caller_user.id}"
+    end
+  end
 
   def set_user
     identifier = params[:username] || params[:username_or_id] || params[:user_id]

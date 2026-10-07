@@ -1,5 +1,6 @@
 require "active_support/core_ext/integer/time"
 require_relative "../../lib/documentation_cache_control"
+require_relative "../../lib/cloudflare_client_ip"
 
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
@@ -19,6 +20,7 @@ Rails.application.configure do
   # Cache assets for far-future expiry since they are all digest stamped.
   config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
   config.middleware.insert_before ActionDispatch::Static, DocumentationCacheControl
+  config.middleware.insert_before ActionDispatch::RemoteIp, CloudflareClientIp
 
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
