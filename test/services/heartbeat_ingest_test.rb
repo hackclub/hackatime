@@ -609,6 +609,26 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
   end
 
+  test "direct heartbeat ingest drops browser languages except Onshape" do
+    user = create(:user)
+    macos = "wakatime/v2.26.14 (darwin-25.3.0-arm64) go1.26.8 GoogleChrome/154.0.8037.93-8037.93 macos-wakatime/5.28.5"
+    heartbeats = [
+      { entity: "/src/app.py", language: "Python", project: "app", type: "file", user_agent: macos },
+      { entity: "github.com", language: "DIGITAL Command Language", type: "domain", user_agent: macos },
+      { entity: "https://github.com", language: "<<LAST_LANGUAGE>>", project: "app", type: "url", user_agent: "Chrome/154.0.0.0 chrome-wakatime/4.1.1" },
+      { entity: "https://example.com", language: "Fork", type: "domain", user_agent: macos },
+      { entity: "https://cad.onshape.com/documents/1", language: "Onshape", type: "url", user_agent: "Chrome/154.0.0.0 macOS/10.15.7 onshape-wakatime/2.1.2" }
+    ]
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: heartbeats.each_with_index.map { |heartbeat, i| heartbeat.merge(time: 1_700_000_000.0 + i) }
+    )
+
+    assert_equal [ "Python", nil, nil, nil, "Onshape" ], user.heartbeats.order(:time).pluck(:language)
+  end
+
   test "direct heartbeat ingest never stores the JetBrains AUTO_DETECTED placeholder" do
     user = create(:user)
     user_agent = "wakatime/v2.26.14 (linux-6.12.4-arch1-1-x86_64) go1.26.8 intellijidea/2025.2.1 intellijidea-wakatime/16.0.2"
