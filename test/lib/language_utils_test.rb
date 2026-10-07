@@ -60,6 +60,11 @@ class LanguageUtilsTest < Minitest::Test
     assert_equal "DIGITAL Command Language", LanguageUtils.fill_missing_language(nil, entity: "run.com", type: "file")
   end
 
+  def test_jetbrains_auto_detected_placeholder_is_detected_or_unknown
+    assert_equal "Java", LanguageUtils.fill_missing_language("AUTO_DETECTED", entity: "/a/Main.java", editor: "intellijidea")
+    assert_equal "Unknown", LanguageUtils.fill_missing_language("AUTO_DETECTED", entity: "/a/.gitkeep", editor: "intellijidea")
+  end
+
   def test_idle_fallback_leaves_other_editors_alone
     assert_equal "Groff", LanguageUtils.fill_missing_language("Groff", entity: "IDLE Shell 3.14.2", editor: "terminal")
     assert_nil LanguageUtils.fill_missing_language(nil, entity: "*main.py*", editor: "terminal")

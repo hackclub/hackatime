@@ -105,7 +105,8 @@ class HeartbeatIngest
     parsed_ua = WakatimeUserAgentParser.parse(attrs[:user_agent], category: attrs[:category])
     editor = parsed_ua[:editor].presence || attrs[:editor].presence
 
-    known_language = attrs[:language] if language_from_placeholder || LanguageUtils.find_name(attrs[:language])
+    known_language = attrs[:language] if language_from_placeholder || LanguageUtils.find_name(attrs[:language]) ||
+      attrs[:language] == LanguageUtils::AUTO_DETECTED
     inferred = LanguageUtils.fill_missing_language(known_language, entity: attrs[:entity], editor:, type: attrs[:type])
     attrs[:language] = inferred if inferred.present?
 
