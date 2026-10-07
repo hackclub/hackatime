@@ -579,6 +579,36 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "Python", user.heartbeats.sole.language
   end
 
+  test "direct heartbeat ingest does not guess a language from a browser domain" do
+    user = create(:user)
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "github.com",
+        time: 1_700_000_000.0,
+        type: "domain",
+        user_agent: "Chrome/141.0.0.0 chrome-wakatime/4.1.0"
+      } ]
+    )
+
+    assert_equal [ "browsing", nil ], user.heartbeats.sole.values_at(:category, :language)
+  end
+
+  test "import heartbeat ingest recognizes legacy hashes of browser heartbeats with a guessed domain language" do
+    user = create(:user)
+    raw = { category: "browsing", entity: "github.com", time: 1_700_000_000.0, type: "domain" }
+    # Stored before the guess was dropped, so its hash encodes "DIGITAL Command Language".
+    create_legacy_imported_heartbeat(user, raw.merge(language: "DIGITAL Command Language"))
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(user: user, mode: :import, heartbeats: [ raw ])
+
+      assert_equal 1, result.duplicate_count
+    end
+  end
+
   test "import heartbeat ingest recognizes legacy hashes of IDLE heartbeats stored with the client language" do
     user = create(:user)
     raw = {

@@ -74,7 +74,12 @@ module LanguageUtils
   # Those titles defeat entity detection or misfire (wakatime-cli and we both
   # read `.2` as Groff), and IDLE only edits and runs Python, so the editor is
   # authoritative over whatever language the client sent.
-  def self.fill_missing_language(raw, entity:, editor: nil)
+  #
+  # Browser entities are domains and URLs, not files, so their "extension" is a
+  # TLD or IP octet (`github.com` is not DIGITAL Command Language). Never guess.
+  def self.fill_missing_language(raw, entity:, editor: nil, type: nil)
+    return raw if %w[domain url].include?(type)
+
     authoritative_language(entity) ||
       (editor.to_s.casecmp?("idle") ? "Python" : nil) ||
       legacy_fill_missing_language(raw, entity:)

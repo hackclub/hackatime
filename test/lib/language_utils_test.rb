@@ -52,6 +52,14 @@ class LanguageUtilsTest < Minitest::Test
     assert_equal "Python", LanguageUtils.fill_missing_language("Groff", entity: "IDLE Shell 3.14.2", editor: "idle")
   end
 
+  def test_browser_entities_never_guess_a_language_from_the_domain
+    { "domain" => [ "github.com", "app.joinrunway.io", "http://10.0.0.1" ], "url" => [ "https://example.org/a.php" ] }.each do |type, entities|
+      entities.each { |entity| assert_nil LanguageUtils.fill_missing_language(nil, entity:, type:), entity }
+    end
+    assert_equal "TypeScript", LanguageUtils.fill_missing_language("TypeScript", entity: "github.com", type: "domain")
+    assert_equal "DIGITAL Command Language", LanguageUtils.fill_missing_language(nil, entity: "run.com", type: "file")
+  end
+
   def test_idle_fallback_leaves_other_editors_alone
     assert_equal "Groff", LanguageUtils.fill_missing_language("Groff", entity: "IDLE Shell 3.14.2", editor: "terminal")
     assert_nil LanguageUtils.fill_missing_language(nil, entity: "*main.py*", editor: "terminal")
