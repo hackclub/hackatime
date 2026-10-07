@@ -69,8 +69,14 @@ module LanguageUtils
     detect_from_extension(entity)
   end
 
-  def self.fill_missing_language(raw, entity:)
-    authoritative_language(entity) || legacy_fill_missing_language(raw, entity:)
+  # Python's IDLE has no WakaTime plugin, so macos-wakatime sends window titles
+  # (`*main.py*`, `main.py (3.14.2)`, `IDLE Shell 3.14.2`) without a language.
+  # Those titles defeat entity detection or misfire (`.2` is Groff), and IDLE
+  # only edits and runs Python, so trust the editor over the title.
+  def self.fill_missing_language(raw, entity:, editor: nil)
+    authoritative_language(entity) ||
+      (editor.to_s.casecmp?("idle") && blank_or_unknown?(raw) ? "Python" : nil) ||
+      legacy_fill_missing_language(raw, entity:)
   end
 
   # The pre-override fill, without AUTHORITATIVE_EXTENSIONS. Kept so the import

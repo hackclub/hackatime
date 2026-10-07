@@ -545,6 +545,41 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
   end
 
+  test "direct heartbeat ingest records IDLE window titles from macos-wakatime as Python" do
+    user = create(:user)
+    user_agent = "wakatime/v2.26.14 (darwin-24.3.0-arm64) go1.26.8 IDLE/3.14.0-3.14.0 macos-wakatime/5.28.5"
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ "*main.py*", "IDLE Shell 3.14.2" ].each_with_index.map { |entity, i|
+        { entity:, project: "<<LAST_PROJECT>>", time: 1_700_000_000.0 + i, type: "app", user_agent: }
+      }
+    )
+
+    assert_equal [ [ "idle", "Python" ] ], user.heartbeats.distinct.pluck(:editor, :language)
+  end
+
+  test "import heartbeat ingest recognizes legacy hashes of IDLE heartbeats stored without a language" do
+    user = create(:user)
+    raw = {
+      category: "coding",
+      editor: "idle",
+      entity: "*main.py*",
+      project: "<<LAST_PROJECT>>",
+      time: 1_700_000_000.0,
+      type: "app"
+    }
+    create_legacy_imported_heartbeat(user, raw)
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(user: user, mode: :import, heartbeats: [ raw ])
+
+      assert_equal 0, result.persisted_count
+      assert_equal 1, result.duplicate_count
+    end
+  end
+
   test "import heartbeat ingest recognizes legacy hashes containing placeholders" do
     user = create(:user)
     raw = {
