@@ -18,11 +18,7 @@ class ScanGithubReposJob < ApplicationJob
       existing = user.project_repo_mappings.pluck(:project_name)
       project_names = user.heartbeats.where.not(project: existing).distinct.pluck(:project).compact
 
-      project_names.each do |project_name|
-        Rails.cache.fetch("attempt_project_repo_mapping_job_#{user.id}_#{project_name}", expires_in: 1.hour) do
-          AttemptProjectRepoMappingJob.perform_later(user.id, project_name)
-        end
-      end
+      project_names.each { |project_name| AttemptProjectRepoMappingJob.enqueue_for(user, project_name) }
     end
   end
 end
