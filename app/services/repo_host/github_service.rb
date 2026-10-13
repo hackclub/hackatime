@@ -7,7 +7,7 @@ module RepoHost
     MAX_REDIRECTS = 3
     SECONDARY_LIMIT_FALLBACK = 60.seconds
 
-    # Every GitHub REST call goes through here. It records the outcome and the
+    # Every GitHub REST call goes through here. It logs the outcome and the
     # remaining allowance, and stops using a token once GitHub has rate limited
     # it, because continuing to send requests while limited can get the
     # integration banned.
@@ -55,7 +55,6 @@ module RepoHost
       limit = rate_limit_from(response)
       payload[:rate_limit] = limit&.fetch(:kind)
 
-      ActiveSupport::Notifications.instrument("request.github_api", payload)
       Rails.logger.info("[GitHubAPI] #{payload.compact.map { |key, value| "#{key}=#{value}" }.join(' ')}")
       return unless limit
 
@@ -77,7 +76,7 @@ module RepoHost
         { kind: :secondary, retry_at: Time.current + headers["Retry-After"].to_i.seconds }
       elsif headers["X-RateLimit-Remaining"] == "0"
         { kind: :primary, retry_at: Time.zone.at(headers["X-RateLimit-Reset"].to_i) }
-      elsif response.body.to_s.match?(/secondary rate limit/i)
+      elsif response.status.code == 429 || response.body.to_s.match?(/secondary rate limit/i)
         { kind: :secondary, retry_at: Time.current + SECONDARY_LIMIT_FALLBACK }
       end
     end
@@ -119,10 +118,8 @@ module RepoHost
       # appear on public profiles.
       return nil if repo_data.nil? || repo_data["private"]
 
-      # Fetch additional metadata
       languages_data = fetch_languages
-      commits_data = fetch_recent_commits
-      commit_count = fetch_commit_count(repo_data["default_branch"])
+      commit_count, last_commit_at = fetch_commit_stats(repo_data["default_branch"])
 
       {
         stars: repo_data["stargazers_count"],
@@ -131,7 +128,7 @@ module RepoHost
         languages: languages_data&.keys&.join(", "),
         homepage: repo_data["homepage"].presence&.then { |hp| hp.match?(Repository::HOMEPAGE_FORMAT) ? hp : nil },
         commit_count: commit_count,
-        last_commit_at: commits_data&.first&.dig("commit", "committer", "date")&.then { |date| Time.parse(date) },
+        last_commit_at: last_commit_at&.then { |date| Time.parse(date) },
         last_synced_at: Time.current
       }
     end
@@ -150,34 +147,33 @@ module RepoHost
       make_api_request("https://api.github.com/repos/#{owner}/#{repo}/languages")
     end
 
-    def fetch_recent_commits
-      make_api_request("https://api.github.com/repos/#{owner}/#{repo}/commits?per_page=5")
-    end
-
-    def fetch_commit_count(default_branch = nil)
-      # GitHub API doesn't provide commit count directly. Use Link header pagination on per_page=1.
+    # Returns the commit count and the latest commit date from one request.
+    # GitHub has no commit count field, so the count is the last page number
+    # of a per_page=1 listing, and that page's only commit is the newest.
+    def fetch_commit_stats(default_branch = nil)
       branch_param = default_branch ? "&sha=#{default_branch}" : ""
       url = "https://api.github.com/repos/#{owner}/#{repo}/commits?per_page=1#{branch_param}"
       response = self.class.get(url, token: user.github_access_token)
 
       case response.status.code
       when 200
+        latest = response.parse.first&.dig("commit", "committer", "date")
         link_header = response.headers["Link"]
         if link_header && (match = link_header.match(/.*page=(\d+)[^>]*>;\s*rel="last"/))
-          match[1].to_i
+          [ match[1].to_i, latest ]
         else
-          1
+          [ 1, latest ]
         end
       when 404, 409
         # 409 means the repository is empty.
-        0
+        [ 0, nil ]
       else
         Rails.logger.warn "[#{self.class.name}] Failed to fetch commit count for #{owner}/#{repo}: #{response.status}"
-        0
+        [ 0, nil ]
       end
     rescue HTTP::Error => e
       report_error(e, message: "[#{self.class.name}] Error fetching commit count for #{owner}/#{repo}")
-      0
+      [ 0, nil ]
     end
   end
 end

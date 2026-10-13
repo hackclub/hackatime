@@ -1,13 +1,7 @@
 class PullRepoCommitsJob < ApplicationJob
   include GithubApiJob
-  include GoodJob::ActiveJobExtensions::Concurrency
 
   queue_as :literally_whenever
-
-  good_job_control_concurrency_with(
-    total_limit: 1,
-    key: -> { "pull_repo_commits_#{arguments.join('/')}" }
-  )
 
   LOOKBACK = 3.days
 
@@ -47,7 +41,8 @@ class PullRepoCommitsJob < ApplicationJob
   def store_commits(user, repository, commits)
     now = Time.current
     rows = commits.filter_map do |commit|
-      next unless authored_by?(commit, user)
+      # Match on the stable GitHub user ID; usernames can be renamed and reused.
+      next unless commit.dig("author", "id").to_s == user.github_uid.to_s
       committed_at = commit.dig("commit", "committer", "date")
       next if commit["sha"].blank? || committed_at.blank?
 
@@ -62,11 +57,6 @@ class PullRepoCommitsJob < ApplicationJob
     end
 
     Commit.insert_all(rows) if rows.any?
-  end
-
-  def authored_by?(commit, user)
-    author = commit["author"] || {}
-    author["id"].to_s == user.github_uid.to_s || author["login"] == user.github_username
   end
 
   def without_null_bytes(data)

@@ -58,11 +58,12 @@ class AttemptProjectRepoMappingJobTest < ActiveJob::TestCase
     assert_requested :get, "https://api.github.com/users/octo/orgs", times: 1
   end
 
-  test "project names that cannot be GitHub repositories make no requests" do
-    AttemptProjectRepoMappingJob.perform_now(@user.id, "My Project (old)")
-
-    assert_not_requested :any, /api\.github\.com/
-    assert Rails.cache.exist?(AttemptProjectRepoMappingJob.attempt_cache_key(@user.id, "My Project (old)"))
+  test "project names that cannot be GitHub repositories are not queued" do
+    assert_no_enqueued_jobs only: AttemptProjectRepoMappingJob do
+      [ "My Project (old)", "..", "<<LAST_PROJECT>>", "" ].each do |name|
+        AttemptProjectRepoMappingJob.enqueue_for(@user, name)
+      end
+    end
   end
 
   test "lookups stop once the user's daily request budget is spent and are retried later" do
@@ -86,6 +87,18 @@ class AttemptProjectRepoMappingJobTest < ActiveJob::TestCase
 
     assert_not Rails.cache.exist?(AttemptProjectRepoMappingJob.attempt_cache_key(@user.id, "widget"))
     assert_not @user.project_repo_mappings.exists?(project_name: "widget")
+  end
+
+  test "a rejected token is cleared and the lookup is not remembered as a miss" do
+    stub_request(:get, "https://api.github.com/repos/octo/widget").to_return(status: 401, body: '{"message":"Bad credentials"}')
+
+    AttemptProjectRepoMappingJob.perform_now(@user.id, "widget")
+
+    @user.reload
+    assert_nil @user.github_access_token
+    assert_equal "1001", @user.github_uid
+    assert_not Rails.cache.exist?(AttemptProjectRepoMappingJob.attempt_cache_key(@user.id, "widget"))
+    assert_not_requested :get, "https://api.github.com/users/octo/orgs"
   end
 
   test "users without a linked GitHub account are not queued" do

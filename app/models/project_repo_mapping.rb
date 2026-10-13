@@ -1,6 +1,4 @@
 class ProjectRepoMapping < ApplicationRecord
-  IGNORED_PROJECTS = [ nil, "", "<<LAST_PROJECT>>" ].freeze
-
   belongs_to :user
   belongs_to :repository, optional: true
 
@@ -19,8 +17,7 @@ class ProjectRepoMapping < ApplicationRecord
   scope :archived, -> { where.not(archived_at: nil) }
   scope :all_statuses, -> { unscoped.where(nil) }
 
-  after_create_commit :create_repository_and_sync, if: :repo_url_required?
-  after_update_commit :sync_repository_if_url_changed, if: :repo_url_required?
+  after_commit :sync_repository, on: [ :create, :update ], if: -> { repo_url_required? && saved_change_to_repo_url? }
 
   def repo_url_required? = repo_url.present?
   def archive! = update_archive_status(Time.current)
@@ -53,22 +50,10 @@ class ProjectRepoMapping < ApplicationRecord
     errors.add(:repo_url, "does not exist or is not accessible") if exists == false
   end
 
-  def create_repository_and_sync
+  def sync_repository
     repo = Repository.find_or_create_by_url(repo_url)
     update_column(:repository_id, repo.id)
-    schedule_commit_pull
+    PullRepoCommitsJob.perform_later(user_id, repo.owner, repo.name)
     SyncRepoMetadataJob.perform_later(repo.id)
-  end
-
-  def sync_repository_if_url_changed
-    return unless saved_change_to_repo_url?
-    repo = Repository.find_or_create_by_url(repo_url)
-    update_column(:repository_id, repo.id)
-    SyncRepoMetadataJob.perform_later(repo.id)
-  end
-
-  def schedule_commit_pull
-    return unless repo_url =~ %r{https?://[^/]+/([^/]+)/([^/]+)\z}
-    PullRepoCommitsJob.perform_later(user_id, $1, $2)
   end
 end

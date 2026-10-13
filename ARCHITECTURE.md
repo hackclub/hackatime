@@ -205,15 +205,18 @@ discovery logic. Several periodic repository scan/sync cron entries are
 currently disabled; do not assume they run.
 
 Every GitHub REST request goes through `RepoHost::GithubService.get`. It logs a
-`[GitHubAPI]` line and publishes a `request.github_api` notification with the
-endpoint, status and remaining allowance, but never the token. After a primary
-or secondary rate limit it raises `RepoHost::RateLimitError` and refuses to use
-that token again until GitHub's reset time. Secondary limits are also reported
-to Sentry. Background calls use the user's own token, which shares that user's
-5,000 requests per hour with their other tools, so keep them bounded.
+`[GitHubAPI]` line with the endpoint template, status and remaining allowance,
+but never the token or repository name. After a primary or secondary rate limit
+it raises `RepoHost::RateLimitError` and refuses to use that token again until
+GitHub's reset time. Secondary limits are also reported to Sentry. Background
+calls use the user's own token, which shares that user's 5,000 requests per
+hour with their other tools, so keep them bounded.
 `AttemptProjectRepoMappingJob` only maps public repositories. It remembers a
 finished lookup for 14 days, caches organisation lists for a day and spends at
-most 50 GitHub requests per user per day.
+most 50 GitHub requests per user per day. These counters live in Solid Cache,
+which can evict entries early, so treat them as throttles rather than durable
+state. A mapping whose repository URL is set or changed queues one commit pull
+and one metadata sync after commit.
 
 GitHub data never decides leaderboard eligibility. Eligibility only needs a
 linked `github_uid`. A rejected token clears `github_access_token` and keeps

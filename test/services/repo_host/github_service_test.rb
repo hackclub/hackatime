@@ -45,6 +45,10 @@ class RepoHost::GithubServiceTest < ActiveSupport::TestCase
     )
     error = assert_raises(RepoHost::RateLimitError) { RepoHost::GithubService.get("#{REPO_API}/languages", token: "token-c") }
     assert_in_delta 60.seconds.from_now.to_i, error.retry_at.to_i, 2
+
+    stub_request(:get, "#{REPO_API}/topics").to_return(status: 429, headers: { "X-RateLimit-Remaining" => "4000" }, body: "{}")
+    error = assert_raises(RepoHost::RateLimitError) { RepoHost::GithubService.get("#{REPO_API}/topics", token: "token-d") }
+    assert_in_delta 60.seconds.from_now.to_i, error.retry_at.to_i, 2
   end
 
   test "a permission 403 is returned to the caller without pausing the token" do
@@ -56,27 +60,27 @@ class RepoHost::GithubServiceTest < ActiveSupport::TestCase
     assert_requested :get, REPO_API, times: 2
   end
 
-  test "each request publishes its status and remaining allowance without the token" do
+  test "each request logs its status and remaining allowance without the token or repository name" do
     stub_request(:get, "#{REPO_API}/commits/abc1234def").to_return(
       status: 200,
       headers: { "X-RateLimit-Remaining" => "4321", "X-RateLimit-Limit" => "5000", "X-RateLimit-Resource" => "core" },
       body: "{}"
     )
-    events = []
-    callback = ->(*, payload) { events << payload }
-
-    ActiveSupport::Notifications.subscribed(callback, "request.github_api") do
+    log = StringIO.new
+    original_logger = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(log)
+    begin
       RepoHost::GithubService.get("#{REPO_API}/commits/abc1234def", token: "secret-token")
+    ensure
+      Rails.logger = original_logger
     end
 
-    assert_equal 1, events.size
-    event = events.first
-    assert_equal "/repos/:owner/:repo/commits/:sha", event[:endpoint]
-    assert_equal 200, event[:status]
-    assert_equal 4321, event[:rate_limit_remaining]
-    assert_equal 5000, event[:rate_limit_limit]
-    assert_nil event[:rate_limit]
-    assert_not_includes event.values.map(&:to_s), "secret-token"
+    line = log.string.lines.grep(/\[GitHubAPI\]/).sole
+    assert_includes line, "endpoint=/repos/:owner/:repo/commits/:sha"
+    assert_includes line, "status=200"
+    assert_includes line, "rate_limit_remaining=4321"
+    assert_not_includes line, "secret-token"
+    assert_not_includes line, "widget"
   end
 
   test "renamed repositories are followed when checking existence" do
@@ -120,5 +124,31 @@ class RepoHost::GithubServiceTest < ActiveSupport::TestCase
     assert_equal 3, metadata[:stars]
     assert_equal 0, metadata[:commit_count]
     assert_nil metadata[:last_commit_at]
+  end
+
+  test "metadata reads the commit count and latest commit from one listing" do
+    stub_request(:get, REPO_API).to_return(
+      status: 200, headers: { "Content-Type" => "application/json" },
+      body: { stargazers_count: 3, default_branch: "trunk" }.to_json
+    )
+    stub_request(:get, "#{REPO_API}/languages").to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: '{"Ruby":10}')
+    commits = stub_request(:get, "#{REPO_API}/commits?per_page=1&sha=trunk").to_return(
+      status: 200,
+      headers: {
+        "Content-Type" => "application/json",
+        "Link" => '<https://api.github.com/repositories/42/commits?per_page=1&sha=trunk&page=2>; rel="next", ' \
+          '<https://api.github.com/repositories/42/commits?per_page=1&sha=trunk&page=137>; rel="last"'
+      },
+      body: [ { sha: "abc", commit: { committer: { date: "2026-10-11T08:00:00Z" } } } ].to_json
+    )
+    user = build(:user, github_access_token: "token-a")
+
+    metadata = RepoHost::GithubService.new(user, "https://github.com/example/widget").fetch_repo_metadata
+
+    assert_equal 137, metadata[:commit_count]
+    assert_equal Time.utc(2026, 10, 11, 8), metadata[:last_commit_at]
+    assert_equal "Ruby", metadata[:languages]
+    assert_requested commits, times: 1
+    assert_requested :get, %r{api\.github\.com}, times: 3
   end
 end

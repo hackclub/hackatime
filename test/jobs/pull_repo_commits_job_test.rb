@@ -20,7 +20,9 @@ class PullRepoCommitsJobTest < ActiveJob::TestCase
       .with(query: hash_including("author" => "octo", "per_page" => "100"))
       .to_return(status: 200, headers: { "Content-Type" => "application/json" }, body: [
         commit_json("aaa111", author_id: 1001, login: "octo", committed_at: "2026-10-12T09:30:00Z"),
-        commit_json("bbb222", author_id: 2002, login: "someone-else", committed_at: "2026-10-12T10:00:00Z")
+        commit_json("bbb222", author_id: 2002, login: "someone-else", committed_at: "2026-10-12T10:00:00Z"),
+        # Someone else now owns the user's old GitHub username.
+        commit_json("ccc333", author_id: 3003, login: "octo", committed_at: "2026-10-12T11:00:00Z")
       ].to_json)
 
     PullRepoCommitsJob.perform_now(@user.id, "example", "widget")
