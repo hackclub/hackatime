@@ -1,6 +1,7 @@
 class AttemptProjectRepoMappingJob < ApplicationJob
   queue_as :latency_10s
   include HasEnqueueControl
+  include GithubApiJob
 
   good_job_control_concurrency_with(
     total_limit: 1,
@@ -21,6 +22,7 @@ class AttemptProjectRepoMappingJob < ApplicationJob
   def self.enqueue_for(user, project_name)
     return unless project_name.to_s.match?(REPO_NAME_FORMAT)
     return unless user.github_uid.present? && user.github_access_token.present?
+    return unless Flipper.enabled?(GithubApiJob::FLAG)
 
     Rails.cache.fetch(attempt_cache_key(user.id, project_name), expires_in: 1.hour) do
       perform_later(user.id, project_name)
@@ -39,8 +41,7 @@ class AttemptProjectRepoMappingJob < ApplicationJob
     return unless @user&.github_username.present? && @user.github_access_token.present?
 
     unless @user.project_repo_mappings.exists?(project_name: @project_name)
-      repo_url = public_repo_url(@user.github_username) ||
-        org_logins.lazy.filter_map { |org| public_repo_url(org) }.first
+      repo_url = public_repo_url(@user.github_username) || org_repo_url
       create_mapping(repo_url) if repo_url
     end
     remember_attempt
@@ -66,6 +67,26 @@ class AttemptProjectRepoMappingJob < ApplicationJob
 
     repo = response.parse
     repo["html_url"] unless repo["private"]
+  end
+
+  # A repository in one of the user's organisations is only mapped when the
+  # user has commits in it and no other organisation has a matching one, so a
+  # common name like "website" is not linked to the wrong organisation.
+  def org_repo_url
+    matches = org_logins.lazy.filter_map do |org|
+      url = public_repo_url(org)
+      url if url && authored_commits?(org)
+    end.first(2)
+    return matches.first if matches.one?
+
+    Rails.logger.info "[AttemptProjectRepoMappingJob] Left User ##{@user.id} unmapped: ambiguous organisation match" if matches.many?
+    nil
+  end
+
+  def authored_commits?(namespace)
+    query = { author: @user.github_username, per_page: 1 }.to_query
+    response = github_get("https://api.github.com/repos/#{ERB::Util.url_encode(namespace)}/#{@project_name}/commits?#{query}")
+    response.status.success? && response.parse.any?
   end
 
   def org_logins

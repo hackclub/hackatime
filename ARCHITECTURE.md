@@ -211,8 +211,15 @@ it raises `RepoHost::RateLimitError` and refuses to use that token again until
 GitHub's reset time. Secondary limits are also reported to Sentry. Background
 calls use the user's own token, which shares that user's 5,000 requests per
 hour with their other tools, so keep them bounded.
-`AttemptProjectRepoMappingJob` only maps public repositories. It remembers a
-finished lookup for 14 days, caches organisation lists for a day and spends at
+Background sync is off unless the `github_sync` Flipper flag is enabled. While
+it is off, `GithubApiJob` jobs finish without calling GitHub and no mapping
+lookups are queued. Sign-in and manual mapping checks are not affected.
+`AttemptProjectRepoMappingJob` only maps public repositories. A repository in
+the user's own namespace wins. An organisation repository is only mapped when
+the user has commits in it and no other organisation has one that also
+qualifies. Any existing mapping row, including one with a blank URL, stops
+automatic mapping for that project, so user edits are never overwritten. The
+job remembers a finished lookup for 14 days, caches organisation lists for a day and spends at
 most 50 GitHub requests per user per day. These counters live in Solid Cache,
 which can evict entries early, so treat them as throttles rather than durable
 state. A mapping whose repository URL is set or changed queues one commit pull

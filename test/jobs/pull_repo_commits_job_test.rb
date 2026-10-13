@@ -7,11 +7,13 @@ class PullRepoCommitsJobTest < ActiveJob::TestCase
   setup do
     @original_queue_adapter = ActiveJob::Base.queue_adapter
     ActiveJob::Base.queue_adapter = :test
+    Flipper.enable(GithubApiJob::FLAG)
     @user = create(:user, github_uid: "1001", github_username: "octo", github_access_token: "token-a")
     @repository = create(:repository, owner: "example", name: "widget")
   end
 
   teardown do
+    Flipper.disable(GithubApiJob::FLAG)
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
