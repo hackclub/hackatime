@@ -9,6 +9,8 @@ class HeartbeatIngest
   # client bugs (uptime-like numbers, literal years, ms/µs/ns-scaled epochs).
   EPOCH_SANE_MIN = 1_000_000_000
   EPOCH_SANE_MAX = 2_000_000_000
+  # Seconds between 1601-01-01 (the Windows FILETIME / WebKit epoch) and 1970-01-01.
+  WINDOWS_EPOCH_OFFSET = 11_644_473_600
 
   Result = Data.define(:total_count, :persisted_count, :duplicate_count, :failed_count, :errors, :items)
   Item = Data.define(:heartbeat, :status, :error)
@@ -348,6 +350,10 @@ class HeartbeatIngest
       scaled = t / scale
       return scaled if scaled >= EPOCH_SANE_MIN && scaled < EPOCH_SANE_MAX
     end
+
+    # Seconds counted from 1601 instead of 1970. No scaled epoch lands in this range.
+    unix = t - WINDOWS_EPOCH_OFFSET
+    return unix if unix >= EPOCH_SANE_MIN && unix < EPOCH_SANE_MAX
 
     raise InvalidHeartbeatTime, "time must be Unix epoch seconds between #{EPOCH_SANE_MIN} and #{EPOCH_SANE_MAX - 1}"
   rescue TypeError, ArgumentError => e
