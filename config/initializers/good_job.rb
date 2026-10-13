@@ -108,6 +108,11 @@ Rails.application.configure do
       cron: "0 2 * * *",
       class: "ProcessAccountDeletionsJob",
       description: "nuke accounts after 30 days"
+    },
+    reconcile_active_repositories: {
+      cron: "17 * * * *",
+      class: "ReconcileActiveRepositoriesJob",
+      description: "Refreshes up to 100 repositories with recent heartbeats. Does nothing unless github_sync is enabled."
     }
     # sync_stale_repo_metadata: {
     #   cron: "0 4 * * *",
