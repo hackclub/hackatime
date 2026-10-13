@@ -444,12 +444,7 @@ class HeartbeatIngest
   end
 
   def queue_project_mapping(project_name)
-    return if ProjectRepoMapping::IGNORED_PROJECTS.include?(project_name)
-
-    project_digest = Digest::SHA256.hexdigest(project_name)
-    Rails.cache.fetch("attempt_project_repo_mapping_job_#{@user.id}_#{project_digest}", expires_in: 1.hour) do
-      AttemptProjectRepoMappingJob.perform_later(@user.id, project_name)
-    end
+    AttemptProjectRepoMappingJob.enqueue_for(@user, project_name)
   rescue => e
     Rails.error.report(e, handled: true, context: { message: "Error queuing project mapping" })
   end

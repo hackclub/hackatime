@@ -19,8 +19,8 @@ class ProjectRepoMapping < ApplicationRecord
   scope :archived, -> { where.not(archived_at: nil) }
   scope :all_statuses, -> { unscoped.where(nil) }
 
-  after_create :create_repository_and_sync, if: :repo_url_required?
-  after_update :sync_repository_if_url_changed, if: :repo_url_required?
+  after_create_commit :create_repository_and_sync, if: :repo_url_required?
+  after_update_commit :sync_repository_if_url_changed, if: :repo_url_required?
 
   def repo_url_required? = repo_url.present?
   def archive! = update_archive_status(Time.current)
@@ -69,7 +69,6 @@ class ProjectRepoMapping < ApplicationRecord
 
   def schedule_commit_pull
     return unless repo_url =~ %r{https?://[^/]+/([^/]+)/([^/]+)\z}
-    Rails.logger.info "[ProjectRepoMapping] Scheduling commit pull for #{$1}/#{$2} for User ##{user_id}"
-    PullRepoCommitsJob.perform_now(user_id, $1, $2)
+    PullRepoCommitsJob.perform_later(user_id, $1, $2)
   end
 end

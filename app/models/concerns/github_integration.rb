@@ -5,8 +5,7 @@ module GithubIntegration
     return nil unless github_uid.present?
     return nil unless github_access_token.present?
 
-    @github_user_info ||= HTTP.auth("Bearer #{github_access_token}")
-      .get("https://api.github.com/user")
+    @github_user_info ||= RepoHost::GithubService.get("https://api.github.com/user", token: github_access_token)
 
     JSON.parse(@github_user_info.body.to_s)
   end

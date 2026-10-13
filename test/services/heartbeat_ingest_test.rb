@@ -17,7 +17,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest persists normalized heartbeats and schedules dashboard rollup refresh" do
-    user = create(:user)
+    user = create(:user, github_uid: "1001", github_access_token: "github-token")
 
     assert_difference("user.heartbeats.count", 1) do
       assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
@@ -749,7 +749,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest does not queue repo mapping for the last-project sentinel" do
-    user = create(:user)
+    user = create(:user, github_uid: "1001", github_access_token: "github-token")
 
     assert_no_enqueued_jobs only: AttemptProjectRepoMappingJob do
       HeartbeatIngest.call(

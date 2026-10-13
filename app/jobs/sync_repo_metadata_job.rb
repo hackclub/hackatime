@@ -1,9 +1,7 @@
 class SyncRepoMetadataJob < ApplicationJob
-  queue_as :literally_whenever
+  include GithubApiJob
 
-  retry_on HTTP::TimeoutError, HTTP::ConnectionError, wait: :exponentially_longer, attempts: 3
-  retry_on JSON::ParserError, wait: 10.seconds, attempts: 2
-  retry_on "RepoHost::RateLimitError", wait: 15.minutes, attempts: 3
+  queue_as :literally_whenever
 
   def perform(repository_id)
     repository = Repository.find_by(id: repository_id)
@@ -27,6 +25,8 @@ class SyncRepoMetadataJob < ApplicationJob
   rescue ArgumentError => e
     raise unless e.message.include?("Unsupported repository host")
     Rails.logger.debug "[SyncRepoMetadataJob] Skipping unsupported host: #{repository&.url}"
+  rescue RepoHost::RateLimitError
+    raise
   rescue => e
     report_error(e, message: "[SyncRepoMetadataJob] Unexpected error")
     raise

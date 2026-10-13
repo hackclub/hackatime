@@ -201,8 +201,32 @@ supported today; [`GithubService`](app/services/repo_host/github_service.rb)
 owns GitHub headers, existence checks, metadata requests and rate-limit/error
 translation. Extending hosts requires factory/host validation and a service
 implementation, plus updating jobs that currently contain GitHub-specific
-discovery/event logic. Several periodic repository scan/sync cron entries are
+discovery logic. Several periodic repository scan/sync cron entries are
 currently disabled; do not assume they run.
+
+Every GitHub REST request goes through `RepoHost::GithubService.get`. It logs a
+`[GitHubAPI]` line and publishes a `request.github_api` notification with the
+endpoint, status and remaining allowance, but never the token. After a primary
+or secondary rate limit it raises `RepoHost::RateLimitError` and refuses to use
+that token again until GitHub's reset time. Secondary limits are also reported
+to Sentry. Background calls use the user's own token, which shares that user's
+5,000 requests per hour with their other tools, so keep them bounded.
+`AttemptProjectRepoMappingJob` only maps public repositories. It remembers a
+finished lookup for 14 days, caches organisation lists for a day and spends at
+most 50 GitHub requests per user per day.
+
+GitHub data never decides leaderboard eligibility. Eligibility only needs a
+linked `github_uid`. A rejected token clears `github_access_token` and keeps
+`github_uid`, so missing or stale GitHub data cannot hide a user.
+
+Repository sync only handles public repositories. Automatic mapping skips
+private repositories, and metadata sync stores nothing for them. The GitHub
+sign-in app needs no permission or webhook changes for the current code. Its
+owner should check that the only repository permission is the mandatory
+Metadata (read) permission, and leave the webhook inactive. Do not add the
+Contents permission or push webhooks: GitHub only delivers push events to apps
+with Contents access, and that access covers every repository an installer
+selects, private ones included. GitHub has no public-only alternative.
 
 ## 6. GoodJob, mail and Slack
 
