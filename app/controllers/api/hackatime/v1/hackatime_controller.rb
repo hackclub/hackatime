@@ -227,7 +227,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     result.items.map do |item|
       next [ item.heartbeat.attributes, 201 ] if item.status == :accepted
       error = item.error
-      # A bad client timestamp is not a server bug, and the 422 already tells the client.
+
       unless error.is_a?(HeartbeatIngest::InvalidHeartbeatTime)
         report_error(
           error,
