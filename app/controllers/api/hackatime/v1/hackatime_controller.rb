@@ -227,11 +227,14 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
     result.items.map do |item|
       next [ item.heartbeat.attributes, 201 ] if item.status == :accepted
       error = item.error
-      report_error(
-        error,
-        message: "Error creating heartbeat: #{error.class}: #{error.message}",
-        extra: { backtrace: error.backtrace&.first(20) }
-      )
+
+      unless error.is_a?(HeartbeatIngest::InvalidHeartbeatTime)
+        report_error(
+          error,
+          message: "Error creating heartbeat: #{error.class}: #{error.message}",
+          extra: { backtrace: error.backtrace&.first(20) }
+        )
+      end
       [ { error: error.message, type: error.class.name }, 422 ]
     end
   end
