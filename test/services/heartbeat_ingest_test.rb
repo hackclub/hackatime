@@ -424,6 +424,18 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_in_delta sane_time, user.heartbeats.sole.time, 1.0
   end
 
+  test "direct heartbeat ingest normalizes epoch times counted from 1601" do
+    user = create(:user)
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ { entity: "Hermes Agent database", time: 13_435_588_515.911928, type: "app" } ]
+    )
+
+    assert_equal Time.utc(2026, 10, 4, 11, 55, 15), Time.at(user.heartbeats.sole.time).utc.floor
+  end
+
   test "direct AI heartbeat ingest stores the editor instead of the model" do
     user = create(:user)
 
@@ -759,6 +771,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     sane = Time.current.to_f
     assert_equal sane, ingest.send(:normalize_epoch_time, sane)
     assert_raises(HeartbeatIngest::InvalidHeartbeatTime) { ingest.send(:normalize_epoch_time, 2026) }
+    assert_raises(HeartbeatIngest::InvalidHeartbeatTime) { ingest.send(:normalize_epoch_time, 13_644_473_600) }
     assert_raises(HeartbeatIngest::InvalidHeartbeatTime) { ingest.send(:normalize_epoch_time, -9_999_999) }
     assert_raises(HeartbeatIngest::InvalidHeartbeatTime) { ingest.send(:normalize_epoch_time, "not-a-time") }
     assert_raises(HeartbeatIngest::InvalidHeartbeatTime) { ingest.send(:normalize_epoch_time, Float::NAN) }
