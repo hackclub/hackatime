@@ -223,7 +223,17 @@ job remembers a finished lookup for 14 days, caches organisation lists for a day
 most 50 GitHub requests per user per day. These counters live in Solid Cache,
 which can evict entries early, so treat them as throttles rather than durable
 state. A mapping whose repository URL is set or changed queues one commit pull
-and one metadata sync after commit.
+and one metadata sync after commit. Existing mappings are kept fresh by the
+hourly `ReconcileActiveRepositoriesJob`. Each run picks at most 100
+repositories whose mapped project had heartbeats in the last day and that were
+last synced over 6 hours ago, oldest first. It queues a metadata sync for each
+and at most 100 commit pulls for their active coders. Each job gets its own
+15 second slot. A sync that gets no metadata (missing, private or no usable
+token) still updates `last_synced_at`, so the same repository is not retried
+every hour. A GitHub 5xx raises `RepoHost::ServerError` instead: the job retries
+twice and then stops without writing anything, so the repository stays due. The old
+`SyncStaleRepoMetadataJob`, which re-queued every stale repository daily, stays
+disabled.
 
 GitHub data never decides leaderboard eligibility. Eligibility only needs a
 linked `github_uid`. A rejected token clears `github_access_token` and keeps

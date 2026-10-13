@@ -16,5 +16,10 @@ module GithubApiJob
     # token's pause has ended. Retries during a pause would fail without
     # reaching GitHub and use up the attempts.
     retry_on RepoHost::RateLimitError, wait: 1.hour, attempts: 3
+    # GitHub 5xx responses are temporary. After the last attempt the job stops
+    # quietly; nothing was recorded, so the next reconciliation run retries it.
+    retry_on RepoHost::ServerError, wait: :polynomially_longer, attempts: 3 do |job, error|
+      Rails.logger.warn "[#{job.class.name}] Giving up for now after #{job.executions} attempts: #{error.message}"
+    end
   end
 end

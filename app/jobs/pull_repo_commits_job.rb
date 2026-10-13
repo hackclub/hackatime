@@ -31,7 +31,7 @@ class PullRepoCommitsJob < ApplicationJob
       # Missing or inaccessible repository (404) or an empty repository (409).
       nil
     else
-      raise "GitHub API Error: Status #{response.status}" if response.status.server_error?
+      raise RepoHost::ServerError, "GitHub returned #{response.status}" if response.status.server_error?
       report_message("[PullRepoCommitsJob] GitHub API error for User ##{user.id}. Status: #{response.status}")
     end
   end
