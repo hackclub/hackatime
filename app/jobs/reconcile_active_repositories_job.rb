@@ -1,7 +1,8 @@
 # Keeps repository metadata and commits fresh for projects people are coding
 # on now. Each run syncs at most BATCH_SIZE repositories whose mapped project
-# had heartbeats within ACTIVE_WINDOW, oldest sync first, spread out over the
-# hour. It only runs while the github_sync flag is enabled.
+# had heartbeats within ACTIVE_WINDOW, oldest sync first, and queues at most
+# COMMIT_PULL_BUDGET commit pulls for their active coders. Each kind of job is
+# spaced SPACING apart. It only runs while the github_sync flag is enabled.
 class ReconcileActiveRepositoriesJob < ApplicationJob
   include GithubApiJob
   include GoodJob::ActiveJobExtensions::Concurrency
@@ -13,6 +14,9 @@ class ReconcileActiveRepositoriesJob < ApplicationJob
   ACTIVE_WINDOW = 1.day
   STALE_AFTER = 6.hours
   BATCH_SIZE = 100
+  # Commit pulls per run, so a repository shared by many active coders cannot
+  # multiply the request count.
+  COMMIT_PULL_BUDGET = 100
   SPACING = 15.seconds
 
   def perform
@@ -27,14 +31,17 @@ class ReconcileActiveRepositoriesJob < ApplicationJob
       .group_by(&:first).transform_values { |pairs| pairs.map(&:last) }
 
     repositories.each_with_index do |repository, index|
-      wait = index * SPACING
-      SyncRepoMetadataJob.set(wait:).perform_later(repository.id)
-      user_ids_by_repository.fetch(repository.id, []).each do |user_id|
-        PullRepoCommitsJob.set(wait:).perform_later(user_id, repository.owner, repository.name)
-      end
+      SyncRepoMetadataJob.set(wait: index * SPACING).perform_later(repository.id)
     end
 
-    Rails.logger.info "[ReconcileActiveRepositoriesJob] Queued sync for #{repositories.size} repositories"
+    commit_pulls = repositories.flat_map do |repository|
+      user_ids_by_repository.fetch(repository.id, []).map { |user_id| [ user_id, repository ] }
+    end.first(COMMIT_PULL_BUDGET)
+    commit_pulls.each_with_index do |(user_id, repository), index|
+      PullRepoCommitsJob.set(wait: index * SPACING).perform_later(user_id, repository.owner, repository.name)
+    end
+
+    Rails.logger.info "[ReconcileActiveRepositoriesJob] Queued #{repositories.size} metadata syncs and #{commit_pulls.size} commit pulls"
   end
 
   private

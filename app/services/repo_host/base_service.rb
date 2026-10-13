@@ -39,6 +39,8 @@ module RepoHost
       when 409
         # The repository exists but is empty, so it has no commits yet.
         nil
+      when 500..599
+        raise ServerError, "GitHub returned #{response.status} for #{owner}/#{repo}"
       else
         report_message("[#{self.class.name}] API error. Status: #{response.status}")
         nil

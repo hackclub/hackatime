@@ -167,13 +167,14 @@ module RepoHost
       when 404, 409
         # 409 means the repository is empty.
         [ 0, nil ]
+      when 500..599
+        # Raising keeps the stored count and latest commit instead of
+        # overwriting them with 0 and nil.
+        raise ServerError, "GitHub returned #{response.status} for #{owner}/#{repo} commits"
       else
         Rails.logger.warn "[#{self.class.name}] Failed to fetch commit count for #{owner}/#{repo}: #{response.status}"
         [ 0, nil ]
       end
-    rescue HTTP::Error => e
-      report_error(e, message: "[#{self.class.name}] Error fetching commit count for #{owner}/#{repo}")
-      [ 0, nil ]
     end
   end
 end
