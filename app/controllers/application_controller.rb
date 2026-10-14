@@ -82,9 +82,9 @@ class ApplicationController < ActionController::Base
     { "url" => url }
   end
 
-  def authenticate_user!
+  def authenticate_user!(continue_path: request.fullpath)
     unless user_signed_in?
-      redirect_to signin_path(continue: request.fullpath), alert: "Please sign in first!"
+      redirect_to signin_path(continue: continue_path), alert: "Please sign in first!"
     end
   end
 
