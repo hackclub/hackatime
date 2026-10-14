@@ -1,8 +1,3 @@
-<script module lang="ts">
-  import settingsLayout from "./layout";
-  export const layout = settingsLayout;
-</script>
-
 <script lang="ts">
   import DataExportCard from "./components/DataExportCard.svelte";
   import ImportsCard from "./components/ImportsCard.svelte";
