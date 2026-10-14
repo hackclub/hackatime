@@ -1,4 +1,3 @@
-import "@fontsource-variable/spline-sans";
 import { createInertiaApp, type ResolvedComponent } from "@inertiajs/svelte";
 import AppLayout from "../layouts/AppLayout.svelte";
 
