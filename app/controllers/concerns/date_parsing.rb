@@ -2,9 +2,22 @@
 
 # Shared timestamp/date parsing helpers used by API endpoints that accept
 # `start_date`/`end_date` (or arbitrary date params).
-# Hosts must also include RenderHelpers (or define render_error).
+# Hosts must also include RenderHelpers or provide equivalent render methods.
 module DateParsing
   extend ActiveSupport::Concern
+
+  # Parses and validates a pair of date/time values while allowing each endpoint
+  # to retain its existing parser and defaults.
+  def parse_date_range(start_value:, end_value:, start_default:, end_default:)
+    start_at = start_value.present? ? yield(start_value, :start) : start_default
+    end_at = end_value.present? ? yield(end_value, :end) : end_default
+
+    return render_bad_request("Invalid date range") if start_at.nil? || end_at.nil? || end_at < start_at
+
+    start_at..end_at
+  rescue Date::Error, ArgumentError, TypeError
+    render_bad_request("Invalid date range")
+  end
 
   # Parses start_date/end_date params with defaults; returns a Range[start_ts..end_ts]
   # or nil after rendering an error.
