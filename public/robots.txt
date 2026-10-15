@@ -5,6 +5,13 @@ Allow: /
 Allow: /docs
 Allow: /docs/*
 Allow: /leaderboards
+Allow: /api-docs
+
+# Machine-readable API description
+Allow: /openapi.json
+Allow: /openapi.yaml
+Allow: /api/openapi.json
+Allow: /api/openapi.yaml
 
 # Disallow private/internal pages
 Disallow: /my/

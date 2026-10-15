@@ -300,11 +300,23 @@ RSpec.configure do |config|
       info: {
         title: 'Hackatime API',
         version: 'v1',
-        description: <<~DESC
+        description: <<~DESC,
           Hackatime's API gives access to coding activity data.
 
           We support the WakaTime spec, allowing you to use existing plugins and tools.
         DESC
+        contact: {
+          name: 'Hack Club',
+          url: 'https://github.com/hackclub/hackatime'
+        },
+        license: {
+          name: 'MIT',
+          url: 'https://github.com/hackclub/hackatime/blob/main/LICENSE'
+        }
+      },
+      externalDocs: {
+        description: 'Hackatime documentation',
+        url: 'https://hackatime.hackclub.com/docs'
       },
       paths: {},
       components: {
@@ -344,12 +356,24 @@ RSpec.configure do |config|
       info: {
         title: 'Hackatime Admin API',
         version: 'v1',
-        description: <<~DESC
+        description: <<~DESC,
           Admin and internal endpoints for Hackatime.
 
           Admin endpoints require an Admin API Key or an OAuth access token with the `admin` scope.
           Internal endpoints require an internal environment token. These endpoints are not part of the public API.
         DESC
+        contact: {
+          name: 'Hack Club',
+          url: 'https://github.com/hackclub/hackatime'
+        },
+        license: {
+          name: 'MIT',
+          url: 'https://github.com/hackclub/hackatime/blob/main/LICENSE'
+        }
+      },
+      externalDocs: {
+        description: 'Hackatime documentation',
+        url: 'https://hackatime.hackclub.com/docs'
       },
       paths: {},
       components: {

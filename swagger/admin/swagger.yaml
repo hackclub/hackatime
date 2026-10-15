@@ -8,6 +8,15 @@ info:
 
     Admin endpoints require an Admin API Key or an OAuth access token with the `admin` scope.
     Internal endpoints require an internal environment token. These endpoints are not part of the public API.
+  contact:
+    name: Hack Club
+    url: https://github.com/hackclub/hackatime
+  license:
+    name: MIT
+    url: https://github.com/hackclub/hackatime/blob/main/LICENSE
+externalDocs:
+  description: Hackatime documentation
+  url: https://hackatime.hackclub.com/docs
 paths:
   "/api/admin/v1/users/{id}/visualization/quantized":
     get:
