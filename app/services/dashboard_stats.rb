@@ -16,7 +16,7 @@ class DashboardStats
     interval = params[:interval]
     return build_filterable_dashboard_data(interval) if rollup_eligible?
 
-    key = [ user, archived_project_names ] + FILTERS.map { |field| params[field] } + [ interval.to_s, params[:from], params[:to] ]
+    key = [ "attributed_dashboard_v1", user, user.heartbeat_cache_version, archived_project_names ] + FILTERS.map { |field| params[field] } + [ interval.to_s, params[:from], params[:to] ]
     Rails.cache.fetch(key, expires_in: 5.minutes) { build_filterable_dashboard_data(interval) }
   end
 
@@ -113,7 +113,7 @@ class DashboardStats
 
   def live_raw_filter_options
     archive_key = ActiveSupport::Digest.hexdigest(archived_project_names.to_json)
-    cache_keys = FILTERS.index_with { |field| "user_#{user.id}_dashboard_filter_options_#{field}_#{FILTER_OPTIONS_CACHE_VERSION}_#{archive_key}" }
+    cache_keys = FILTERS.index_with { |field| "user_#{user.id}_dashboard_filter_options_#{field}_#{FILTER_OPTIONS_CACHE_VERSION}_#{archive_key}_#{user.heartbeat_cache_version}" }
     reverse_lookup = cache_keys.invert
 
     cached = Rails.cache.fetch_multi(*cache_keys.values, expires_in: 15.minutes) do |cache_key|
@@ -141,19 +141,24 @@ class DashboardStats
     h = ApplicationController.helpers
 
     Time.use_zone(user.timezone) do
-      hb = filtered_dashboard_heartbeats(raw_filter_options, result: result)
-      hb = hb.filter_by_time_range(params[:interval], params[:from], params[:to])
-      snapshot = DashboardData::Snapshots.aggregate_query_snapshot(user: user, scope: hb)
+      hb = dashboard_heartbeats.filter_by_time_range(params[:interval], params[:from], params[:to])
+      snapshot = if FILTERS.any? { |field| params[field].present? }
+        DashboardData::Snapshots.adaptive_filtered_snapshot(user: user, scope: hb) do |scope|
+          filtered_dashboard_heartbeats(raw_filter_options, result: result, scope: scope)
+        end
+      else
+        DashboardData::Snapshots.aggregate_query_snapshot(user: user, scope: hb)
+      end
       DashboardData::Snapshots.fill_aggregate_result(result: result, snapshot: snapshot, archived: archived, helpers: h)
     end
 
     result
   end
 
-  def filtered_dashboard_heartbeats(filter_options, result: nil)
+  def filtered_dashboard_heartbeats(filter_options, result: nil, scope: dashboard_heartbeats)
     helpers = ApplicationController.helpers
 
-    FILTERS.each_with_object(dashboard_heartbeats) do |field, heartbeats|
+    FILTERS.each_with_object(scope) do |field, heartbeats|
       next unless params[field].present?
 
       selected = params[field].split(",")

@@ -1,6 +1,5 @@
 class Heartbeat < ApplicationRecord
   before_save :set_fields_hash!
-  before_save :set_time_epoch!
   after_commit :schedule_dashboard_rollup_refresh, on: %i[create update destroy]
 
   include Heartbeatable
@@ -10,11 +9,16 @@ class Heartbeat < ApplicationRecord
 
   # Default scope to exclude deleted records
   default_scope { where(deleted_at: nil) }
+  default_scope { where(HeartbeatExclusion.visibility_predicate) }
 
   scope :today, -> { where(time: Time.current.beginning_of_day.to_i..Time.current.end_of_day.to_i) }
   scope :recent, -> { where("time > ?", 24.hours.ago.to_i) }
   scope :with_deleted, -> { unscope(where: :deleted_at) }
   scope :only_deleted, -> { with_deleted.where.not(deleted_at: nil) }
+  scope :with_excluded, -> {
+    unscope(where: HeartbeatExclusion::VisibilityPredicate::ATTRIBUTE).annotate(HeartbeatExclusion::INCLUDE_HIDDEN_TAG)
+  }
+  scope :with_hidden_flag, -> { select(arel_table[Arel.star], Arel.sql("#{HeartbeatExclusion::HIDDEN_SQL} AS hidden")) }
 
   enum :source_type, {
     direct_entry: 0,
@@ -69,13 +73,6 @@ class Heartbeat < ApplicationRecord
   def set_fields_hash!
     # only if the field exists in activerecord
     self.fields_hash = self.class.generate_fields_hash(self.attributes) if self.class.column_names.include?("fields_hash")
-  end
-
-  # Populate the hypertable partition column on AR-object saves. Bulk ingest
-  # (insert/insert_all) sets it directly; this covers create/save/update paths.
-  # No-op until the column exists (post-cutover; plain table in dev/test).
-  def set_time_epoch!
-    self.time_epoch = time&.floor if self.class.column_names.include?("time_epoch") && time.present?
   end
 
   def schedule_dashboard_rollup_refresh = DashboardRollupRefreshJob.schedule_for(user_id)

@@ -57,7 +57,7 @@ class TimelineService
   end
 
   def heartbeats_by_user_id
-    @heartbeats_by_user_id ||= Heartbeat
+    @heartbeats_by_user_id ||= Heartbeat.with_excluded
       .where(user_id: users_by_id.keys, deleted_at: nil)
       .where("time >= ? AND time <= ?", date.beginning_of_day.to_f - 24.hours.to_i, date.end_of_day.to_f + 24.hours.to_i)
       .select(:id, :user_id, :time, :entity, :project, :editor, :language)

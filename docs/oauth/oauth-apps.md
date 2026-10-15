@@ -26,7 +26,7 @@ Scopes control what data your app can access. It's a good idea to only request t
 |-------|-------------|-------------------|
 | `profile` | Access basic profile information (user ID, email addresses, Slack ID, GitHub username, trust factor) | Yes |
 | `read` | View basic info about the user's Hackatime account | No |
-| `admin` | Access the [Admin API](#admin-api-access) on the authorizing admin's behalf. | No |
+| `admin` | Access the [Admin API](#admin-api-access) on the authorizing user's behalf, subject to their role permissions. | No |
 
 If you don't specify any scopes, only the `profile` scope is granted.
 
@@ -39,6 +39,7 @@ scope=profile+read
 ### Admin scope restrictions
 
 - Only **admin+** users (`admin`, `superadmin`, `ultraadmin`) can attach the `admin` scope to an OAuth application.
+- **Viewers and admin+ users** (`viewer`, `admin`, `superadmin`, `ultraadmin`) can authorize an approved application requesting the `admin` scope. The token does not grant permissions beyond the authorizing user's role.
 - Apps with the `admin` scope must be **confidential** (server-side clients that can keep a secret).
 - **This scope requires approval from Hack Club HQ to use.** It won't work if you try to use it without permission!
 
@@ -107,7 +108,7 @@ POST https://hackatime.hackclub.com/oauth/token
 {
   "access_token": "abc123...",
   "token_type": "Bearer",
-  "expires_in": 504576000,
+  "expires_in": 504911232,
   "scope": "profile read",
   "created_at": 1700000000
 }
@@ -139,6 +140,8 @@ All endpoints below require a valid OAuth access token in the `Authorization: Be
 
 ### GET /api/v1/authenticated/me
 
+**Required scope:** `profile`
+
 Returns information about the authenticated user.
 
 **Response:**
@@ -157,6 +160,8 @@ Returns information about the authenticated user.
 ```
 
 ### GET /api/v1/authenticated/hours
+
+**Required scope:** `read`
 
 Returns total coding time for a date range.
 
@@ -179,6 +184,8 @@ Returns total coding time for a date range.
 
 ### GET /api/v1/authenticated/streak
 
+**Required scope:** `read`
+
 Returns the user's current coding streak.
 
 **Response:**
@@ -190,6 +197,8 @@ Returns the user's current coding streak.
 ```
 
 ### GET /api/v1/authenticated/projects
+
+**Required scope:** `read`
 
 Returns the user's projects with time totals.
 
@@ -217,6 +226,8 @@ Returns the user's projects with time totals.
 
 ### GET /api/v1/authenticated/heartbeats/latest
 
+**Required scope:** `read`
+
 Returns the user's most recent heartbeat.
 
 **Response:**
@@ -236,7 +247,17 @@ Returns the user's most recent heartbeat.
 }
 ```
 
+If the user has no heartbeats (excluding setup test entries), the endpoint returns **200 OK** with:
+
+```json
+{
+  "heartbeat": null
+}
+```
+
 ### GET /api/v1/authenticated/api_keys
+
+This endpoint does not require a specific OAuth scope beyond a valid access token.
 
 Returns the user's Hackatime API key (creates one if none exists).
 

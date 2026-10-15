@@ -21,6 +21,7 @@ class WeeklySummaryEmailJob < ApplicationJob
     recent_activity_exists = Heartbeat.unscoped
       .where(heartbeats[:user_id].eq(users[:id]))
       .where(heartbeats[:deleted_at].eq(nil))
+      .where(HeartbeatExclusion.visibility_predicate)
       .where(heartbeats[:time].gteq(cutoff.to_f))
       .arel
       .exists

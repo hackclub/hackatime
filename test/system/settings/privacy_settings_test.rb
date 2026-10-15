@@ -55,12 +55,30 @@ class PrivacySettingsTest < ApplicationSystemTestCase
     visit my_settings_privacy_path
 
     within("#user_privacy") do
-      find("[role='checkbox']").click
+      find("label", text: "Allow public stats lookup").find("[role='checkbox']").click
       click_on "Save privacy settings"
     end
 
     assert_text "Settings updated successfully"
     assert_equal true, @user.reload.allow_public_stats_lookup
+  end
+
+  test "privacy settings opts out of leaderboards and allows rejoining" do
+    visit my_settings_privacy_path
+    assert_equal false, @user.leaderboard_opt_out
+
+    2.times do |index|
+      find("label", text: "Opt out of leaderboards").find("[role='checkbox']").click
+      click_on "Save privacy settings"
+
+      assert_text "Settings updated successfully"
+      assert_equal index.zero?, @user.reload.leaderboard_opt_out
+      assert_equal true, @user.allow_public_stats_lookup
+      visit my_settings_privacy_path
+      within(find("label", text: "Opt out of leaderboards")) do
+        assert_selector "[role='checkbox'][aria-checked='#{index.zero?}']"
+      end
+    end
   end
 
   test "privacy settings rotate api key can be canceled" do

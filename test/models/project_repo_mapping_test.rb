@@ -1,6 +1,17 @@
 require "test_helper"
 
 class ProjectRepoMappingTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
+  setup do
+    @original_queue_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+  end
+
+  teardown do
+    ActiveJob::Base.queue_adapter = @original_queue_adapter
+  end
+
   test "archive and unarchive toggle archived state" do
     user = create(:user)
     mapping = create(:project_repo_mapping, user: user, project_name: "hackatime")
@@ -71,6 +82,33 @@ class ProjectRepoMappingTest < ActiveSupport::TestCase
     )
 
     assert_predicate mapping, :valid?
+  end
+
+  test "creating a mapping queues commit and metadata sync instead of calling GitHub inline" do
+    user = create(:user, github_uid: "1001", github_username: "octo", github_access_token: "github-token")
+    stub_request(:get, "https://api.github.com/repos/octo/widget").to_return(status: 200, body: "{}")
+
+    user.project_repo_mappings.create!(project_name: "widget", repo_url: "https://github.com/octo/widget")
+
+    assert_enqueued_with(job: PullRepoCommitsJob, args: [ user.id, "octo", "widget" ])
+    assert_enqueued_with(job: SyncRepoMetadataJob, args: [ Repository.find_by!(url: "https://github.com/octo/widget").id ])
+    assert_not_requested :get, %r{api\.github\.com/repos/octo/widget/commits}
+  end
+
+  test "changing the repository URL syncs the new repository and other updates do not" do
+    user = create(:user, github_uid: "1001", github_username: "octo", github_access_token: "github-token")
+    stub_request(:get, %r{\Ahttps://api\.github\.com/repos/octo/(widget|gadget)\z}).to_return(status: 200, body: "{}")
+    mapping = user.project_repo_mappings.create!(project_name: "widget", repo_url: "https://github.com/octo/widget")
+    clear_enqueued_jobs
+
+    assert_no_enqueued_jobs(only: [ PullRepoCommitsJob, SyncRepoMetadataJob ]) { mapping.archive! }
+
+    mapping.update!(repo_url: "https://github.com/octo/gadget")
+
+    gadget = Repository.find_by!(url: "https://github.com/octo/gadget")
+    assert_equal gadget.id, mapping.reload.repository_id
+    assert_enqueued_with(job: PullRepoCommitsJob, args: [ user.id, "octo", "gadget" ])
+    assert_enqueued_with(job: SyncRepoMetadataJob, args: [ gadget.id ])
   end
 
   test "unchanged repository URLs are not remotely verified" do

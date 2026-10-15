@@ -56,16 +56,6 @@ Rails.application.configure do
     #   cron: "0 10 * * *",
     #   class: "ScanGithubReposJob"
     # },
-    # sync_all_user_repo_events: {
-    #   cron: "0 */6 * * *", # Every 6 hours (at minute 0 of 0, 6, 12, 18 hours)
-    #   class: "SyncAllUserRepoEventsJob",
-    #   description: "Periodically syncs repository events for all eligible users."
-    # },
-    # scan_repo_events_for_commits: {
-    #   cron: "0 */3 * * *", # Every 3 hours at minute 0
-    #   class: "ScanRepoEventsForCommitsJob",
-    #   description: "Scans repository host events (PushEvents) and enqueues jobs to process new commits."
-    # },
     # cleanup_expired_email_verification_requests: {
     #   cron: "* * * * *",
     #   class: "CleanupExpiredEmailVerificationRequestsJob"
@@ -118,6 +108,11 @@ Rails.application.configure do
       cron: "0 2 * * *",
       class: "ProcessAccountDeletionsJob",
       description: "nuke accounts after 30 days"
+    },
+    reconcile_active_repositories: {
+      cron: "17 * * * *",
+      class: "ReconcileActiveRepositoriesJob",
+      description: "Refreshes up to 100 repositories with recent heartbeats. Does nothing unless github_sync is enabled."
     }
     # sync_stale_repo_metadata: {
     #   cron: "0 4 * * *",

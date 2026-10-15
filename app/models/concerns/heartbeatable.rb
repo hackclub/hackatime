@@ -90,14 +90,20 @@ module Heartbeatable
       "#{(seconds % 3600) / 60} min" # 0 min if minutes is 0
     end
 
+    def streak_cache_keys(user_ids, exclude_browser_time:)
+      prefix = exclude_browser_time ? "user_streak_without_browser_v3" : "user_streak_v3"
+      versions = HeartbeatExclusion.cache_versions(user_ids)
+      user_ids.index_with { |id| "#{prefix}_#{id}_#{versions.fetch(id)}" }
+    end
+
     def daily_streaks_for_users(user_ids, start_date: 31.days.ago, exclude_browser_time: false)
       return {} if user_ids.empty?
       start_date = [ start_date, 31.days.ago ].max
-      cache_prefix = exclude_browser_time ? "user_streak_without_browser_v3" : "user_streak_v3"
-      streak_cache = Rails.cache.read_multi(*user_ids.map { |id| "#{cache_prefix}_#{id}" })
+      cache_keys = streak_cache_keys(user_ids, exclude_browser_time:)
+      streak_cache = Rails.cache.read_multi(*cache_keys.values)
 
-      uncached_users = user_ids.select { |id| streak_cache["#{cache_prefix}_#{id}"].nil? }
-      return user_ids.index_with { |id| streak_cache["#{cache_prefix}_#{id}"] || 0 } if uncached_users.empty?
+      uncached_users = user_ids.select { |id| streak_cache[cache_keys[id]].nil? }
+      return user_ids.index_with { |id| streak_cache[cache_keys[id]] || 0 } if uncached_users.empty?
 
       day_group_sql = "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone)"
       duration_start_sql = "LAG(time) OVER (PARTITION BY user_id, #{day_group_sql} ORDER BY time, #{quoted_table_name}.id) as duration_start"
@@ -146,7 +152,7 @@ module Heartbeatable
          }
        end
 
-      result = user_ids.index_with { |id| streak_cache["#{cache_prefix}_#{id}"] || 0 }
+      result = user_ids.index_with { |id| streak_cache[cache_keys[id]] || 0 }
 
       # Then calculate streaks for each user
       daily_durations.each do |user_id, data|
@@ -172,7 +178,7 @@ module Heartbeatable
         result[user_id] = streak
 
         # Cache the streak for 1 hour
-        Rails.cache.write("#{cache_prefix}_#{user_id}", streak, expires_in: 1.hour)
+        Rails.cache.write(cache_keys.fetch(user_id), streak, expires_in: 1.hour)
       end
 
       result

@@ -13,6 +13,7 @@ class Cache::ActiveProjectsJob < Cache::ActivityJob
         WHERE source_type = ?
           AND deleted_at IS NULL
           AND time > ?
+          AND #{HeartbeatExclusion::VISIBLE_SQL}
       )
       SELECT DISTINCT ON (recent.user_id) project_repo_mappings.*, recent.user_id
       FROM project_repo_mappings

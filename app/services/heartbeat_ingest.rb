@@ -9,11 +9,8 @@ class HeartbeatIngest
   # client bugs (uptime-like numbers, literal years, ms/µs/ns-scaled epochs).
   EPOCH_SANE_MIN = 1_000_000_000
   EPOCH_SANE_MAX = 2_000_000_000
-
-  # The heartbeats dedup unique index changes from (fields_hash) to
-  # (fields_hash, time_epoch) during the hypertable migration.
-  UNIQUE_BY_LEGACY = [ :fields_hash ].freeze
-  UNIQUE_BY_COMPOSITE = %i[fields_hash time_epoch].freeze
+  # Seconds between 1601-01-01 (the Windows FILETIME / WebKit epoch) and 1970-01-01.
+  WINDOWS_EPOCH_OFFSET = 11_644_473_600
 
   Result = Data.define(:total_count, :persisted_count, :duplicate_count, :failed_count, :errors, :items)
   Item = Data.define(:heartbeat, :status, :error)
@@ -102,14 +99,18 @@ class HeartbeatIngest
     source_type = attrs[:entity] == "test.txt" ? :test_entry : :direct_entry
     attrs[:project] = sanitize_project(attrs[:project])
 
+    language_from_placeholder = attrs[:language] == LAST_LANGUAGE_SENTINEL
     resolve_placeholders!(attrs, placeholder_state)
-
-    inferred = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity])
-    attrs[:language] = inferred if inferred.present?
 
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     attrs[:user_agent] = attrs[:user_agent].presence || attrs.delete(:plugin).presence || @request_context[:user_agent].presence
     parsed_ua = WakatimeUserAgentParser.parse(attrs[:user_agent], category: attrs[:category])
+    editor = parsed_ua[:editor].presence || attrs[:editor].presence
+
+    known_language = attrs[:language] if language_from_placeholder || LanguageUtils.find_name(attrs[:language]) ||
+      attrs[:language] == LanguageUtils::AUTO_DETECTED
+    inferred = LanguageUtils.fill_missing_language(known_language, entity: attrs[:entity], editor:, type: attrs[:type])
+    attrs[:language] = inferred if inferred.present?
 
     attrs.merge(
       user_id: @user.id,
@@ -117,16 +118,19 @@ class HeartbeatIngest
       ip_address: @request_context[:ip_address],
       ja4_id: resolved_ja4&.id,
       ai_model: attrs[:ai_model].presence || parsed_ua[:ai_model],
-      editor: parsed_ua[:editor].presence || attrs[:editor].presence,
+      editor:,
       operating_system: parsed_ua[:os].presence || attrs[:operating_system].presence,
       machine: @request_context[:machine].presence || attrs[:machine].presence
     ).slice(*Heartbeat.column_names.map(&:to_sym))
   end
 
+  # Hidden heartbeats still own their fields_hash, so resubmissions must match them.
+  def heartbeats_for_dedup = @user.heartbeats.with_excluded
+
   def persist_direct_heartbeats(entries)
     entries_by_hash = entries.group_by { |entry| entry[:fields_hash] }
     hashes = entries_by_hash.keys
-    persisted_by_hash = @user.heartbeats.where(fields_hash: hashes).index_by(&:fields_hash)
+    persisted_by_hash = heartbeats_for_dedup.where(fields_hash: hashes).index_by(&:fields_hash)
     missing_entries = entries_by_hash.filter_map do |fields_hash, matching_entries|
       matching_entries.first unless persisted_by_hash.key?(fields_hash)
     end
@@ -134,10 +138,8 @@ class HeartbeatIngest
     inserted_by_hash = {}
     if missing_entries.any?
       timestamp = Time.current
-      result = with_heartbeat_unique_by do |unique_by|
-        records = missing_entries.map { |entry| direct_insert_record(entry, timestamp:) }
-        Heartbeat.insert_all(records, unique_by:, returning: Heartbeat.column_names)
-      end
+      records = missing_entries.map { |entry| direct_insert_record(entry, timestamp:) }
+      result = Heartbeat.insert_all(records, unique_by: :fields_hash, returning: Heartbeat.column_names)
       inserted_by_hash = result.to_a.index_by { |attributes| attributes.fetch("fields_hash") }
         .transform_values { |attributes| Heartbeat.new(attributes) }
       persisted_by_hash.merge!(inserted_by_hash)
@@ -147,7 +149,7 @@ class HeartbeatIngest
       unresolved_hashes = missing_entries.map { |entry| entry[:fields_hash] } - inserted_by_hash.keys
       if unresolved_hashes.any?
         persisted_by_hash.merge!(
-          @user.heartbeats.where(fields_hash: unresolved_hashes).index_by(&:fields_hash)
+          heartbeats_for_dedup.where(fields_hash: unresolved_hashes).index_by(&:fields_hash)
         )
       end
     end
@@ -174,13 +176,8 @@ class HeartbeatIngest
 
   def direct_insert_record(entry, timestamp:)
     entry[:model_attributes]
-      .except("id", "fields_hash", "created_at", "updated_at", "time_epoch")
-      .merge(
-        "fields_hash" => entry[:fields_hash],
-        "created_at" => timestamp,
-        "updated_at" => timestamp,
-        **partition_attrs(entry[:attrs][:time]).stringify_keys
-      )
+      .except("id", "fields_hash", "created_at", "updated_at")
+      .merge("fields_hash" => entry[:fields_hash], "created_at" => timestamp, "updated_at" => timestamp)
   end
 
   def ingest_import
@@ -250,11 +247,11 @@ class HeartbeatIngest
       source_type: Heartbeat.source_types.fetch("wakapi_import")
     }
     resolve_placeholders!(attrs, placeholder_state)
-    attrs[:language] = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity])
+    attrs[:language] = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity], editor: attrs[:editor], type: attrs[:type])
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
     model_attributes = validated_model_attributes(attrs)
     normalized = model_attributes
-      .except("id", "fields_hash", "created_at", "updated_at", "time_epoch")
+      .except("id", "fields_hash", "created_at", "updated_at")
       .symbolize_keys
     normalized[:fields_hash] = import_fields_hash(model_attributes, source: hb)
     normalized[:legacy_fields_hash] = legacy_import_fields_hash(
@@ -273,7 +270,7 @@ class HeartbeatIngest
     records = seen_hashes.values
     compatible_hashes = records.flat_map { |record| [ record[:fields_hash], record[:legacy_fields_hash] ] }.compact.uniq
     existing_hashes = compatible_hashes.each_slice(10_000).flat_map do |hashes|
-      @user.heartbeats.where(fields_hash: hashes).pluck(:fields_hash)
+      heartbeats_for_dedup.where(fields_hash: hashes).pluck(:fields_hash)
     end.to_set
     records = records.reject do |record|
       existing_hashes.include?(record[:fields_hash]) || existing_hashes.include?(record[:legacy_fields_hash])
@@ -281,17 +278,10 @@ class HeartbeatIngest
     return 0 if records.empty?
 
     timestamp = Time.current
-    ActiveRecord::Base.logger.silence do
-      # Build records inside the retry block so a cutover-time schema refresh
-      # recomputes both the conflict target and the time_epoch partition column.
-      with_heartbeat_unique_by do |unique_by|
-        insert_records = records.map do |record|
-          record.except(:legacy_fields_hash)
-            .merge(created_at: timestamp, updated_at: timestamp, **partition_attrs(record[:time]))
-        end
-        Heartbeat.insert_all(insert_records, unique_by:).length
-      end
+    insert_records = records.map do |record|
+      record.except(:legacy_fields_hash).merge(created_at: timestamp, updated_at: timestamp)
     end
+    ActiveRecord::Base.logger.silence { Heartbeat.insert_all(insert_records, unique_by: :fields_hash).length }
   end
 
   # Import normalization is part of the persisted dedup contract. Keep the
@@ -350,36 +340,6 @@ class HeartbeatIngest
     { editor: browser[1].downcase, os: full_os.include?("_") ? full_os.split("_").first : full_os }
   end
 
-  def heartbeat_unique_by
-    time_epoch_column? ? UNIQUE_BY_COMPOSITE : UNIQUE_BY_LEGACY
-  end
-
-  def time_epoch_column? = Heartbeat.column_names.include?("time_epoch")
-
-  # The hypertable partition column must arrive populated (TimescaleDB routes to
-  # a chunk before row triggers fire). Bulk insert/insert_all bypass model
-  # callbacks, so ingest supplies time_epoch explicitly once the column exists.
-  # No-op on the pre-cutover / dev-and-test plain table.
-  def partition_attrs(time)
-    return {} unless time_epoch_column? && time.present?
-    { time_epoch: time.to_f.floor }
-  end
-
-  # Rails resolves `unique_by:` against its schema cache, which goes stale the
-  # moment the hypertable cutover swaps the table under us. Refresh the cache
-  # and retry once so in-flight processes self-heal without a restart.
-  def with_heartbeat_unique_by
-    yield heartbeat_unique_by
-  rescue ActiveRecord::StatementInvalid, ArgumentError => e
-    Heartbeat.reset_column_information
-    # Inside an open (now aborted) transaction a retry cannot succeed; re-raise
-    # and let the caller retry with the already-refreshed schema cache.
-    raise if Heartbeat.connection.transaction_open?
-
-    Rails.logger.warn("HeartbeatIngest unique_by fallback: #{e.class}: #{e.message}")
-    yield heartbeat_unique_by
-  end
-
   def normalize_epoch_time(value)
     t = Float(value)
     raise InvalidHeartbeatTime unless t.finite?
@@ -390,6 +350,10 @@ class HeartbeatIngest
       scaled = t / scale
       return scaled if scaled >= EPOCH_SANE_MIN && scaled < EPOCH_SANE_MAX
     end
+
+    # Seconds counted from 1601 instead of 1970. No scaled epoch lands in this range.
+    unix = t - WINDOWS_EPOCH_OFFSET
+    return unix if unix >= EPOCH_SANE_MIN && unix < EPOCH_SANE_MAX
 
     raise InvalidHeartbeatTime, "time must be Unix epoch seconds between #{EPOCH_SANE_MIN} and #{EPOCH_SANE_MAX - 1}"
   rescue TypeError, ArgumentError => e
@@ -480,12 +444,7 @@ class HeartbeatIngest
   end
 
   def queue_project_mapping(project_name)
-    return if ProjectRepoMapping::IGNORED_PROJECTS.include?(project_name)
-
-    project_digest = Digest::SHA256.hexdigest(project_name)
-    Rails.cache.fetch("attempt_project_repo_mapping_job_#{@user.id}_#{project_digest}", expires_in: 1.hour) do
-      AttemptProjectRepoMappingJob.perform_later(@user.id, project_name)
-    end
+    AttemptProjectRepoMappingJob.enqueue_for(@user, project_name)
   rescue => e
     Rails.error.report(e, handled: true, context: { message: "Error queuing project mapping" })
   end

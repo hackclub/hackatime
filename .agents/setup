@@ -27,15 +27,26 @@ if [ -z "$gh_version" ] || ! dpkg --compare-versions "$gh_version" ge "$gh_min_v
   sudo apt-get install -y gh
 fi
 
+docker_packages=()
 if ! command -v docker >/dev/null 2>&1; then
-  echo "==> Installing Docker and Docker Compose"
+  docker_packages+=(docker-ce docker-ce-cli containerd.io)
+fi
+if ! sudo docker buildx version >/dev/null 2>&1; then
+  docker_packages+=(docker-buildx-plugin)
+fi
+if ! sudo docker compose version >/dev/null 2>&1; then
+  docker_packages+=(docker-compose-plugin)
+fi
+
+if [ "${#docker_packages[@]}" -gt 0 ]; then
+  echo "==> Installing missing Docker components: ${docker_packages[*]}"
   sudo install -m 0755 -d /etc/apt/keyrings
   sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
   sudo chmod a+r /etc/apt/keyrings/docker.asc
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" |
     sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
   sudo apt-get update
-  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  sudo apt-get install -y "${docker_packages[@]}"
 fi
 
 setup_user="$(id -un)"
@@ -65,7 +76,7 @@ if [ ! -f .env ]; then
   cp -- .env.example .env
 fi
 
-container_fingerprint="$(fingerprint Dockerfile.dev docker-compose.yml entrypoint.dev.sh Gemfile Gemfile.lock package.json bun.lock)"
+container_fingerprint="$(fingerprint Dockerfile.dev docker-compose.yml entrypoint.dev.sh Gemfile Gemfile.lock package.json bun.lock bunfig.toml)"
 if cache_matches containers "$container_fingerprint"; then
   echo "==> Starting existing development containers"
   sudo docker compose up -d
@@ -82,7 +93,7 @@ sudo docker compose exec -T web sh -c '
     git config --global --add safe.directory "$repo_root"
 '
 
-assets_fingerprint="$(fingerprint app/javascript app/assets/tailwind config/routes.rb config/vite.json config/initializers/js_from_routes.rb vite.config.ts svelte.config.js tsconfig.json tsconfig.svelte-check.json package.json bun.lock)"
+assets_fingerprint="$(fingerprint app/javascript app/assets/tailwind config/routes.rb config/vite.json config/initializers/js_from_routes.rb vite.config.ts svelte.config.js tsconfig.json tsconfig.svelte-check.json package.json bun.lock bunfig.toml)"
 if cache_matches assets "$assets_fingerprint" && [ -f public/vite-dev/.vite/manifest.json ]; then
   echo "==> Vite client assets are current"
 else

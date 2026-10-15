@@ -14,7 +14,7 @@ class Api::V1::LeaderboardController < ApplicationController
   end
 
   def format_leaderboard(leaderboard)
-    entries = leaderboard.entries
+    entries = leaderboard.entries.participating
       .joins(:user)
       .where(users: { leaderboard_shadowbanned: false })
       .preload(:user)

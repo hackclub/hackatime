@@ -1,0 +1,13 @@
+diff --git a/dist/compiler.mjs b/dist/compiler.mjs
+index b161bc606c3c5103a7270f18b8ff05bc28d050ae..efa572381a146b1c33a9b24c9eb8f070eb471b51 100644
+--- a/dist/compiler.mjs
++++ b/dist/compiler.mjs
+@@ -517,7 +517,7 @@ function compileAtRule(rule, wrap, sheet, state, options, rebase) {
+ 		return;
+ 	}
+ 	let css = rebase(serializeStylesheet(rule, { compress: true }));
+-	if (!css.endsWith(";")) css += ";";
++	if (!rule.nodes && !css.endsWith(";")) css += ";";
+ 	sheet.rules.push(withWrap({
+ 		css,
+ 		always: true

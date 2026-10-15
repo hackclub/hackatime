@@ -110,7 +110,7 @@ class WakatimeService
     scope_digest = Digest::SHA256.hexdigest(@scope.to_sql)
     filters = @specific_filters.map(&:to_s).sort.join(",")
 
-    [ "wakatime_service", "summary", "v1", scope_digest, filters, @limit ].join(":")
+    [ "wakatime_service", "summary", "v1", scope_digest, filters, @limit, @user&.heartbeat_cache_version ].join(":")
   end
 
   def generate_summary_chunk(group_by)

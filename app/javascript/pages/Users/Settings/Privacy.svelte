@@ -15,6 +15,7 @@
   type Props = {
     user: {
       allow_public_stats_lookup: boolean;
+      leaderboard_opt_out: boolean;
       can_request_deletion: boolean;
     };
     authorized_applications: Array<{
@@ -95,6 +96,13 @@
       name="user[allow_public_stats_lookup]"
       bind:checked={user.allow_public_stats_lookup}
       label="Allow public stats lookup"
+    />
+    <CheckboxField
+      name="user[leaderboard_opt_out]"
+      bind:checked={user.leaderboard_opt_out}
+      label="Opt out of leaderboards"
+      description="Hide me from all leaderboards, including country rankings and Sailor's Log. Your coding activity will still be tracked. Uncheck to rejoin."
+      align="start"
     />
   </Form>
 

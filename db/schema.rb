@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_15_131538) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -273,6 +273,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
     t.index ["scheduled_at"], name: "index_good_jobs_on_scheduled_at_unfinished_unperformed", where: "((finished_at IS NULL) AND (performed_at IS NULL))"
   end
 
+  create_table "heartbeat_exclusions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "created_by_id"
+    t.datetime "ends_at"
+    t.integer "kind", null: false
+    t.string "project"
+    t.text "reason"
+    t.datetime "revoked_at"
+    t.bigint "revoked_by_id"
+    t.datetime "starts_at"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["created_by_id"], name: "index_heartbeat_exclusions_on_created_by_id"
+    t.index ["revoked_by_id"], name: "index_heartbeat_exclusions_on_revoked_by_id"
+    t.index ["user_id", "created_at"], name: "index_heartbeat_exclusions_on_user_id_and_created_at"
+    t.index ["user_id"], name: "index_heartbeat_exclusions_active_on_user_id", where: "(revoked_at IS NULL)"
+    t.index ["user_id"], name: "index_heartbeat_exclusions_one_active_poison_per_user", unique: true, where: "((kind = 0) AND (revoked_at IS NULL))"
+    t.check_constraint "kind <> 0 OR ends_at IS NOT NULL AND project IS NULL", name: "heartbeat_exclusions_poison_shape"
+    t.check_constraint "kind <> 1 OR project IS NOT NULL", name: "heartbeat_exclusions_project_deletion_shape"
+    t.check_constraint "starts_at IS NULL OR ends_at IS NULL OR starts_at < ends_at", name: "heartbeat_exclusions_range_order"
+  end
+
   create_table "heartbeat_import_runs", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "encrypted_api_key"
@@ -381,7 +403,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
     t.index ["user_id", "project"], name: "index_heartbeats_on_user_id_and_project", where: "(deleted_at IS NULL)"
     t.index ["user_id", "source_type", "id"], name: "index_heartbeats_on_user_source_id_direct", where: "((source_type = 0) AND (deleted_at IS NULL))"
     t.index ["user_id", "time", "category"], name: "index_heartbeats_on_user_time_category"
-    t.index ["user_id", "time", "id"], name: "idx_heartbeats_user_time_id_active", where: "(deleted_at IS NULL)"
+    t.index ["user_id", "time", "id"], name: "idx_heartbeats_user_time_id_project_active", where: "(deleted_at IS NULL)", include: ["project"]
     t.index ["user_id", "time", "language"], name: "idx_heartbeats_user_time_language_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time", "project"], name: "idx_heartbeats_user_time_project_stats", where: "(deleted_at IS NULL)"
     t.index ["user_id", "time"], name: "idx_heartbeats_lb_eligible_user_time", where: "((deleted_at IS NULL) AND ((category)::text = 'coding'::text) AND ((editor IS NULL) OR (lower((editor)::text) <> ALL (ARRAY['arc'::text, 'brave'::text, 'chrome'::text, 'chromium'::text, 'edge'::text, 'firefox'::text, 'floorp'::text, 'librewolf'::text, 'microsoft-edge'::text, 'opera'::text, 'opera-gx'::text, 'safari'::text, 'vivaldi'::text, 'waterfox'::text, 'zen'::text]))))"
@@ -599,6 +621,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.text "message"
+    t.string "participation_cache_version"
     t.string "slack_channel_id"
     t.string "slack_uid"
     t.datetime "updated_at", null: false
@@ -659,14 +682,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
   create_table "trust_level_audit_logs", force: :cascade do |t|
     t.bigint "changed_by_id", null: false
     t.datetime "created_at", null: false
+    t.datetime "edited_at"
+    t.bigint "edited_by_id"
     t.string "new_trust_level", null: false
     t.text "notes"
+    t.text "original_notes"
+    t.text "original_reason"
     t.string "previous_trust_level", null: false
     t.text "reason"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["changed_by_id", "created_at"], name: "index_trust_level_audit_logs_on_changed_by_and_created_at"
     t.index ["changed_by_id"], name: "index_trust_level_audit_logs_on_changed_by_id"
+    t.index ["edited_by_id"], name: "index_trust_level_audit_logs_on_edited_by_id"
     t.index ["user_id", "created_at"], name: "index_trust_level_audit_logs_on_user_and_created_at"
     t.index ["user_id"], name: "index_trust_level_audit_logs_on_user_id"
   end
@@ -687,6 +715,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
+    t.boolean "leaderboard_opt_out", default: false, null: false
     t.datetime "leaderboard_shadowban_expires_at"
     t.text "leaderboard_shadowban_reason"
     t.boolean "leaderboard_shadowbanned", default: false, null: false
@@ -767,6 +796,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
   add_foreign_key "goals", "users"
+  add_foreign_key "heartbeat_exclusions", "users"
+  add_foreign_key "heartbeat_exclusions", "users", column: "created_by_id", on_delete: :nullify
+  add_foreign_key "heartbeat_exclusions", "users", column: "revoked_by_id", on_delete: :nullify
   add_foreign_key "heartbeat_import_runs", "users"
   add_foreign_key "heartbeat_import_sources", "users"
   add_foreign_key "heartbeats", "ja4s", on_delete: :nullify
@@ -784,6 +816,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_115013) do
   add_foreign_key "sign_in_tokens", "users"
   add_foreign_key "trust_level_audit_logs", "users"
   add_foreign_key "trust_level_audit_logs", "users", column: "changed_by_id"
+  add_foreign_key "trust_level_audit_logs", "users", column: "edited_by_id"
   add_foreign_key "users", "users", column: "leaderboard_shadowbanned_by_id"
   add_foreign_key "wakatime_mirrors", "users"
 end

@@ -73,6 +73,7 @@ export type LayoutProps = {
     color_scheme: "dark" | "light";
     theme_color: string;
   };
+  csp_nonce?: string;
   currently_hacking: {
     count: number;
     users: CurrentlyHackingUser[];

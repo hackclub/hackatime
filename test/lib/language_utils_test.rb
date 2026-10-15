@@ -43,4 +43,31 @@ class LanguageUtilsTest < Minitest::Test
     assert_equal "C++", LanguageUtils.fill_missing_language("C++", entity: "/a/foo.h")
     assert_nil LanguageUtils.fill_missing_language(nil, entity: "/a/noext")
   end
+
+  def test_idle_window_titles_fall_back_to_python
+    [ "*main.py*", "main.py (3.14.2)", "IDLE Shell 3.14.0", "IDLE Shell 3.14.2", "Replace Dialog" ].each do |entity|
+      assert_equal "Python", LanguageUtils.fill_missing_language(nil, entity:, editor: "idle"), entity
+    end
+    assert_equal "Python", LanguageUtils.fill_missing_language("Unknown", entity: "*main.py*", editor: "IDLE")
+    assert_equal "Python", LanguageUtils.fill_missing_language("Groff", entity: "IDLE Shell 3.14.2", editor: "idle")
+  end
+
+  def test_browser_entities_never_guess_a_language_from_the_domain
+    { "domain" => [ "github.com", "app.joinrunway.io", "http://10.0.0.1" ], "url" => [ "https://example.org/a.php" ] }.each do |type, entities|
+      entities.each { |entity| assert_nil LanguageUtils.fill_missing_language(nil, entity:, type:), entity }
+    end
+    assert_equal "TypeScript", LanguageUtils.fill_missing_language("TypeScript", entity: "github.com", type: "domain")
+    assert_equal "DIGITAL Command Language", LanguageUtils.fill_missing_language(nil, entity: "run.com", type: "file")
+  end
+
+  def test_jetbrains_auto_detected_placeholder_is_detected_or_unknown
+    assert_equal "Java", LanguageUtils.fill_missing_language("AUTO_DETECTED", entity: "/a/Main.java", editor: "intellijidea")
+    assert_equal "Unknown", LanguageUtils.fill_missing_language("AUTO_DETECTED", entity: "/a/.gitkeep", editor: "intellijidea")
+  end
+
+  def test_idle_fallback_leaves_other_editors_alone
+    assert_equal "Groff", LanguageUtils.fill_missing_language("Groff", entity: "IDLE Shell 3.14.2", editor: "terminal")
+    assert_nil LanguageUtils.fill_missing_language(nil, entity: "*main.py*", editor: "terminal")
+    assert_nil LanguageUtils.fill_missing_language(nil, entity: "*main.py*")
+  end
 end

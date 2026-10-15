@@ -21,7 +21,6 @@ Edit your `.env` file to include the following:
 ```env
 # Database configurations - these work with the Docker setup
 DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
-SAILORS_LOG_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
 
 # Generate these with `rails secret` or use these for development
 SECRET_KEY_BASE=alallalalallalalallalalalladlalllalal
@@ -30,7 +29,7 @@ ENCRYPTION_DETERMINISTIC_KEY=32characterrandomstring12345678902
 ENCRYPTION_KEY_DERIVATION_SALT=16charssalt1234
 ```
 
-Visit <https://hca.dinosaurbbq.org>, log in with an email address, then enable Developer Mode in HCA settings. After that, navigate to the "Developers' Corner" and "app yourself up", specifying callback URLs of `http://localhost:3000/auth/hca/callback` and `http://localhost:3000/deletion/hca/callback`, with minimum scopes of `email`, `slack_id`, and `verification_status`.
+Visit <https://hca.dinosaurbbq.org>, log in with an email address, then enable Developer Mode in HCA settings. After that, navigate to the "Developers' Corner" and "app yourself up", specifying callback URLs of `http://localhost:3000/auth/hca/callback` and `http://localhost:3000/deletion/hca/callback`, with minimum scopes of `openid`, `email`, `slack_id`, and `verification_status`.
 
 Then, fill out the following fields in your `.env` file:
 
@@ -99,6 +98,14 @@ To run all CI checks locally, you can run:
 ```bash
 docker compose exec web bin/ci
 ```
+
+Bun uses the isolated linker configured in `bunfig.toml`, matching the production Docker build. The development image also copies this configuration when installing dependencies. If you have an existing hoisted install, clear the contents of the `node_modules` volume and Blume's generated cache, then reinstall before running CI:
+
+```bash
+docker compose exec web sh -c 'find node_modules -mindepth 1 -delete && rm -rf .blume && bun install --frozen-lockfile'
+```
+
+This avoids mixing Sharp's native libraries with the separate libvips version used by Ruby in the production image.
 
 _Make sure these actually pass before making a PR!_
 

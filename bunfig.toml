@@ -1,4 +1,8 @@
 [install]
+# Match production: keep Sharp's native libraries separate from the libvips
+# version installed at the root for Ruby Vips in the Docker image.
+linker = "isolated"
+
 # Only install package versions published at least 1 day ago
 # (cough cough axios RAT...)
 minimumReleaseAge = 86400 # seconds

@@ -12,8 +12,7 @@ class SlackCommand::SailorsLogLeaderboardJob < ApplicationJob
 
     Rails.logger.info "[SailorsLogLeaderboardJob] Performing leaderboard for channel #{channel_id}, user #{slack_uid}"
     # either find a leaderboard for this channel from the last 1 minute or create a new one
-    leaderboard = SailorsLogLeaderboard.where(slack_channel_id: channel_id, deleted_at: nil)
-                                       .where("created_at > ?", 1.minute.ago)
+    leaderboard = SailorsLogLeaderboard.reusable.where(slack_channel_id: channel_id)
                                        .order(created_at: :desc)
                                        .first
 

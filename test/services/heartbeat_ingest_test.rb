@@ -11,13 +11,15 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   teardown do
+    Flipper.disable(GithubApiJob::FLAG)
     Rails.cache.clear
     clear_enqueued_jobs
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
   test "direct heartbeat ingest persists normalized heartbeats and schedules dashboard rollup refresh" do
-    user = create(:user)
+    Flipper.enable(GithubApiJob::FLAG)
+    user = create(:user, github_uid: "1001", github_access_token: "github-token")
 
     assert_difference("user.heartbeats.count", 1) do
       assert_enqueued_with(job: DashboardRollupRefreshJob, args: [ user.id ]) do
@@ -332,47 +334,6 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal 1, user.heartbeats.count
   end
 
-  test "direct heartbeat ingest rebuilds partition attributes inside a schema retry" do
-    user = create(:user)
-    time = Time.current.to_f
-    attrs = { user_id: user.id, entity: "src/main.rb", time:, type: "file", category: "coding", source_type: :direct_entry }
-    model_attributes = Heartbeat.new(attrs).attributes
-    fields_hash = Heartbeat.generate_fields_hash(model_attributes)
-    entry = { attrs:, model_attributes:, fields_hash: }
-    ingest = HeartbeatIngest.new(user:, mode: :direct, heartbeats: [], schedule_rollup_refresh: false)
-    attempts = []
-    include_time_epoch = false
-    original_column_names = Heartbeat.method(:column_names)
-    original_insert_all = Heartbeat.method(:insert_all)
-
-    Heartbeat.define_singleton_method(:column_names) do
-      columns = original_column_names.call
-      include_time_epoch ? columns + [ "time_epoch" ] : columns
-    end
-    Heartbeat.define_singleton_method(:insert_all) do |records, **|
-      attempts << records
-      raise ArgumentError, "stale schema" if attempts.one?
-
-      ActiveRecord::Result.new([ "fields_hash" ], [ [ fields_hash ] ])
-    end
-    ingest.define_singleton_method(:with_heartbeat_unique_by) do |&block|
-      block.call([ :fields_hash ])
-    rescue ArgumentError
-      include_time_epoch = true
-      block.call(%i[fields_hash time_epoch])
-    end
-
-    begin
-      ingest.send(:persist_direct_heartbeats, [ entry ])
-    ensure
-      Heartbeat.define_singleton_method(:column_names, original_column_names)
-      Heartbeat.define_singleton_method(:insert_all, original_insert_all)
-    end
-
-    assert_not attempts.first.sole.key?("time_epoch")
-    assert_equal time.floor, attempts.second.sole.fetch("time_epoch")
-  end
-
   test "direct heartbeat ingest deduplicates repeated items within one bulk request" do
     user = create(:user)
     payload = {
@@ -429,6 +390,29 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal [ "Python", "Python" ], heartbeats.pluck(:language)
   end
 
+  test "direct heartbeat ingest preserves an unrecognized language resolved from the last-language placeholder" do
+    user = create(:user)
+    now = Time.current.to_f
+    user.heartbeats.create!(
+      entity: "historical.asm", project: "demo", language: "RGBDS Assembly",
+      category: "coding", source_type: :direct_entry, time: now - 10, type: "file"
+    )
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "src/second.py",
+        project: "demo",
+        language: "<<LAST_LANGUAGE>>",
+        time: now,
+        type: "file"
+      } ]
+    )
+
+    assert_equal "RGBDS Assembly", user.heartbeats.order(:id).last.language
+  end
+
   test "direct heartbeat ingest normalizes millisecond-scaled epoch times" do
     user = create(:user)
     sane_time = Time.current.to_f
@@ -440,6 +424,18 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     )
 
     assert_in_delta sane_time, user.heartbeats.sole.time, 1.0
+  end
+
+  test "direct heartbeat ingest normalizes epoch times counted from 1601" do
+    user = create(:user)
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ { entity: "Hermes Agent database", time: 13_435_588_515.911928, type: "app" } ]
+    )
+
+    assert_equal Time.utc(2026, 10, 4, 11, 55, 15), Time.at(user.heartbeats.sole.time).utc.floor
   end
 
   test "direct AI heartbeat ingest stores the editor instead of the model" do
@@ -563,6 +559,118 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     end
   end
 
+  test "direct heartbeat ingest records IDLE window titles from macos-wakatime as Python" do
+    user = create(:user)
+    user_agent = "wakatime/v2.26.14 (darwin-24.3.0-arm64) go1.26.8 IDLE/3.14.0-3.14.0 macos-wakatime/5.28.5"
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ "*main.py*", "IDLE Shell 3.14.2" ].each_with_index.map { |entity, i|
+        { entity:, project: "<<LAST_PROJECT>>", time: 1_700_000_000.0 + i, type: "app", user_agent: }
+      }
+    )
+
+    assert_equal [ [ "idle", "Python" ] ], user.heartbeats.distinct.pluck(:editor, :language)
+  end
+
+  test "direct heartbeat ingest overrides the Groff language wakatime-cli sends for the IDLE shell" do
+    user = create(:user)
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "IDLE Shell 3.14.2",
+        language: "Groff",
+        project: "<<LAST_PROJECT>>",
+        time: 1_700_000_000.0,
+        type: "app",
+        user_agent: "wakatime/v2.26.14 (darwin-24.3.0-arm64) go1.26.8 IDLE/3.14.2-3.14.2 macos-wakatime/5.28.5"
+      } ]
+    )
+
+    assert_equal "Python", user.heartbeats.sole.language
+  end
+
+  test "direct heartbeat ingest does not guess a language from a browser domain" do
+    user = create(:user)
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "github.com",
+        time: 1_700_000_000.0,
+        type: "domain",
+        user_agent: "Chrome/141.0.0.0 chrome-wakatime/4.1.0"
+      } ]
+    )
+
+    assert_equal [ "browsing", nil ], user.heartbeats.sole.values_at(:category, :language)
+  end
+
+  test "import heartbeat ingest recognizes legacy hashes of browser heartbeats with a guessed domain language" do
+    user = create(:user)
+    raw = { category: "browsing", entity: "github.com", time: 1_700_000_000.0, type: "domain" }
+    # Stored before the guess was dropped, so its hash encodes "DIGITAL Command Language".
+    create_legacy_imported_heartbeat(user, raw.merge(language: "DIGITAL Command Language"))
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(user: user, mode: :import, heartbeats: [ raw ])
+
+      assert_equal 1, result.duplicate_count
+    end
+  end
+
+  test "direct heartbeat ingest never stores the JetBrains AUTO_DETECTED placeholder" do
+    user = create(:user)
+    user_agent = "wakatime/v2.26.14 (linux-6.12.4-arch1-1-x86_64) go1.26.8 intellijidea/2025.2.1 intellijidea-wakatime/16.0.2"
+
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ "/home/dev/app/src/Main.java", "/home/dev/app/.gitkeep" ].each_with_index.map { |entity, i|
+        { entity:, language: "AUTO_DETECTED", time: 1_700_000_000.0 + i, type: "file", user_agent: }
+      }
+    )
+
+    assert_equal [ "Java", "Unknown" ], user.heartbeats.order(:time).pluck(:language)
+  end
+
+  test "import heartbeat ingest recognizes legacy hashes of JetBrains AUTO_DETECTED heartbeats" do
+    user = create(:user)
+    raw = { category: "coding", entity: "/a/Main.java", language: "AUTO_DETECTED", project: "app", time: 1_700_000_000.0, type: "file" }
+    create_legacy_imported_heartbeat(user, raw)
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(user: user, mode: :import, heartbeats: [ raw ])
+
+      assert_equal 1, result.duplicate_count
+    end
+  end
+
+  test "import heartbeat ingest recognizes legacy hashes of IDLE heartbeats stored with the client language" do
+    user = create(:user)
+    raw = {
+      category: "coding",
+      editor: "idle",
+      entity: "IDLE Shell 3.14.2",
+      language: "Groff",
+      project: "<<LAST_PROJECT>>",
+      time: 1_700_000_000.0,
+      type: "app"
+    }
+    create_legacy_imported_heartbeat(user, raw)
+
+    assert_no_difference("user.heartbeats.count") do
+      result = HeartbeatIngest.call(user: user, mode: :import, heartbeats: [ raw ])
+
+      assert_equal 0, result.persisted_count
+      assert_equal 1, result.duplicate_count
+    end
+  end
+
   test "import heartbeat ingest recognizes legacy hashes containing placeholders" do
     user = create(:user)
     raw = {
@@ -643,7 +751,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   end
 
   test "direct heartbeat ingest does not queue repo mapping for the last-project sentinel" do
-    user = create(:user)
+    user = create(:user, github_uid: "1001", github_access_token: "github-token")
 
     assert_no_enqueued_jobs only: AttemptProjectRepoMappingJob do
       HeartbeatIngest.call(
@@ -665,6 +773,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     sane = Time.current.to_f
     assert_equal sane, ingest.send(:normalize_epoch_time, sane)
     assert_raises(HeartbeatIngest::InvalidHeartbeatTime) { ingest.send(:normalize_epoch_time, 2026) }
+    assert_raises(HeartbeatIngest::InvalidHeartbeatTime) { ingest.send(:normalize_epoch_time, 13_644_473_600) }
     assert_raises(HeartbeatIngest::InvalidHeartbeatTime) { ingest.send(:normalize_epoch_time, -9_999_999) }
     assert_raises(HeartbeatIngest::InvalidHeartbeatTime) { ingest.send(:normalize_epoch_time, "not-a-time") }
     assert_raises(HeartbeatIngest::InvalidHeartbeatTime) { ingest.send(:normalize_epoch_time, Float::NAN) }
@@ -750,66 +859,38 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal [ nil, "main" ], user.heartbeats.where(entity: [ "first.py", "second.py" ]).order(:time).pluck(:branch)
   end
 
-  test "heartbeat_unique_by targets the composite index once time_epoch exists" do
-    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
+  test "direct heartbeat ingest replaces unrecognized client languages with extension detection" do
+    user = User.create!(timezone: "UTC")
 
-    assert_equal [ :fields_hash ], ingest.send(:heartbeat_unique_by)
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "src/main.asm",
+        language: "RGBDS Assembly",
+        time: Time.current.to_f,
+        type: "file"
+      } ]
+    )
 
-    with_time_epoch_column = Heartbeat.column_names + [ "time_epoch" ]
-    Heartbeat.define_singleton_method(:column_names) { with_time_epoch_column }
-    begin
-      assert_equal %i[fields_hash time_epoch], ingest.send(:heartbeat_unique_by)
-    ensure
-      Heartbeat.singleton_class.remove_method(:column_names)
-    end
+    assert_equal "Assembly", user.heartbeats.sole.language
   end
 
-  test "partition_attrs supplies floor(time) as time_epoch only once the column exists" do
-    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
+  test "direct heartbeat ingest preserves recognized client languages" do
+    user = User.create!(timezone: "UTC")
 
-    # pre-cutover / dev-and-test plain table: no-op
-    assert_equal({}, ingest.send(:partition_attrs, 1_783_000_000.9))
+    HeartbeatIngest.call(
+      user: user,
+      mode: :direct,
+      heartbeats: [ {
+        entity: "src/main.rb",
+        language: "Python",
+        time: Time.current.to_f,
+        type: "file"
+      } ]
+    )
 
-    with_time_epoch_column = Heartbeat.column_names + [ "time_epoch" ]
-    Heartbeat.define_singleton_method(:column_names) { with_time_epoch_column }
-    begin
-      assert_equal({ time_epoch: 1_783_000_000 }, ingest.send(:partition_attrs, 1_783_000_000.9))
-      assert_equal({}, ingest.send(:partition_attrs, nil))
-    ensure
-      Heartbeat.singleton_class.remove_method(:column_names)
-    end
-  end
-
-  test "set_time_epoch! populates the partition column when it exists" do
-    hb = Heartbeat.new(time: 1_783_000_000.9)
-
-    # column absent today: hook is a no-op and does not raise
-    assert_nothing_raised { hb.send(:set_time_epoch!) }
-
-    captured = []
-    hb.define_singleton_method(:time_epoch=) { |v| captured << v }
-    with_time_epoch = Heartbeat.column_names + [ "time_epoch" ]
-    Heartbeat.define_singleton_method(:column_names) { with_time_epoch }
-    begin
-      hb.send(:set_time_epoch!)
-      assert_equal [ 1_783_000_000 ], captured
-    ensure
-      Heartbeat.singleton_class.remove_method(:column_names)
-    end
-  end
-
-  test "with_heartbeat_unique_by re-raises inside an open transaction after refreshing the schema cache" do
-    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
-
-    # transactional tests already wrap us in a transaction, so the guard applies
-    calls = 0
-    assert_raises(ArgumentError) do
-      ingest.send(:with_heartbeat_unique_by) do |_unique_by|
-        calls += 1
-        raise ArgumentError, "No unique index found"
-      end
-    end
-    assert_equal 1, calls
+    assert_equal "Python", user.heartbeats.sole.language
   end
 
   test "import heartbeat ingest deduplicates imported heartbeats and schedules dashboard rollup refresh" do
@@ -862,38 +943,5 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     heartbeat = user.heartbeats.create!(legacy_attributes.merge(source_type: :wakapi_import))
     heartbeat.update_column(:fields_hash, Heartbeat.generate_fields_hash(legacy_attributes))
     heartbeat
-  end
-end
-
-# Outside a transaction (the production configuration for both ingest modes),
-# the unique_by fallback must retry exactly once with a refreshed schema cache.
-class HeartbeatIngestUniqueByFallbackTest < ActiveSupport::TestCase
-  self.use_transactional_tests = false
-
-  test "with_heartbeat_unique_by retries once after a schema-cache failure" do
-    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
-
-    calls = 0
-    result = ingest.send(:with_heartbeat_unique_by) do |unique_by|
-      calls += 1
-      raise ActiveRecord::StatementInvalid, "no unique or exclusion constraint" if calls == 1
-      unique_by
-    end
-
-    assert_equal 2, calls
-    assert_equal [ :fields_hash ], result
-  end
-
-  test "with_heartbeat_unique_by does not retry more than once" do
-    ingest = HeartbeatIngest.new(user: build(:user), mode: :direct, heartbeats: [])
-
-    calls = 0
-    assert_raises(ActiveRecord::StatementInvalid) do
-      ingest.send(:with_heartbeat_unique_by) do |_unique_by|
-        calls += 1
-        raise ActiveRecord::StatementInvalid, "no unique or exclusion constraint"
-      end
-    end
-    assert_equal 2, calls
   end
 end

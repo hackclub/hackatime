@@ -107,7 +107,7 @@ class My::ProjectRepoMappingsController < InertiaController
   def selected_interval = params[:interval]
 
   def project_durations_cache_key
-    key = "user_#{current_user.id}_project_durations_#{selected_interval}_v3"
+    key = "user_#{current_user.id}_project_durations_#{selected_interval}_v3_#{current_user.heartbeat_cache_version}"
     if selected_interval == "custom"
       sanitized_from = sanitized_cache_date(params[:from]) || "none"
       sanitized_to = sanitized_cache_date(params[:to]) || "none"

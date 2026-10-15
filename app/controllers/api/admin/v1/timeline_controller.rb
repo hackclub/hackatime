@@ -62,7 +62,7 @@ module Api
                                             period_type: (period == "last_7_days") ? :last_7_days : :daily,
                                             deleted_at: nil)
 
-          user_ids_from_leaderboard = leaderboard ? leaderboard.entries.order(total_seconds: :desc).limit(limit).pluck(:user_id) : []
+          user_ids_from_leaderboard = leaderboard ? leaderboard.entries.participating.order(total_seconds: :desc).limit(limit).pluck(:user_id) : []
           all_ids_to_fetch = ([ current_user.id ] + user_ids_from_leaderboard).uniq
 
           users_data = User.where(id: all_ids_to_fetch)

@@ -151,7 +151,7 @@ module OauthAuthentication
       data = JSON.parse(response.body.to_s)
       return nil unless data["access_token"]
 
-      user_data = JSON.parse(HTTP.auth("Bearer #{data['access_token']}").get("https://api.github.com/user").body.to_s)
+      user_data = JSON.parse(RepoHost::GithubService.get("https://api.github.com/user", token: data["access_token"]).body.to_s)
       github_uid = user_data["id"]
 
       User.where(github_uid: github_uid).where.not(id: current_user.id).where.not(github_access_token: nil).find_each do |user|

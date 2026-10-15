@@ -123,13 +123,20 @@ the user, time and activity metadata listed by
 collapse equal hashes; `insert_all ... unique_by` lets the database settle
 cross-request races, then ingestion fetches the winning row. Import batches
 keep the latest row per hash and also check legacy hashes so normalization
-changes do not duplicate old imports. During the Timescale cutover, uniqueness
-may be `(fields_hash)` or `(fields_hash, time_epoch)`; ingestion detects the
-schema, explicitly sets the partition epoch, refreshes stale schema metadata,
-and retries only outside an open transaction.
+changes do not duplicate old imports. Uniqueness is the partial
+`fields_hash` index over non-deleted rows.
 
 Soft deletion is implemented by `deleted_at`; the model's default scope hides
 those rows. Use `soft_delete` / `restore`, which also invalidate rollups.
+
+[`HeartbeatExclusion`](app/models/heartbeat_exclusion.rb) rules (admin poisons,
+project deletions) hide heartbeats without deleting them. A second default scope
+applies them to every model read. Raw SQL must include
+`HeartbeatExclusion::VISIBLE_SQL`; code that intentionally needs hidden rows uses
+`Heartbeat.with_excluded` or embeds `HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT`.
+The test suite raises on heartbeat SQL that does neither, including writes that
+would silently skip hidden rows. Per-user caches of heartbeat-derived data must
+include `User#heartbeat_cache_version` in their keys so rule changes bust them.
 
 Duration is not stored. [`Heartbeatable`](app/models/concerns/heartbeatable.rb)
 derives it from ordered heartbeat timestamps. The default timeout is 2 minutes:
@@ -194,8 +201,52 @@ supported today; [`GithubService`](app/services/repo_host/github_service.rb)
 owns GitHub headers, existence checks, metadata requests and rate-limit/error
 translation. Extending hosts requires factory/host validation and a service
 implementation, plus updating jobs that currently contain GitHub-specific
-discovery/event logic. Several periodic repository scan/sync cron entries are
+discovery logic. Several periodic repository scan/sync cron entries are
 currently disabled; do not assume they run.
+
+Every GitHub REST request goes through `RepoHost::GithubService.get`. It logs a
+`[GitHubAPI]` line with the endpoint template, status and remaining allowance,
+but never the token or repository name. After a primary or secondary rate limit
+it raises `RepoHost::RateLimitError` and refuses to use that token again until
+GitHub's reset time. Secondary limits are also reported to Sentry. Background
+calls use the user's own token, which shares that user's 5,000 requests per
+hour with their other tools, so keep them bounded.
+Background sync is off unless the `github_sync` Flipper flag is enabled. While
+it is off, `GithubApiJob` jobs finish without calling GitHub and no mapping
+lookups are queued. Sign-in and manual mapping checks are not affected.
+`AttemptProjectRepoMappingJob` only maps public repositories. A repository in
+the user's own namespace wins. An organisation repository is only mapped when
+the user has commits in it and no other organisation has one that also
+qualifies. Any existing mapping row, including one with a blank URL, stops
+automatic mapping for that project, so user edits are never overwritten. The
+job remembers a finished lookup for 14 days, caches organisation lists for a day and spends at
+most 50 GitHub requests per user per day. These counters live in Solid Cache,
+which can evict entries early, so treat them as throttles rather than durable
+state. A mapping whose repository URL is set or changed queues one commit pull
+and one metadata sync after commit. Existing mappings are kept fresh by the
+hourly `ReconcileActiveRepositoriesJob`. Each run picks at most 100
+repositories whose mapped project had heartbeats in the last day and that were
+last synced over 6 hours ago, oldest first. It queues a metadata sync for each
+and at most 100 commit pulls for their active coders. Each job gets its own
+15 second slot. A sync that gets no metadata (missing, private or no usable
+token) still updates `last_synced_at`, so the same repository is not retried
+every hour. A GitHub 5xx raises `RepoHost::ServerError` instead: the job retries
+twice and then stops without writing anything, so the repository stays due. The old
+`SyncStaleRepoMetadataJob`, which re-queued every stale repository daily, stays
+disabled.
+
+GitHub data never decides leaderboard eligibility. Eligibility only needs a
+linked `github_uid`. A rejected token clears `github_access_token` and keeps
+`github_uid`, so missing or stale GitHub data cannot hide a user.
+
+Repository sync only handles public repositories. Automatic mapping skips
+private repositories, and metadata sync stores nothing for them. The GitHub
+sign-in app needs no permission or webhook changes for the current code. Its
+owner should check that the only repository permission is the mandatory
+Metadata (read) permission, and leave the webhook inactive. Do not add the
+Contents permission or push webhooks: GitHub only delivers push events to apps
+with Contents access, and that access covers every repository an installer
+selects, private ones included. GitHub has no public-only alternative.
 
 ## 6. GoodJob, mail and Slack
 

@@ -60,15 +60,6 @@ Rails.application.routes.draw do
     end
   end
 
-  constraints AdminLevelConstraint.new(:ultraadmin) do
-    namespace :admin, defaults: { export: true } do
-      resource :account_merger, only: [ :show ], controller: "account_merger" do
-        get :search_users
-        post :merge
-      end
-    end
-  end
-
   # Read-only admin surfaces — viewers are allowed.
   constraints AdminLevelConstraint.new(:superadmin, :admin, :viewer, :ultraadmin) do
     namespace :admin, defaults: { export: true } do
@@ -306,6 +297,8 @@ Rails.application.routes.draw do
         post "user/search_fuzzy", to: "admin#search_users_fuzzy"
         post "user/convict", to: "admin#user_convict"
 
+        resource :ban, only: [ :show, :create, :destroy ], path: "ban/:hackatime_id"
+
         # Admin API Keys management
         resources :admin_api_keys, only: [ :index, :show, :create, :destroy ]
 
@@ -314,7 +307,7 @@ Rails.application.routes.draw do
         end
 
         # Trust level audit logs
-        resources :trust_level_audit_logs, only: [ :index, :show ]
+        resources :trust_level_audit_logs, only: [ :index, :show, :update ]
 
         # Deletion requests
         resources :deletion_requests, only: [ :index, :show ] do

@@ -38,6 +38,25 @@ class Api::V1::LeaderboardControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ visible_user.id ], entries.map { |entry| entry.dig("user", "id") }
   end
 
+  test "daily and weekly leaderboards exclude opted out users from existing boards and rerank" do
+    visible_user = create_user(username: "api_lb_participant")
+    hidden_user = create_user(username: "api_lb_opt_out")
+    [ :daily, :last_7_days ].each do |period|
+      board = create_board(period_type: period)
+      create(:leaderboard_entry, leaderboard: board, user: hidden_user, total_seconds: 500)
+      create(:leaderboard_entry, leaderboard: board, user: visible_user, total_seconds: 300)
+    end
+    hidden_user.update!(leaderboard_opt_out: true)
+
+    %w[daily weekly].each do |period|
+      get "/api/v1/leaderboard/#{period}"
+      assert_response :success
+      entries = response.parsed_body.fetch("entries")
+      assert_equal [ visible_user.id ], entries.map { |entry| entry.dig("user", "id") }
+      assert_equal [ 1 ], entries.map { |entry| entry["rank"] }
+    end
+  end
+
   private
 
   def create_user(username:, leaderboard_shadowbanned: false)

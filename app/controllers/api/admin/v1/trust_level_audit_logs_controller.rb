@@ -9,8 +9,10 @@ module Api
           "to_unscored" => "blue"
         }.freeze
 
+        before_action :can_write!, only: [ :update ]
+
         def index
-          audit_logs = TrustLevelAuditLog.includes(:user, :changed_by).recent.limit(250)
+          audit_logs = TrustLevelAuditLog.includes(:user, :changed_by, :edited_by).recent.limit(250)
 
           if params[:user_id].present?
             user = User.find_by(id: params[:user_id])
@@ -49,7 +51,24 @@ module Api
           render_not_found_json("Audit log not found")
         end
 
+        def update
+          audit_log = TrustLevelAuditLog.includes(:user, :changed_by).find_by(id: params[:id])
+          return render_not_found_json("Audit log not found") unless audit_log
+          return render_error("you cant punish a mortal and not justify your actions") if params[:reason].blank?
+          unless audit_log.editable_by?(current_user)
+            return render_forbidden("only the admin who made this change can edit it, within #{TrustLevelAuditLog::EDIT_WINDOW.inspect}")
+          end
+
+          notes = params.key?(:notes) ? params[:notes].presence : audit_log.notes
+          audit_log.amend!(reason: params[:reason], notes: notes, edited_by: current_user)
+          render json: audit_log_json(audit_log, full: true)
+        end
+
         private
+
+        def can_write!
+          render_forbidden("no perms lmaooo") unless current_user.admin_level.in?(AuthHelpers::ADMIN_LEVELS)
+        end
 
         def audit_log_json(log, full: false)
           payload = {
@@ -61,7 +80,8 @@ module Api
                           display_name: log.changed_by.display_name,
                           admin_level: log.changed_by.admin_level },
             reason: log.reason, notes: log.notes,
-            created_at: log.created_at
+            created_at: log.created_at,
+            **log.edit_json
           }
           if full
             payload[:user][:current_trust_level] = log.user.trust_level

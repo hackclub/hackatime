@@ -78,7 +78,7 @@ module ApplicationHelper
     "sublime text" => "Sublime Text", "iterm2" => "iTerm2", "rubymine" => "RubyMine",
     "opencode" => "OpenCode", "claudecode" => "Claude Code", "claude code" => "Claude Code",
     "claude-code" => "Claude Code", "zoom.us" => "Zoom", "windowspowershell" => "PowerShell",
-    "goland" => "GoLand", "rustrover" => "RustRover"
+    "goland" => "GoLand", "rustrover" => "RustRover", "idle" => "IDLE"
   }.freeze
 
   OS_DISPLAY_NAMES = {

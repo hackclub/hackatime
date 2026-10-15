@@ -152,11 +152,131 @@ class DashboardStatsTest < ActiveSupport::TestCase
           params: { interval: "custom", to: "2026-04-14", project: "beta" }
         ).filterable_dashboard_data
 
-        assert_equal 60, result[:total_time]
+        # The first beta row owns the capped gap from alpha, then adds 60s.
+        assert_equal 180, result[:total_time]
         assert_equal 2, result.dig(:coding_time_average, :day_count)
-        assert_equal 30.0, result.dig(:coding_time_average, :average_seconds)
+        assert_equal 90.0, result.dig(:coding_time_average, :average_seconds)
       end
     end
+  end
+
+  test "language filters retain durations from the complete heartbeat timeline" do
+    with_memory_cache_store do
+      Rails.cache.clear
+      user = create(:user)
+
+      create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", project: "alpha", language: "XML", editor: "vscode", operating_system: "macos", category: "coding")
+      create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", project: "beta", language: "Ruby", editor: "vscode", operating_system: "macos", category: "coding")
+      create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", project: "alpha", language: "XML", editor: "vscode", operating_system: "macos", category: "coding")
+
+      stats = build_stats(user, params: { language: "XML" })
+      def stats.rollups_available? = false
+
+      result = stats.filterable_dashboard_data
+
+      assert_equal 60, result[:total_time]
+      assert_equal({ "alpha" => 60 }, result[:project_durations])
+    end
+  end
+
+  test "combined filters sum attributed rows consistently across every dashboard aggregate" do
+    user = create(:user, timezone: "UTC")
+    travel_to Time.utc(2026, 4, 14, 12) do
+      attributes = { project: "alpha", language: "XML", editor: "vscode", operating_system: "macos", category: "coding" }
+      create_heartbeat_at(user, "2026-04-13 23:59:30 UTC", **attributes)
+      create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", **attributes)
+      create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", **attributes.merge(project: "beta", language: "Ruby"))
+      create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", **attributes)
+      create_heartbeat_at(user, "2026-04-14 09:03:00 UTC", **attributes.merge(editor: "zed"))
+      create_heartbeat_at(user, "2026-04-14 09:04:00 UTC", **attributes.merge(project: "gamma", language: "JSON"))
+      create_heartbeat_at(user, "2026-04-14 09:10:00 UTC", **attributes.merge(project: "gamma", language: "JSON"))
+
+      stats = build_stats(user, params: {
+        interval: "today", project: "alpha,gamma", language: "XML,JSON",
+        editor: "VSCode", operating_system: "macOS", category: "coding"
+      })
+      result = stats.build_filterable_dashboard_data("today")
+
+      assert_equal 240, result[:total_time]
+      assert_equal 4, result[:total_heartbeats]
+      assert_equal({ "alpha" => 60, "gamma" => 180 }, result[:project_durations])
+      assert_equal({ "XML" => 60, "JSON" => 180 }, result["language_stats"])
+      assert_equal({ "coding" => 240 }, result[:coding_category_stats])
+      assert_equal({ "alpha" => 60, "gamma" => 180 }, result[:weekly_project_stats].fetch("2026-04-13"))
+      assert_equal({ "2-9" => 240 }, result[:coding_rhythm][:duration_by_slot])
+    end
+  end
+
+  test "filtered duration timeline excludes archived deleted and other users heartbeats" do
+    user = create(:user)
+    attributes = { project: "alpha", language: "XML", editor: "vscode", operating_system: "macos", category: "coding" }
+    create_heartbeat_at(user, "2026-04-14 09:00:00 UTC", **attributes)
+    create_heartbeat_at(user, "2026-04-14 09:01:00 UTC", **attributes.merge(project: "archived"))
+    create(:project_repo_mapping, user: user, project_name: "archived").archive!
+    deleted = create_heartbeat_at(user, "2026-04-14 09:01:30 UTC", **attributes)
+    deleted.soft_delete
+    create_heartbeat_at(create(:user), "2026-04-14 09:01:45 UTC", **attributes)
+    create_heartbeat_at(user, "2026-04-14 09:02:00 UTC", **attributes)
+
+    result = build_stats(user, params: { language: "XML" }).build_filterable_dashboard_data(nil)
+    assert_equal 120, result[:total_time]
+    assert_equal 2, result[:total_heartbeats]
+    assert_equal({ "alpha" => 120 }, result[:project_durations])
+
+    empty = build_stats(user, params: { language: "Ruby" }).build_filterable_dashboard_data(nil)
+    assert_equal 0, empty[:total_time]
+    assert_equal 0, empty[:total_heartbeats]
+    assert_empty empty[:project_durations]
+    assert_empty empty[:coding_rhythm][:duration_by_slot]
+  end
+
+  test "small and large filtered timelines preserve duration attribution" do
+    [ 3, 1_002 ].each do |heartbeat_count|
+      user = create(:user, timezone: "UTC")
+      first = create(
+        :heartbeat,
+        user: user,
+        time: Time.utc(2026, 4, 14, 9).to_f,
+        project: "alpha",
+        language: "XML",
+        editor: "vscode",
+        operating_system: "macos",
+        category: "coding"
+      )
+      Heartbeat.insert_all!((1...heartbeat_count).map do |offset|
+        first.attributes.except("id").merge(
+          "time" => first.time + offset,
+          "language" => offset == 1 ? "Ruby" : "XML",
+          "fields_hash" => Digest::SHA256.hexdigest("filtered-timeline-#{first.id}-#{offset}")
+        )
+      end)
+
+      result = build_stats(user, params: { language: "XML" }).filterable_dashboard_data
+
+      assert_equal heartbeat_count - 2, result[:total_time]
+      assert_equal heartbeat_count - 1, result[:total_heartbeats]
+      assert_equal({ "alpha" => heartbeat_count - 2 }, result[:project_durations])
+      assert_equal heartbeat_count - 2, result[:coding_category_stats].values.sum
+      assert_equal heartbeat_count - 2, result[:coding_rhythm][:duration_by_slot].values.sum
+    end
+  end
+
+  test "predecessor lookups preserve timestamp ties nil buckets and fractional durations" do
+    user = create(:user, timezone: "Europe/London")
+    time = Time.utc(2026, 4, 13, 22, 59, 59).to_f
+    create(:heartbeat, user: user, time: time, language: "Ruby", project: "beta")
+    create(:heartbeat, user: user, time: time + 1.5, language: "XML", project: nil)
+    create(:heartbeat, user: user, time: time + 1.5, language: "Ruby", project: "beta")
+    create(:heartbeat, user: user, time: time + 1.5, language: "XML", project: nil, entity: "other.xml")
+    create(:heartbeat, user: user, time: time + 2.25, language: "XML", project: nil)
+    expected = DashboardData::Snapshots.filtered_query_snapshot(
+      user: user, scope: DashboardData::Snapshots.attributed_dashboard_scope(user.heartbeats).where(language: "XML")
+    )
+    actual = DashboardData::Snapshots.adaptive_filtered_snapshot(user: user, scope: user.heartbeats) { |scope| scope.where(language: "XML") }
+    assert_equal expected, actual
+    assert_equal 2, actual[:total_time]
+    assert_equal({ nil => 2 }, actual[:grouped_durations][:project])
+    assert_equal({ "2-0" => 2 }, actual[:coding_rhythm][:duration_by_slot])
   end
 
   test "homepage rollup path falls back to live filter options when filter option rollup is missing" do

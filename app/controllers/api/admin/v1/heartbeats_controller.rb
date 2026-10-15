@@ -11,6 +11,7 @@ module Api
           cutoff = lookback_days.days.ago.to_i
 
           query = <<-SQL
+            #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
             SELECT
               r1.user_id  AS user_a_id,
               r2.user_id  AS user_b_id,
@@ -19,10 +20,13 @@ module Api
               r1.first_seen AS user_a_first_seen,
               r1.last_seen  AS user_a_last_seen,
               r2.first_seen AS user_b_first_seen,
-              r2.last_seen  AS user_b_last_seen
+              r2.last_seen  AS user_b_last_seen,
+              r1.hidden     AS user_a_hidden,
+              r2.hidden     AS user_b_hidden
             FROM (
               SELECT user_id, machine, ip_address,
-                     MIN(time) AS first_seen, MAX(time) AS last_seen
+                     MIN(time) AS first_seen, MAX(time) AS last_seen,
+                     BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) AS hidden
               FROM heartbeats
               WHERE user_id IS NOT NULL
                 AND machine IS NOT NULL
@@ -33,7 +37,8 @@ module Api
             ) r1
             JOIN (
               SELECT user_id, machine, ip_address,
-                     MIN(time) AS first_seen, MAX(time) AS last_seen
+                     MIN(time) AS first_seen, MAX(time) AS last_seen,
+                     BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) AS hidden
               FROM heartbeats
               WHERE user_id IS NOT NULL
                 AND machine IS NOT NULL
@@ -59,31 +64,36 @@ module Api
           cutoff = lookback_days.days.ago.to_i
 
           query = <<-SQL
-            SELECT
-              sms.machine,
-              sms.machine_frequency,
-              ARRAY_AGG(DISTINCT u.id) AS user_ids
-            FROM (
+            #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
+            WITH user_machines AS (
+              SELECT machine, user_id, BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) AS hidden
+              FROM heartbeats
+              WHERE machine IS NOT NULL
+                AND deleted_at IS NULL
+                AND time > ?
+              GROUP BY machine, user_id
+            ),
+            shared AS (
               SELECT machine, COUNT(user_id) AS machine_frequency
-              FROM (
-                SELECT DISTINCT machine, user_id
-                FROM heartbeats
-                WHERE machine IS NOT NULL
-                  AND deleted_at IS NULL
-                  AND time > ?
-              ) AS user_machines
+              FROM user_machines
               GROUP BY machine
               HAVING COUNT(user_id) > 1
-            ) AS sms
-            JOIN heartbeats hb ON hb.machine = sms.machine AND hb.deleted_at IS NULL AND hb.time > ?
-            JOIN users u ON u.id = hb.user_id
-            GROUP BY sms.machine, sms.machine_frequency
-            ORDER BY sms.machine_frequency DESC, sms.machine ASC
+            )
+            SELECT
+              shared.machine,
+              shared.machine_frequency,
+              ARRAY_AGG(u.id ORDER BY u.id) AS user_ids,
+              COALESCE(ARRAY_AGG(u.id ORDER BY u.id) FILTER (WHERE user_machines.hidden), '{}') AS hidden_user_ids
+            FROM shared
+            JOIN user_machines ON user_machines.machine = shared.machine
+            JOIN users u ON u.id = user_machines.user_id
+            GROUP BY shared.machine, shared.machine_frequency
+            ORDER BY shared.machine_frequency DESC, shared.machine ASC
             LIMIT ?
           SQL
 
           result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff, cutoff, limit ])
+            ActiveRecord::Base.sanitize_sql([ query, cutoff, limit ])
           )
 
           render json: { machines: result.to_a }
