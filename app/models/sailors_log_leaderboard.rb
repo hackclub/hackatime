@@ -1,6 +1,8 @@
 class SailorsLogLeaderboard < ApplicationRecord
   include ApplicationHelper  # for short_time_simple
 
+  PARTICIPATION_CACHE_VERSION_KEY = "sailors_log_leaderboard/participation_version"
+
   LANGUAGE_EMOJIS = {
     "ruby" => [ ":ruby:", ":-ruby:" ],
     "javascript" => [ ":js:" ],
@@ -35,7 +37,22 @@ class SailorsLogLeaderboard < ApplicationRecord
   }.freeze
 
   validates :slack_channel_id, :slack_uid, presence: true
+  # Capture before generation so an opt-out also invalidates rows that commit later.
+  before_create -> { self.participation_cache_version = self.class.current_participation_cache_version }
   after_create :generate_message
+
+  scope :reusable, -> {
+    where(deleted_at: nil, participation_cache_version: current_participation_cache_version)
+      .where("created_at > ?", 1.minute.ago)
+  }
+
+  def self.current_participation_cache_version
+    Rails.cache.fetch(PARTICIPATION_CACHE_VERSION_KEY) { SecureRandom.uuid }
+  end
+
+  def self.clear_cache!
+    Rails.cache.write(PARTICIPATION_CACHE_VERSION_KEY, SecureRandom.uuid)
+  end
 
   def self.language_emoji(language)
     return nil if language.blank?

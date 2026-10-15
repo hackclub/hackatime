@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_15_124312) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_15_131538) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -621,6 +621,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_124312) do
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.text "message"
+    t.string "participation_cache_version"
     t.string "slack_channel_id"
     t.string "slack_uid"
     t.datetime "updated_at", null: false

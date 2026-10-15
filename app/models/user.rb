@@ -246,7 +246,7 @@ class User < ApplicationRecord
   end
 
   private def clear_sailors_log_leaderboards
-    SailorsLogLeaderboard.where(deleted_at: nil).where("created_at > ?", 1.minute.ago).update_all(deleted_at: Time.current)
+    SailorsLogLeaderboard.clear_cache!
   end
 
   def poisoned? = active_poison.present?
