@@ -17,7 +17,8 @@ class User < ApplicationRecord
   after_create :subscribe_to_default_lists
   after_create_commit :schedule_welcome_email
   after_create_commit :schedule_onboarding_check_in_email
-  after_update_commit :clear_leaderboard_page_cache, if: -> { saved_change_to_leaderboard_shadowban_state? || saved_change_to_trust_level? }
+  after_update_commit :clear_leaderboard_page_cache, if: -> { saved_change_to_leaderboard_shadowban_state? || saved_change_to_trust_level? || saved_change_to_leaderboard_opt_out? }
+  after_update_commit :clear_sailors_log_leaderboards, if: :saved_change_to_leaderboard_opt_out?
   before_validation :normalize_username
   before_validation :normalize_display_name_override
   encrypts :slack_access_token, :github_access_token, :hca_access_token
@@ -231,6 +232,7 @@ class User < ApplicationRecord
   }
 
   scope :leaderboard_shadowbanned, -> { where(leaderboard_shadowbanned: true) }
+  scope :leaderboard_participants, -> { where(leaderboard_opt_out: false) }
 
   def saved_change_to_leaderboard_shadowban_state?
     saved_change_to_leaderboard_shadowbanned? ||
@@ -241,6 +243,10 @@ class User < ApplicationRecord
 
   def clear_leaderboard_page_cache
     LeaderboardPageCache.clear!
+  end
+
+  private def clear_sailors_log_leaderboards
+    SailorsLogLeaderboard.where(deleted_at: nil).where("created_at > ?", 1.minute.ago).update_all(deleted_at: Time.current)
   end
 
   def poisoned? = active_poison.present?

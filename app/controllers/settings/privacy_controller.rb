@@ -27,6 +27,7 @@ class Settings::PrivacyController < Settings::BaseController
   def page_props
     { user: {
         allow_public_stats_lookup: @user.allow_public_stats_lookup,
+        leaderboard_opt_out: @user.leaderboard_opt_out,
         can_request_deletion: @user.can_request_deletion?
       },
       rotated_api_key: flash[:rotated_api_key],
@@ -37,5 +38,5 @@ class Settings::PrivacyController < Settings::BaseController
       deletion_reason_details_max_length: DeletionRequest::MAX_REASON_DETAILS_LENGTH }
   end
 
-  def privacy_params = params.require(:user).permit(:allow_public_stats_lookup)
+  def privacy_params = params.require(:user).permit(:allow_public_stats_lookup, :leaderboard_opt_out)
 end
