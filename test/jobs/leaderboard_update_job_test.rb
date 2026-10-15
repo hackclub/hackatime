@@ -33,6 +33,23 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
     assert_operator board.generation_duration_seconds, :>=, 1
   end
 
+  test "rebuilds exclude opted out users and restore them after rejoining" do
+    user = create_user(username: "lb_opt_out", github_uid: "GH_LB_OPT_OUT")
+    create_heartbeat_pair(user: user, started_at: 1.hour.ago, editor: "vscode")
+
+    LeaderboardUpdateJob.perform_now(:daily, Date.current, force_update: true)
+    board = Leaderboard.find_by!(start_date: Date.current, period_type: :daily)
+    assert_equal [ user.id ], board.entries.pluck(:user_id)
+
+    user.update!(leaderboard_opt_out: true)
+    LeaderboardUpdateJob.perform_now(:daily, Date.current, force_update: true)
+    assert_empty board.entries.reload
+
+    user.update!(leaderboard_opt_out: false)
+    LeaderboardUpdateJob.perform_now(:daily, Date.current, force_update: true)
+    assert_equal [ user.id ], board.entries.reload.pluck(:user_id)
+  end
+
   private
 
   def create_user(username:, github_uid:)

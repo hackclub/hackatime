@@ -25,7 +25,7 @@ class LeaderboardUpdateJob < ApplicationJob
 
     range = LeaderboardDateRange.calculate(date, period)
     timestamp = Time.current
-    eligible_users = User.where.not(github_uid: nil).where.not(trust_level: User.trust_levels[:red])
+    eligible_users = User.leaderboard_participants.where.not(github_uid: nil).where.not(trust_level: User.trust_levels[:red])
 
     ActiveRecord::Base.transaction do
       data = Heartbeat.where(user_id: eligible_users.select(:id), time: range)

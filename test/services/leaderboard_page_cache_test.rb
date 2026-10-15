@@ -58,6 +58,20 @@ class LeaderboardPageCacheTest < ActiveSupport::TestCase
     assert_equal true, payload.dig(:entries, 0, :user, :shadowbanned)
   end
 
+  test "opting out invalidates warm global and country rows and rejoining restores them" do
+    user = create_user(username: "lb_opt_out", country_code: "US")
+    board = create_board_with_entry(user: user, total_seconds: 321)
+
+    [ false, true, false ].each do |opt_out|
+      user.update!(leaderboard_opt_out: opt_out)
+      [ :global, :country ].each do |scope|
+        payload = LeaderboardPageCache.fetch(leaderboard: board, scope: scope, country_code: "US")
+        assert_equal opt_out ? [] : [ user.id ], payload[:user_ids]
+        assert_equal opt_out ? 0 : 1, payload[:total_entries]
+      end
+    end
+  end
+
   private
 
   def create_user(username:, country_code:, trust_level: :blue, leaderboard_shadowbanned: false)
