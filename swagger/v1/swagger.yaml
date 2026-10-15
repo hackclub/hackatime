@@ -1797,7 +1797,6 @@ paths:
       security:
       - {}
       - Bearer: []
-      - ApiKeyAuth: []
       parameters:
       - name: username
         in: path
@@ -1882,10 +1881,7 @@ paths:
         public-facing levels are ever returned: blue (0, unscored), red (1, convicted),
         green (2, trusted). The internal "yellow" (suspected) level is masked to blue
         and never exposed.'
-      security:
-      - {}
-      - Bearer: []
-      - ApiKeyAuth: []
+      security: []
       parameters:
       - name: username
         in: path
@@ -1931,7 +1927,6 @@ paths:
       security:
       - {}
       - Bearer: []
-      - ApiKeyAuth: []
       parameters:
       - name: username
         in: path
@@ -1975,7 +1970,6 @@ paths:
       security:
       - {}
       - Bearer: []
-      - ApiKeyAuth: []
       parameters:
       - name: username
         in: path
@@ -2088,7 +2082,6 @@ paths:
       security:
       - {}
       - Bearer: []
-      - ApiKeyAuth: []
       parameters:
       - name: username
         in: path
@@ -2219,7 +2212,6 @@ paths:
       security:
       - {}
       - Bearer: []
-      - ApiKeyAuth: []
       parameters:
       - name: username
         in: path

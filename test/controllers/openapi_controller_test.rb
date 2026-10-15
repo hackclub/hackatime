@@ -14,6 +14,17 @@ class OpenapiControllerTest < ActionDispatch::IntegrationTest
     assert_includes document["paths"].keys, "/api/hackatime/v1/users/{id}/heartbeats"
   end
 
+  test "stats authentication declarations match supported credentials" do
+    get openapi_path
+
+    paths = JSON.parse(response.body).fetch("paths")
+    %w[stats heartbeats/spans projects project/{project_name} projects/details].each do |operation|
+      path = "/api/v1/users/{username}/#{operation}"
+      assert_equal [ {}, { "Bearer" => [] } ], paths.fetch(path).fetch("get").fetch("security"), path
+    end
+    assert_equal [], paths.fetch("/api/v1/users/{username}/trust_factor").fetch("get").fetch("security")
+  end
+
   test "serves the OpenAPI document as YAML" do
     get openapi_yaml_path
 
