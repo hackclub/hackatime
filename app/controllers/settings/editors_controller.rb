@@ -1,11 +1,6 @@
 class Settings::EditorsController < Settings::BaseController
   def update
-    if @user.update(editor_params)
-      redirect_to my_settings_editors_path, notice: "Settings updated successfully"
-    else
-      flash.now[:error] = @user.errors.full_messages.to_sentence.presence || "Failed to update settings"
-      render_settings_page(status: :unprocessable_entity)
-    end
+    update_user_settings(editor_params, redirect_location: my_settings_editors_path)
   end
 
   private
