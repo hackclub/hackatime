@@ -17,7 +17,7 @@ class UsersController < InertiaController
     session[:return_data]&.delete("skip_setup_flow")
 
     render inertia: "Setup/Index", props: {
-      current_user_api_key: ensure_api_key.token,
+      current_user_api_key: current_user.hackatime_api_key(create_if_missing: true).token,
       setup_os: detect_setup_os(request.user_agent).to_s,
       skip_setup_flow: skip_setup_flow,
       return_url: session.dig(:return_data, "url"),
@@ -64,10 +64,6 @@ class UsersController < InertiaController
   def current_theme = SETUP_THEME
   def current_theme_color_scheme = User.theme_metadata(SETUP_THEME).fetch(:color_scheme, "light")
   def current_theme_color = User.theme_metadata(SETUP_THEME).fetch(:theme_color, "#aa586f")
-
-  def ensure_api_key
-    current_user&.api_keys&.last || current_user.api_keys.create!(name: "Wakatime API Key")
-  end
 
   def ensure_current_user_for_setup
     redirect_to signin_path(continue: request.fullpath), alert: "Please sign in to set up your editor." if current_user.nil?
