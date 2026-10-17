@@ -15,7 +15,7 @@ The **Privacy** settings page controls whether other people can look up your pub
 ## Choose what to configure
 
 - [Projects and GitHub](/configuration/projects) explains project names, repository links, sharing and archiving.
-- [Privacy and tracked data](/configuration/privacy) explains heartbeat metadata and how to exclude sensitive paths.
+- [Privacy and tracked data](/configuration/privacy) explains heartbeat metadata, how to omit or obfuscate sensitive paths and the implications for Hack Club programme submissions.
 - [Plugin settings](/configuration/plugin-settings) covers the shared `~/.wakatime.cfg`, exclusions and project-only tracking.
 
 Most editor plugins share the same WakaTime CLI configuration, so one change normally applies across all your installed editors.
