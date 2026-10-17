@@ -17,26 +17,6 @@ Depending on the editor and plugin, a heartbeat can include:
 
 Hackatime does not receive screenshots, a stream of your keystrokes, password values or the contents of the file you are editing through ordinary heartbeats.
 
-## Hide sensitive paths before sending
-
-Privacy options belong under `[settings]` in `~/.wakatime.cfg`. They are applied by the plugin before a heartbeat reaches Hackatime.
-
-Send paths relative to the detected project folder:
-
-```ini title="~/.wakatime.cfg"
-[settings]
-hide_project_folder = true
-```
-
-Obfuscate every file name while retaining its extension:
-
-```ini title="~/.wakatime.cfg"
-[settings]
-hide_file_names = true
-```
-
-You can also set `hide_file_names` to a list of path patterns, or use `hide_project_names`, `hide_branch_names` and `hide_dependencies` for the corresponding metadata.
-
 ## Exclude paths entirely
 
 `exclude` entries are POSIX regular expressions. Matching activity is not sent:
