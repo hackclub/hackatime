@@ -1108,4 +1108,21 @@ class WakatimeUserAgentParserTest < Minitest::Test
     assert_equal "", result[:editor]
     assert_equal "failed to parse user agent string", result[:err]
   end
+
+  def test_parse_user_agent_recognizes_deepseek_harness
+    user_agents = {
+      "dsh" => "deepseek-harness",
+      "DSH" => "deepseek-harness",
+      "dsh/0.1.0" => "deepseek-harness",
+      "dsh-hackatime/0.1.0" => "deepseek-harness",
+      "deepseek-harness/1.2.3" => "deepseek-harness"
+    }
+
+    user_agents.each do |user_agent, editor|
+      result = WakatimeUserAgentParser.parse(user_agent)
+
+      assert_equal editor, result[:editor], user_agent
+      assert_nil result[:err], user_agent
+    end
+  end
 end
