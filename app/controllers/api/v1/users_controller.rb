@@ -1,5 +1,6 @@
 class Api::V1::UsersController < ApplicationController
   before_action :authenticate_admin_api_key!, unless: -> { Rails.env.development? }
+  include AuthenticatedApiRateLimiting
 
   def lookup_email
     user = EmailAddress.find_by(email: params[:email])&.user
@@ -18,4 +19,10 @@ class Api::V1::UsersController < ApplicationController
       render json: { error: "User not found", slack_uid: params[:slack_uid] }, status: :not_found
     end
   end
+
+  private
+
+  def admin_api_rate_limit? = true
+
+  def authenticated_api_rate_limit_identity = @admin_api_key && "admin_api_key:#{@admin_api_key.id}"
 end
