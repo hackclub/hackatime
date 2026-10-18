@@ -27,6 +27,10 @@ class PullRepoCommitsJob < ApplicationJob
       # and the account link are unaffected.
       user.update!(github_access_token: nil)
       Rails.logger.info "[PullRepoCommitsJob] Cleared invalid GitHub token for User ##{user.id}"
+    when 403
+      # Rate limits raise in GithubService before reaching here. A permission
+      # refusal only prevents this repository sync; the token may work elsewhere.
+      Rails.logger.warn "[PullRepoCommitsJob] Skipping forbidden repository sync for User ##{user.id} (403)"
     when 404, 409
       # Missing or inaccessible repository (404) or an empty repository (409).
       nil

@@ -99,16 +99,12 @@ class SessionsController < ApplicationController
 
   def github_create
     return unless require_signed_in!("Please sign in first to link your GitHub account")
+    return if handle_oauth_error("GitHub", redirect_path: my_settings_path, alert_label: "GitHub")
 
     redirect_uri = url_for(action: :github_create, only_path: false)
 
-    if params[:error].present?
-      report_message("GitHub OAuth error: #{params[:error]}")
-      return redirect_to(my_settings_path, alert: "Failed to authenticate with GitHub. Error ID: #{Sentry.last_event_id}")
-    end
-
     unless valid_oauth_state?(provider: "GitHub", session_key: :github_oauth_state_nonce, received_nonce: params[:state])
-      return redirect_to(my_settings_path, alert: "Failed to link GitHub account")
+      return redirect_to(my_settings_path, alert: "This GitHub linking attempt is no longer valid. Please try connecting GitHub again.")
     end
 
     @user = User.from_github_token(params[:code], redirect_uri, current_user)
@@ -282,17 +278,21 @@ class SessionsController < ApplicationController
   end
 
   def valid_oauth_state?(provider:, session_key:, received_nonce:)
-    expected_nonce = session.delete(session_key)
+    expected_nonce = session[session_key]
 
     if expected_nonce.blank? || received_nonce.blank?
-      report_message("#{provider} OAuth state missing expected=#{expected_nonce.present?} received=#{received_nonce.present?}")
+      Rails.logger.warn("#{provider} OAuth state missing expected=#{expected_nonce.present?} received=#{received_nonce.present?}")
       return false
     end
 
-    return true if ActiveSupport::SecurityUtils.secure_compare(received_nonce.to_s, expected_nonce.to_s)
+    unless ActiveSupport::SecurityUtils.secure_compare(received_nonce.to_s, expected_nonce.to_s)
+      Rails.logger.warn("#{provider} OAuth state mismatch")
+      return false
+    end
 
-    report_message("#{provider} OAuth state mismatch")
-    false
+    # Invalid or stale callbacks must not consume a newer attempt's state.
+    session.delete(session_key)
+    true
   end
 
   # Handles OAuth callback errors. Returns true if a redirect was performed.

@@ -47,6 +47,44 @@ class PullRepoCommitsJobTest < ActiveJob::TestCase
     assert_equal 0, Commit.count
   end
 
+  test "a permission 403 skips the sync without reporting an error or clearing the account link" do
+    stub_request(:get, COMMITS_URL).to_return(
+      status: 403, headers: { "X-RateLimit-Remaining" => "4000" },
+      body: '{"message":"Resource not accessible by integration"}'
+    )
+    existing_commit = Commit.create!(sha: "existing", user: @user, repository: @repository)
+    reported = []
+    original_capture = Sentry.method(:capture_message)
+    Sentry.define_singleton_method(:capture_message) { |message, **| reported << message }
+    begin
+      assert_no_enqueued_jobs do
+        PullRepoCommitsJob.perform_now(@user.id, "example", "widget")
+      end
+    ensure
+      Sentry.define_singleton_method(:capture_message, original_capture)
+    end
+
+    assert_empty reported
+    assert_equal [ existing_commit.sha ], Commit.where(user: @user).pluck(:sha)
+    assert_equal "token-a", @user.reload.github_access_token
+    assert_equal "1001", @user.github_uid
+  end
+
+  test "primary and secondary rate limit 403s are retried rather than skipped" do
+    [
+      { "X-RateLimit-Remaining" => "0", "X-RateLimit-Reset" => 20.minutes.from_now.to_i.to_s },
+      { "X-RateLimit-Remaining" => "4000", "Retry-After" => "120" }
+    ].each do |headers|
+      stub_request(:get, COMMITS_URL).to_return(status: 403, headers: headers, body: "{}")
+
+      assert_enqueued_with(job: PullRepoCommitsJob, args: [ @user.id, "example", "widget" ]) do
+        PullRepoCommitsJob.perform_now(@user.id, "example", "widget")
+      end
+      assert_equal "token-a", @user.reload.github_access_token
+      assert_equal "1001", @user.github_uid
+    end
+  end
+
   test "timeouts are retried later instead of failing the job" do
     stub_request(:get, COMMITS_URL).to_timeout
 
