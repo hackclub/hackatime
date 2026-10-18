@@ -105,7 +105,7 @@ module Heartbeatable
       uncached_users = user_ids.select { |id| streak_cache[cache_keys[id]].nil? }
       return user_ids.index_with { |id| streak_cache[cache_keys[id]] || 0 } if uncached_users.empty?
 
-      day_group_sql = "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE users.timezone)"
+      day_group_sql = "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE COALESCE(users.timezone, 'UTC'))"
       duration_start_sql = "LAG(time) OVER (PARTITION BY user_id, #{day_group_sql} ORDER BY time, #{quoted_table_name}.id) as duration_start"
       raw_durations = joins(:user)
         .where(user_id: uncached_users)
