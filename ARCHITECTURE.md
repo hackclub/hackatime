@@ -268,10 +268,14 @@ changing retry/queue semantics deliberately.
 Slack has three boundaries: OAuth/provider identity in the user concerns,
 signed command ingress in [`SlackController`](app/controllers/slack_controller.rb),
 and queued command/profile/status work. Outside development, commands require a
-valid Slack HMAC signature and timestamp within five minutes. Remote API calls,
-token choice and typed rate-limit behavior live in
-[`SlackIntegration`](app/models/concerns/slack_integration.rb); controllers
-should authenticate, validate and enqueue.
+valid Slack HMAC signature and timestamp within five minutes. Background profile
+and notification name lookups use [`Cachet`](lib/cachet.rb), without Slack tokens
+or a direct Slack API fallback. A Cachet cache miss (HTTP 202) must not overwrite
+stored profile data; the profile job retries before leaving it due for the next
+scheduled refresh. Slack OAuth still fetches identity data directly from Slack.
+Profile assignment and Slack status API calls live in
+[`SlackIntegration`](app/models/concerns/slack_integration.rb); controllers should
+authenticate, validate and enqueue.
 
 ## 7. Time zones, transactions and concurrency
 

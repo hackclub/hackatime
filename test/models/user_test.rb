@@ -137,25 +137,26 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "Custom Name", user.display_name
   end
 
-  test "slack profile sync prefers the workspace token over the user's Slack token" do
-    user = create(:user, slack_uid: "U_HCA", slack_access_token: "personal-token")
+  test "profile sync uses Cachet without a Slack token and falls back to the real name" do
+    user = create(:user, slack_uid: "U_HCA", display_name_override: "Custom Name")
     original_token = ENV["SLACK_USER_OAUTH_TOKEN"]
-    ENV["SLACK_USER_OAUTH_TOKEN"] = "workspace-token"
-    request = stub_request(:get, "https://slack.com/api/users.info?user=U_HCA")
-      .with(headers: { "Authorization" => "Bearer workspace-token" })
+    ENV.delete("SLACK_USER_OAUTH_TOKEN")
+    stub_request(:get, "https://cachet.hackclub.com/users/U_HCA")
+      .with { |request| !request.headers.key?("Authorization") }
       .to_return(body: {
-        ok: true,
-        user: {
-          name: "hca-user",
-          profile: { image_192: "https://example.com/hca-avatar.png" }
-        }
+        displayName: " ",
+        realName: "Real Name",
+        imageUrl: "https://example.com/hca-avatar.png"
       }.to_json)
 
-    user.update_from_slack
+    user.update_from_cachet
     user.save!
 
-    assert_requested request
-    assert_equal "https://example.com/hca-avatar.png", user.reload.slack_avatar_url
+    user.reload
+    assert_equal "Real Name", user.slack_username
+    assert_equal "https://example.com/hca-avatar.png", user.slack_avatar_url
+    assert_equal "Custom Name", user.display_name
+    assert_not_nil user.slack_synced_at
   ensure
     ENV["SLACK_USER_OAUTH_TOKEN"] = original_token
   end

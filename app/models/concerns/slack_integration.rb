@@ -1,22 +1,6 @@
 module SlackIntegration
   extend ActiveSupport::Concern
 
-  class ApiError < StandardError
-    def initialize(error, status: nil)
-      details = [ status && "HTTP #{status}", error ].compact.join(": ")
-      super("Slack profile API request failed: #{details}")
-    end
-  end
-
-  class RateLimitedError < StandardError
-    attr_reader :retry_after
-
-    def initialize(retry_after)
-      @retry_after = [ retry_after.to_i, 1 ].max
-      super("Slack profile API rate limit exceeded")
-    end
-  end
-
   STATUS_EMOJI_BUCKETS = [
     [ 30.minutes,  %w[thinking cat-on-the-laptop loading-tumbleweed rac-yap] ],
     [ 1.hour,      %w[working-parrot meow_code] ],
@@ -29,31 +13,17 @@ module SlackIntegration
   ].freeze
   STATUS_EMOJI_OVERFLOW = %w[areyousure time-to-stop].freeze
 
-  def raw_slack_user_info
-    return nil unless slack_uid.present?
-    access_token = ENV["SLACK_USER_OAUTH_TOKEN"].presence || slack_access_token.presence
-    return nil unless access_token
-
-    response = HTTP.auth("Bearer #{access_token}")
-      .get("https://slack.com/api/users.info?user=#{slack_uid}")
-    raise RateLimitedError, response.headers["Retry-After"] if response.status.code == 429
-
-    data = JSON.parse(response.body.to_s)
-    raise ApiError.new(data["error"] || "unexpected response", status: response.status.code) unless response.status.success? && data["ok"]
-
-    data.fetch("user")
-  end
-
-  def update_from_slack
-    user_data = raw_slack_user_info
+  def update_from_cachet
+    return unless slack_uid.present?
+    user_data = Cachet.user(slack_uid)
     return unless user_data.present?
 
-    apply_slack_profile_attributes(user_data)
+    self.slack_username = user_data["displayName"].presence || user_data["realName"].presence
+    self.slack_avatar_url = user_data.fetch("imageUrl")
     self.slack_synced_at = Time.current
   end
 
-  # Assigns slack_username and slack_avatar_url from a Slack `user` payload.
-  # Shared by SlackIntegration#update_from_slack and OauthAuthentication.from_slack_token.
+  # Assigns profile attributes from the Slack OAuth sign-in payload.
   def apply_slack_profile_attributes(slack_user)
     profile = slack_user["profile"] || {}
     self.slack_avatar_url = profile["image_192"] || profile["image_72"]
