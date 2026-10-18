@@ -13,15 +13,14 @@ class SlackProfileSyncJob < ApplicationJob
     user = User.find_by(id: user_id)
     return unless user&.slack_uid.present?
 
-    user.update_from_slack
-    user.save! if user.changed?
-  rescue SlackIntegration::RateLimitedError => e
-    raise if executions >= 5
+    unless user.update_from_cachet
+      retry_job(wait: 1.minute) if executions < 5
+      return
+    end
 
-    polynomial_delay = executions**4 + (Kernel.rand * executions**4 * 0.15) + 2
-    retry_job(wait: [ e.retry_after, polynomial_delay ].max.seconds)
+    user.save! if user.changed?
   rescue => e
-    report_error(e, message: "Failed to update Slack username and avatar for user #{user_id}")
+    report_error(e, message: "Failed to update Slack username and avatar from Cachet for user #{user_id}")
     raise
   end
 end

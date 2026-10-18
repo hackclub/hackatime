@@ -3,17 +3,16 @@ class SlackUsername
     key = "slack_username_#{uid}"
 
     cached_name = Rails.cache.fetch(key, expires_in: 1.day) do
-      response = HTTP.headers(Authorization: "Bearer #{ENV.fetch("SAILORS_LOG_SLACK_BOT_OAUTH_TOKEN")}").get("https://slack.com/api/users.info?user=#{uid}")
-      data = JSON.parse(response.body)
+      data = Cachet.user(uid)
 
-      name = data.dig("user", "profile", "display_name")
-      name ||= data.dig("user", "profile", "display_name_normalized")
-
-      name
+      data && (data["displayName"].presence || data["realName"].presence)
     end
 
     Rails.cache.delete(key) unless cached_name.present?
 
     cached_name
+  rescue Cachet::ApiError, HTTP::TimeoutError, HTTP::ConnectionError, JSON::ParserError => e
+    Rails.logger.warn("Cachet name lookup failed for #{uid}: #{e.message}")
+    nil
   end
 end

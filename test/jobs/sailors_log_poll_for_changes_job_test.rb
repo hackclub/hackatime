@@ -24,10 +24,10 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
       user_id: user.id, dimension: "project", bucket_value: "nixos",
       bucket_value_present: true, total_seconds: 22_209
     )
-    stub_request(:get, "https://slack.com/api/users.info?user=#{user.slack_uid}")
-      .to_return(status: 200, body: { ok: true, user: { profile: { display_name: "Sailor" } } }.to_json)
+    stub_request(:get, "https://cachet.hackclub.com/users/#{user.slack_uid}")
+      .to_return(status: 200, body: { displayName: "Sailor" }.to_json)
     slack_request = stub_request(:post, "https://slack.com/api/chat.postMessage")
-      .with { |request| JSON.parse(request.body).fetch("text").include?("has now coded for *6 hours* on *nixos*") }
+      .with { |request| JSON.parse(request.body).fetch("text").include?("`@Sailor` has now coded for *6 hours* on *nixos*") }
       .to_return(status: 200, body: { ok: true }.to_json)
 
     assert_difference -> { sailors_log.notifications.count }, +1 do
@@ -39,6 +39,41 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
     assert_equal "nixos", notification.project_name
     assert_equal 22_209, notification.project_duration
     assert_requested slack_request
+  end
+
+  test "sends all milestone notifications with the Slack ID fallback when Cachet fails" do
+    user = create(:user, slack_uid: "U_CACHET_ERROR")
+    sailors_log = create(:sailors_log,
+      user:, slack_uid: user.slack_uid, projects_summary: { "nixos" => 3_500, "website" => 7_100 }
+    )
+    create(:heartbeat,
+      user:, time: Time.current.to_f, project: "nixos", category: "coding",
+      entity: "/tmp/configuration.nix", type: "file", source_type: :direct_entry
+    )
+    { "nixos" => 3_700, "website" => 10_800 }.each do |project, duration|
+      create(:dashboard_rollup,
+        user_id: user.id, dimension: "project", bucket_value: project,
+        bucket_value_present: true, total_seconds: duration
+      )
+    end
+    stub_request(:get, "https://cachet.hackclub.com/users/#{user.slack_uid}")
+      .to_return(status: 500)
+    slack_request = stub_request(:post, "https://slack.com/api/chat.postMessage")
+      .with { |request| JSON.parse(request.body).fetch("text").include?("`<@#{user.slack_uid}>`") }
+      .to_return(status: 200, body: { ok: true }.to_json)
+
+    assert_difference -> { sailors_log.notifications.where(sent: true).count }, +2 do
+      SailorsLogPollForChangesJob.perform_now
+    end
+
+    assert_equal({ "nixos" => 3_700, "website" => 10_800 }, sailors_log.reload.projects_summary)
+    assert_equal [ [ "nixos", 3_700 ], [ "website", 10_800 ] ],
+      sailors_log.notifications.order(:project_name).pluck(:project_name, :project_duration)
+    assert_requested slack_request, times: 2
+
+    assert_no_difference -> { sailors_log.notifications.count } do
+      SailorsLogPollForChangesJob.perform_now
+    end
   end
 
   test "does not notify for a recently imported heartbeat with an old coding timestamp" do
