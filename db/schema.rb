@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_15_131538) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_18_000103) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -562,6 +562,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_131538) do
     t.index ["database", "captured_at"], name: "index_pghero_space_stats_on_database_and_captured_at"
   end
 
+  create_table "privacy_token_uses", primary_key: "jti", id: :string, force: :cascade do |t|
+    t.datetime "used_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.index ["used_at"], name: "index_privacy_token_uses_on_used_at"
+  end
+
   create_table "project_labels", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "label"
@@ -680,7 +685,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_15_131538) do
   end
 
   create_table "trust_level_audit_logs", force: :cascade do |t|
-    t.bigint "changed_by_id", null: false
+    t.bigint "changed_by_id"
     t.datetime "created_at", null: false
     t.datetime "edited_at"
     t.bigint "edited_by_id"

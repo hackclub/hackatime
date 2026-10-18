@@ -253,6 +253,8 @@ GEM
     json-schema (6.2.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
+    jwt (3.3.0)
+      base64
     language_server-protocol (3.17.0.6)
     launchy (3.1.1)
       addressable (~> 2.8)
@@ -606,6 +608,7 @@ DEPENDENCIES
   inertia_rails (~> 3.21)
   jbuilder
   js_from_routes
+  jwt (~> 3.1)
   letter_opener
   letter_opener_web (~> 3.0)
   listen

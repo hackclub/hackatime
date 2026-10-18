@@ -263,7 +263,7 @@ module Api
                 id: log.id,
                 previous_trust_level: log.previous_trust_level,
                 new_trust_level: log.new_trust_level,
-                changed_by: {
+                changed_by: log.changed_by && {
                   id: log.changed_by.id,
                   username: log.changed_by.username,
                   display_name: log.changed_by.display_name,

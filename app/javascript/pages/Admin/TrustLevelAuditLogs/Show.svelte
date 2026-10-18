@@ -18,7 +18,7 @@
     reason: string | null;
     notes: string | null;
     user: User;
-    changed_by: User;
+    changed_by: User | null;
     edited_at_long?: string;
     edited_by?: User;
     original_reason?: string | null;
@@ -74,28 +74,33 @@
         <h2 class="mb-4 text-xl font-semibold text-surface-content">
           updated by
         </h2>
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <AdminUserMention user={audit_log.changed_by} />
-              {#if badge(audit_log.changed_by.admin_level)}{@const data = badge(
-                  audit_log.changed_by.admin_level,
-                )!}<span
-                  class="inline-flex items-center rounded border px-1.5 py-0.2 text-sm font-medium {data[1]}"
-                  >{data[0]}</span
-                >{/if}
+        {#if audit_log.changed_by}
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <AdminUserMention user={audit_log.changed_by} />
+                {#if badge(audit_log.changed_by.admin_level)}{@const data =
+                    badge(audit_log.changed_by.admin_level)!}<span
+                    class="inline-flex items-center rounded border px-1.5 py-0.2 text-sm font-medium {data[1]}"
+                    >{data[0]}</span
+                  >{/if}
+              </div>
+              <div class="text-sm text-muted">
+                id: {audit_log.changed_by.id}
+              </div>
             </div>
-            <div class="text-sm text-muted">id: {audit_log.changed_by.id}</div>
+            <div class="pt-4">
+              <Link
+                href={adminTrustLevelAuditLogs.index.path({
+                  query: { admin_id: audit_log.changed_by.id },
+                })}
+                class="text-blue">changes by this goober</Link
+              >
+            </div>
           </div>
-          <div class="pt-4">
-            <Link
-              href={adminTrustLevelAuditLogs.index.path({
-                query: { admin_id: audit_log.changed_by.id },
-              })}
-              class="text-blue">changes by this goober</Link
-            >
-          </div>
-        </div>
+        {:else}
+          <p class="text-muted">Deleted user</p>
+        {/if}
       </div>
     </div>
     <div class="mt-4">

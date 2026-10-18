@@ -3,12 +3,13 @@ class TrustLevelAuditLog < ApplicationRecord
   EDIT_WINDOW = 7.days
 
   belongs_to :user
-  belongs_to :changed_by, class_name: "User"
+  belongs_to :changed_by, class_name: "User", optional: true
   belongs_to :edited_by, class_name: "User", optional: true
 
   has_paper_trail on: [ :update ], only: %i[reason notes]
 
-  validates :previous_trust_level, :new_trust_level, :user_id, :changed_by_id, presence: true
+  validates :previous_trust_level, :new_trust_level, :user_id, presence: true
+  validates :changed_by_id, presence: true, on: :create
 
   enum :previous_trust_level, TRUST_LEVELS, prefix: :previous
   enum :new_trust_level, TRUST_LEVELS, prefix: :new
@@ -18,7 +19,7 @@ class TrustLevelAuditLog < ApplicationRecord
   scope :by_admin, ->(admin) { where(changed_by: admin) }
 
   def trust_level_change_description = "#{previous_trust_level.capitalize} → #{new_trust_level.capitalize}"
-  def admin_name = changed_by.display_name
+  def admin_name = changed_by&.display_name || "Deleted user"
 
   def edited? = edited_at.present?
 
