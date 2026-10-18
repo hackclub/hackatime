@@ -4,6 +4,7 @@ class AnonymizeUserServiceTest < ActiveSupport::TestCase
   test "anonymization clears profile identity fields" do
     user = create(:user,
       username: "anon_#{SecureRandom.hex(4)}",
+      timezone: "America/New_York",
       display_name_override: "Custom Name",
       profile_bio: "Bio",
       profile_github_url: "https://github.com/hackclub",
@@ -17,6 +18,7 @@ class AnonymizeUserServiceTest < ActiveSupport::TestCase
     AnonymizeUserService.call(user)
 
     user.reload
+    assert_equal "UTC", user.timezone
     assert_nil user.display_name_override
     assert_nil user.profile_bio
     assert_nil user.profile_github_url

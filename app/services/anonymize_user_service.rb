@@ -18,7 +18,7 @@ class AnonymizeUserService < ApplicationService
       user.email_addresses.update_all(user_id: user.id, source: EmailAddress.sources[:preserved_for_deletion])
       user.update!(ANONYMIZE_FIELDS.index_with { nil }.merge(
         slack_scopes: [], hca_scopes: [],
-        username: "deleted_user_#{user.id}", uses_slack_status: false
+        username: "deleted_user_#{user.id}", uses_slack_status: false, timezone: "UTC"
       ))
       destroy_associated_records
     end
