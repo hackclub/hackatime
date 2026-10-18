@@ -925,6 +925,162 @@ paths:
               schema:
                 type: string
                 description: An OpenAPI 3.0 document, serialised as YAML.
+  "/api/privacy/delete":
+    post:
+      summary: Delete the subject's Hackatime data
+      tags:
+      - Privacy
+      description: No request body. Requires a short-lived ES256 Yeeter JWT with issuer
+        hackclub-privacy, audience hackatime and the matching action. Exports report
+        counts without modifying subject data.
+      security:
+      - Bearer: []
+      responses:
+        '200':
+          description: counts only
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - request_id
+                - found
+                - dry_run
+                - deleted
+                - retained
+                properties:
+                  request_id:
+                    type: string
+                  found:
+                    type: boolean
+                  dry_run:
+                    type: boolean
+                  deleted:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                      minimum: 0
+                  retained:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                      - type
+                      - count
+                      - reason
+                      properties:
+                        type:
+                          type: string
+                          maxLength: 100
+                        count:
+                          type: integer
+                          minimum: 0
+                        reason:
+                          type: string
+                          maxLength: 500
+        '401':
+          description: invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '400':
+          description: action mismatch
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '409':
+          description: replayed token or manual review required
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '503':
+          description: dependency unavailable or work in progress
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/api/privacy/export":
+    post:
+      summary: Export the subject's Hackatime data
+      tags:
+      - Privacy
+      description: No request body. Requires a short-lived ES256 Yeeter JWT with issuer
+        hackclub-privacy, audience hackatime and the matching action. Exports report
+        counts without modifying subject data.
+      security:
+      - Bearer: []
+      responses:
+        '200':
+          description: counts only
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                - request_id
+                - found
+                - dry_run
+                - deleted
+                - retained
+                properties:
+                  request_id:
+                    type: string
+                  found:
+                    type: boolean
+                  dry_run:
+                    type: boolean
+                  deleted:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                      minimum: 0
+                  retained:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                      - type
+                      - count
+                      - reason
+                      properties:
+                        type:
+                          type: string
+                          maxLength: 100
+                        count:
+                          type: integer
+                          minimum: 0
+                        reason:
+                          type: string
+                          maxLength: 500
+        '401':
+          description: invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '400':
+          description: action mismatch
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '409':
+          description: replayed token or manual review required
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '503':
+          description: dependency unavailable or work in progress
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
   "/api/summary":
     get:
       summary: Get WakaTime-compatible summary

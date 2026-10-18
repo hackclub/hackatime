@@ -53,6 +53,7 @@ gem "dotenv-rails"
 
 # Authentication
 # gem "oauth2"
+gem "jwt", "~> 3.1"
 
 # Added from the code block
 gem "http"

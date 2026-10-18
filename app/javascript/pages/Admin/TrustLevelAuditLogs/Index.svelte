@@ -17,7 +17,7 @@
     new_trust_level: string;
     reason: string | null;
     user: User;
-    changed_by: User;
+    changed_by: User | null;
   };
   let {
     audit_logs,
@@ -178,16 +178,15 @@
               >
               <td class="whitespace-nowrap px-6 py-4"
                 ><div class="flex items-center">
-                  {#if log.changed_by.avatar_url}<img
+                  {#if log.changed_by?.avatar_url}<img
                       class="mr-2 h-6 w-6 rounded-full"
                       src={log.changed_by.avatar_url}
                       alt=""
                     />{/if}
                   <div class="text-sm text-surface-content">
-                    {log.changed_by.display_name}
-                    {#if badge(log.changed_by.admin_level)}{@const data = badge(
-                        log.changed_by.admin_level,
-                      )!}<span
+                    {log.changed_by?.display_name ?? "Deleted user"}
+                    {#if log.changed_by && badge(log.changed_by.admin_level)}{@const data =
+                        badge(log.changed_by.admin_level)!}<span
                         class="inline-flex items-center rounded border px-1.5 py-0.2 text-sm font-medium {data[1]}"
                         >{data[0]}</span
                       >{/if}

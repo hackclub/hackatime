@@ -9,6 +9,9 @@ class AdminLevelConstraint
 end
 
 Rails.application.routes.draw do
+  post "api/privacy/delete", to: "api/privacy#delete"
+  post "api/privacy/export", to: "api/privacy#export"
+
   # Redirect to localhost from 127.0.0.1 / 0.0.0.0 to use same IP address with Vite server
   constraints(host: /\A(127\.0\.0\.1|0\.0\.0\.0)\z/) do
     get "(*path)", to: redirect { |params, req|

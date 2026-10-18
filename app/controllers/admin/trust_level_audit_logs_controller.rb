@@ -79,6 +79,8 @@ class Admin::TrustLevelAuditLogsController < Admin::BaseController
   end
 
   def audit_user_props(user)
+    return nil unless user
+
     { id: user.id, display_name: user.display_name.to_s, avatar_url: user.avatar_url, admin_level: user.admin_level,
       can_impersonate: current_user.can_impersonate?(user) }
   end

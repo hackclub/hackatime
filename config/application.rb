@@ -10,6 +10,8 @@ module Harbor
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0
+    require_relative "../lib/privacy_request_logging"
+    config.middleware.insert_before 0, PrivacyRequestLogging
 
     if ENV["RAILS_ENV"] == "test"
       ENV["ENCRYPTION_PRIMARY_KEY"] = "test_primary_key_for_active_record_encryption_123" if ENV["ENCRYPTION_PRIMARY_KEY"].to_s.empty?
