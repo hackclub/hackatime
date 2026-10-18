@@ -11,5 +11,8 @@ class SlackUsername
     Rails.cache.delete(key) unless cached_name.present?
 
     cached_name
+  rescue Cachet::ApiError, HTTP::TimeoutError, HTTP::ConnectionError, JSON::ParserError => e
+    Rails.logger.warn("Cachet name lookup failed for #{uid}: #{e.message}")
+    nil
   end
 end
