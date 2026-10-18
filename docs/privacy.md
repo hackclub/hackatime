@@ -107,9 +107,9 @@ deletion process is unchanged.
 | `sailors_log_leaderboards` | Generated messages requested by or mentioning the subject |
 | `deletion_requests`, `trust_level_audit_logs` | Requests and moderation history about the subject |
 | `documentation_feedbacks`, `mailkick_subscriptions`, `flipper_gates` | Account-linked feedback, mailing preferences and user-specific feature gates |
-| `versions` | PaperTrail copies of erased records, history attributed to the subject and history containing known email/Slack/HCA identifiers. Historical copies of records detached during erasure are removed too |
+| `versions` | PaperTrail copies of erased records, history attributed to the subject and structured history containing complete email/Slack/HCA identifier values. Historical copies of records detached during erasure are removed too |
 | `good_jobs`, `good_job_executions`, `good_job_batches` | Attributable queued/completed work, serialized arguments, execution errors and exclusively attributable batches |
-| `notable_requests`, `notable_jobs`, `pghero_query_stats` | Attributable request/job history and stored query samples containing known identifiers |
+| `notable_requests`, `notable_jobs`, `pghero_query_stats` | Attributable request/job history and stored query samples containing complete identifier values, subject to the legacy-text boundary below |
 | `active_storage_attachments`, `active_storage_blobs`, `active_storage_variant_records` | Profile OG images, tracked variants and unattached heartbeat export ZIPs marked with the subject's user ID |
 | `repositories` | Repository metadata that becomes unreferenced by any mapping or commit |
 | `solid_cache_entries` | The legacy primary-database cache is cleared in the transaction. The active application cache is also cleared before commit |
@@ -117,6 +117,15 @@ deletion process is unchanged.
 Direct SQL/bulk deletions intentionally avoid callbacks that would enqueue mail,
 new history or replacement data. Session cookies cease to identify an account
 once its user row is gone.
+
+History matching compares complete decoded scalar values in YAML/JSON and URL
+query parameters. Emails match case-insensitively; Slack and HCA identifiers
+match exactly. A substring is only an inspection candidate, never evidence of
+ownership: deleting `ann@example.org` must not delete `joann@example.org`'s
+history. Legacy prose and SQL only match complete whitespace-delimited values.
+Malformed documents, quoted SQL literals and other ambiguous text formats need
+operator review rather than guessing punctuation or deleting another person's
+history.
 
 ### Files and caches
 
@@ -138,7 +147,7 @@ Each matching retained kind is reported with a count and reason:
 | Kept | Why and how it is detached |
 | --- | --- |
 | Shared `repositories` | Public metadata other users' mappings/commits need; the subject's mappings and commits are removed |
-| Other users' `commits` containing the subject's author/committer email or GitHub ID | Preserve their imported commit record, removing copied author/committer identity from the JSON payload |
+| Other users' `commits` containing the subject's author/committer email or GitHub ID | Preserve their imported commit record, removing copied author/committer identity and signature verification data whose canonical payload repeats those identities |
 | Shared `leaderboards` | Other participants' standings remain. Personal entries and cached payloads are removed |
 | Other users' `trust_level_audit_logs` | Keep moderation decisions, null subject actor/editor references and clear free-text/current/original notes and reasons that could identify the author |
 | Other users' `deletion_requests` | Keep their workflow, null the subject's approval reference |
@@ -160,8 +169,12 @@ report holdings.
 
 Matched users are locked, and deletion briefly locks the job table against new
 enqueues/claims. Running subject jobs or global writers that could recreate
-data produce `503 work_in_progress`. This closes outstanding local work without
-sending more email or Slack notifications.
+data, including all-user repository scans, produce `503 work_in_progress`.
+Activity cache calculations, including synchronous calls, share a database
+advisory lock; deletion takes it exclusively through cache clearing and commit.
+An existing calculation makes deletion retry, while a calculation arriving
+during deletion waits and reads only committed post-deletion data. This closes
+outstanding local work without sending more email or Slack notifications.
 
 ## Transactions and retries
 

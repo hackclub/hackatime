@@ -19,7 +19,7 @@ module Privacy
     GLOBAL_WRITERS = %w[
       LeaderboardUpdateJob ProcessAccountDeletionsJob SailorsLogPollForChangesJob
       SlackUsernameUpdateJob UserSlackStatusUpdateJob WeeklySummaryEmailJob
-      ReconcileActiveRepositoriesJob
+      ReconcileActiveRepositoriesJob ScanGithubReposJob
     ].freeze
 
     def initialize(claims)
@@ -34,6 +34,9 @@ module Privacy
       ActiveRecord::Base.transaction(requires_new: true) do
         connection.execute("SET LOCAL lock_timeout = '2s'")
         connection.execute("SET LOCAL statement_timeout = '8s'")
+        if action == "delete" && !connection.select_value("SELECT pg_try_advisory_xact_lock(#{Cache::ActivityJob::ERASURE_LOCK_KEY})")
+          raise Error.new("work_in_progress", 503)
+        end
         users = matched_users
         users = users.lock if action == "delete"
         @users = users.to_a
@@ -166,14 +169,61 @@ module Privacy
         next if name.start_with?("good_", "active_storage_")
         versions = versions.or(table("versions").where(item_type: name.classify, item_id: relation.select(:id))) if relation.klass.columns_hash["id"]&.type == :integer
       end
-      (@emails + @slack_ids + @identity_ids).each do |value|
-        pattern = "%#{ActiveRecord::Base.sanitize_sql_like(value)}%"
-        versions = versions.or(table("versions").where("object ILIKE ? OR object_changes ILIKE ?", pattern, pattern))
-        @scopes["notable_requests"] = @scopes["notable_requests"].or(table("notable_requests").where("params ILIKE ? OR url ILIKE ? OR note ILIKE ?", pattern, pattern, pattern))
-        @scopes["notable_jobs"] = @scopes["notable_jobs"].or(table("notable_jobs").where("job ILIKE ? OR note ILIKE ?", pattern, pattern))
-        @scopes["pghero_query_stats"] = @scopes["pghero_query_stats"].or(table("pghero_query_stats").where("query ILIKE ?", pattern))
+      @scopes["versions"] = versions.or(history_matching("versions", %w[object object_changes], yaml: true))
+      { "notable_requests" => %w[params url note], "notable_jobs" => %w[job note], "pghero_query_stats" => %w[query] }.each do |name, fields|
+        @scopes[name] = @scopes[name].or(history_matching(name, fields))
       end
-      @scopes["versions"] = versions
+    end
+
+    def history_matching(name, fields, yaml: false)
+      identifiers = @emails + @slack_ids + @identity_ids
+      return table(name).none if identifiers.empty?
+
+      # These are inspection candidates only. Escapes may encode an identifier
+      # without its literal bytes appearing in the stored document.
+      patterns = identifiers.map { |value| "%#{ActiveRecord::Base.sanitize_sql_like(value)}%" } + [ "%\\\\%", "%''%", "%\\%%" ]
+      candidates = fields.map { |field| table(name).where("#{field} ILIKE ANY (ARRAY[?])", patterns) }.reduce(&:or)
+      ids = candidates.find_each.filter_map do |row|
+        row.id if fields.any? { |field| history_contains_identity?(row[field], yaml: yaml) }
+      end
+      table(name).where(id: ids)
+    end
+
+    def history_contains_identity?(text, yaml: false)
+      return false if text.blank?
+      return true if identity_value?(text)
+
+      document = Psych.parse_stream(text)
+      structured = yaml || text.start_with?("---", "{", "[") || document.children.any? do |node|
+        node.root.is_a?(Psych::Nodes::Mapping) || node.root.is_a?(Psych::Nodes::Sequence)
+      end
+      return yaml_contains_identity?(document) if structured
+
+      # Do not strip punctuation or guess quoting rules in legacy prose/SQL.
+      # Ambiguous free-text copies require operator review, not broad deletion.
+      text.split.any? { |value| identity_value?(value) }
+    rescue Psych::SyntaxError
+      false
+    end
+
+    def yaml_contains_identity?(node)
+      if node.is_a?(Psych::Nodes::Scalar)
+        (!node.tag || node.tag == "tag:yaml.org,2002:str") && identity_value?(node.value)
+      else
+        node.children&.any? { |child| yaml_contains_identity?(child) }
+      end
+    end
+
+    def identity_value?(value)
+      return true if @emails.include?(value.downcase) || @slack_ids.include?(value) || @identity_ids.include?(value)
+      return false unless value.start_with?("http://", "https://")
+
+      uri = URI.parse(value)
+      URI.decode_www_form(uri.query.to_s).any? do |_, entry|
+        @emails.include?(entry.downcase) || @slack_ids.include?(entry) || @identity_ids.include?(entry)
+      end
+    rescue URI::InvalidURIError, ArgumentError
+      false
     end
 
     def build_retained_inventory
@@ -218,7 +268,7 @@ module Privacy
     def erase_database
       detach_moderation
       retain("shared_commit_authorship", @shared_commits.count, "other users' imported commits; author and committer identity removed")
-      @shared_commits.update_all("github_raw = github_raw - 'author' - 'committer' #- '{commit,author}' #- '{commit,committer}'")
+      @shared_commits.update_all("github_raw = github_raw - 'author' - 'committer' #- '{commit,author}' #- '{commit,committer}' #- '{commit,verification}'")
       # Counts are the rows DELETE actually removes, not a parallel estimate.
       # Materialise IDs for polymorphic history before deleting its source rows.
       version_ids = @scopes.fetch("versions").pluck(:id)

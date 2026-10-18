@@ -138,6 +138,50 @@ class Api::PrivacyControllerTest < ActionDispatch::IntegrationTest
     assert_not PaperTrail::Version.exists?(version.id)
   end
 
+  test "history erasure matches decoded whole identifiers without erasing overlapping addresses" do
+    @claims[:subject] = { emails: [ "ann@example.org" ], slack_id: "U_EXACT", identity_id: "ident!Exact" }
+    versions = [ "email: 'ANN@example.org'", '{"email":"\\u0061nn@example.org"}' ].map do |text|
+      PaperTrail::Version.create!(item_type: "User", item_id: 0, event: "update", object: text)
+    end
+    longer = [ "joann@example.org", "ann@example.org.uk", "ann@example.org.other" ] +
+      ".!#$%&'*+/=?^_`{|}~-".chars.map { |prefix| "#{prefix}ann@example.org" }
+    preserved = longer.map do |email|
+      PaperTrail::Version.create!(item_type: "User", item_id: 0, event: "update", object: { email: email }.to_yaml)
+    end
+    requests = Class.new(ApplicationRecord) { self.table_name = "notable_requests" }
+    jobs = Class.new(ApplicationRecord) { self.table_name = "notable_jobs" }
+    exact_request = requests.create!(params: { emails: [ "ANN@example.org" ] }.to_json)
+    encoded_request = requests.create!(url: "https://example.test/history?email=ann%40example.org")
+    other_request = requests.create!(params: { email: "joann@example.org" }.to_json, url: "https://example.test/history?email=o%27ann%40example.org")
+    exact_job = jobs.create!(job: { subject: { identity: "ident!Exact" } }.to_yaml)
+    other_job = jobs.create!(job: { email: "o'ann@example.org", slack: "U_EXACT_OTHER", identity: "ident!ExactOther" }.to_yaml)
+
+    privacy_post
+    assert_response :ok
+    preview = response.parsed_body["deleted"]
+    assert_equal 2, preview["versions"]
+    assert_equal 2, preview["notable_requests"]
+    assert_equal 1, preview["notable_jobs"]
+    assert versions.all? { |record| PaperTrail::Version.exists?(record.id) }
+
+    privacy_post(token: signed_token(@claims.merge(jti: SecureRandom.uuid, dry_run: false)))
+    assert_response :ok
+    assert_equal preview, response.parsed_body["deleted"]
+    assert versions.none? { |record| PaperTrail::Version.exists?(record.id) }
+    assert preserved.all? { |record| PaperTrail::Version.exists?(record.id) }
+    assert_not requests.exists?(exact_request.id)
+    assert_not requests.exists?(encoded_request.id)
+    assert requests.exists?(other_request.id)
+    assert_not jobs.exists?(exact_job.id)
+    assert jobs.exists?(other_job.id)
+
+    @claims[:subject] = { emails: [ "o'ann@example.org" ] }
+    privacy_post(token: signed_token(@claims.merge(jti: SecureRandom.uuid, dry_run: false)))
+    assert_response :ok
+    assert_not jobs.exists?(other_job.id), "YAML quoting must not hide apostrophes in a complete address"
+    assert_not requests.exists?(other_request.id), "URL values must be decoded before exact comparison"
+  end
+
   test "rolls back the actual erasure and gives the same counts on the real run" do
     create_personal_data
     create(:api_key, user: @person)
@@ -149,7 +193,8 @@ class Api::PrivacyControllerTest < ActionDispatch::IntegrationTest
     create(:project_repo_mapping, user: @other, repository: shared_repo)
     create(:project_repo_mapping, user: @person, repository: orphan_repo)
     copied_commit = create(:commit, user: @other, repository: shared_repo, github_raw: {
-      commit: { author: { email: "PRIVACY@EXAMPLE.TEST", name: "Private Name" }, message: "shared commit" }
+      commit: { author: { email: "PRIVACY@EXAMPLE.TEST", name: "Private Name" }, message: "shared commit",
+        verification: { signature: "old signature", payload: "author Private Name <privacy@example.test>" } }
     })
     deletion = DeletionRequest.create!(user: @other, requested_at: Time.current, admin_approved_by: @person)
     exclusion = HeartbeatExclusion.create!(user: @other, kind: :project_deletion, project: "other-project", created_by: @person)
@@ -274,13 +319,16 @@ class Api::PrivacyControllerTest < ActionDispatch::IntegrationTest
 
   test "retries instead of deleting an account while its job is running" do
     create_personal_data
-    job = GoodJob::Job.create!(job_class: "HeartbeatExportJob", active_job_id: SecureRandom.uuid,
-      performed_at: Time.current, serialized_params: { arguments: [ @person.id ] })
-    privacy_post(token: signed_token(@claims.merge(dry_run: false)))
-    assert_response :service_unavailable
-    assert_equal({ "error" => "work_in_progress" }, response.parsed_body)
-    assert User.exists?(@person.id)
-    assert GoodJob::Job.exists?(job.id)
+    { "HeartbeatExportJob" => [ @person.id ], "ScanGithubReposJob" => [] }.each do |job_class, arguments|
+      job = GoodJob::Job.create!(job_class: job_class, active_job_id: SecureRandom.uuid,
+        performed_at: Time.current, serialized_params: { arguments: arguments })
+      privacy_post(token: signed_token(@claims.merge(jti: SecureRandom.uuid, dry_run: false)))
+      assert_response :service_unavailable
+      assert_equal({ "error" => "work_in_progress" }, response.parsed_body)
+      assert User.exists?(@person.id)
+      assert GoodJob::Job.exists?(job.id)
+      job.delete
+    end
   end
 
   private
