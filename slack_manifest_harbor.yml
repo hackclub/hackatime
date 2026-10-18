@@ -18,6 +18,10 @@ oauth_config:
       - users:read
       - users:read.email
 settings:
+  event_subscriptions:
+    request_url: https://hackatime.hackclub.com/slack/events
+    user_events:
+      - user_change
   org_deploy_enabled: false
   socket_mode_enabled: false
   token_rotation_enabled: false
