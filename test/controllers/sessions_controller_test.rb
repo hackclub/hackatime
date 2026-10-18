@@ -1,5 +1,8 @@
 require "test_helper"
 require "uri"
+require "webmock/minitest"
+
+WebMock.disable_net_connect!(allow_localhost: true)
 
 class SessionsControllerTest < ActionDispatch::IntegrationTest
   # -- HCA: hca_new stores continue in session --
@@ -187,7 +190,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_redirected_to root_path
-    assert_nil session[:slack_oauth_state_nonce]
+    assert_equal expected_nonce, session[:slack_oauth_state_nonce]
   end
 
   test "github_new stores oauth nonce and passes it in redirect state" do
@@ -214,7 +217,78 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :redirect
     assert_redirected_to my_settings_path
+    assert_equal expected_nonce, session[:github_oauth_state_nonce]
+    assert_nil user.reload.github_uid
+  end
+
+  test "stale and missing GitHub state do not invalidate the latest attempt and successful state is single use" do
+    user = create(:user)
+    sign_in_as(user)
+    get github_auth_path
+    old_nonce = session[:github_oauth_state_nonce]
+    get github_auth_path
+    latest_nonce = session[:github_oauth_state_nonce]
+    assert_not_equal old_nonce, latest_nonce
+
+    [ old_nonce, nil ].each do |state|
+      get "/auth/github/callback", params: { code: "stale-code", state: state }
+
+      assert_redirected_to my_settings_path
+      assert_equal "This GitHub linking attempt is no longer valid. Please try connecting GitHub again.", flash[:alert]
+      assert_equal latest_nonce, session[:github_oauth_state_nonce]
+      assert_nil user.reload.github_uid
+    end
+
+    stub_request(:post, "https://github.com/login/oauth/access_token")
+      .with(body: hash_including("code" => "latest-code"))
+      .to_return(body: { access_token: "github-token" }.to_json)
+    stub_request(:get, "https://api.github.com/user")
+      .with(headers: { "Authorization" => "Bearer github-token" })
+      .to_return(body: { id: 12345, login: "octocat" }.to_json)
+
+    get "/auth/github/callback", params: { code: "latest-code", state: latest_nonce }
+
+    assert_redirected_to my_settings_path
+    assert_equal "Successfully linked GitHub account!", flash[:notice]
+    assert_equal "12345", user.reload.github_uid
+    assert_equal "octocat", user.github_username
+    assert_equal "github-token", user.github_access_token
     assert_nil session[:github_oauth_state_nonce]
+
+    get "/auth/github/callback", params: { code: "latest-code", state: latest_nonce }
+
+    assert_redirected_to my_settings_path
+    assert_equal "This GitHub linking attempt is no longer valid. Please try connecting GitHub again.", flash[:alert]
+    assert_equal "12345", user.reload.github_uid
+  end
+
+  test "GitHub callback after another sign in safely requires a new linking attempt" do
+    original_user = create(:user)
+    sign_in_as(original_user)
+    get github_auth_path
+    nonce = session[:github_oauth_state_nonce]
+    current_user = create(:user)
+    sign_in_as(current_user)
+
+    get "/auth/github/callback", params: { code: "old-code", state: nonce }
+
+    assert_redirected_to my_settings_path
+    assert_equal "This GitHub linking attempt is no longer valid. Please try connecting GitHub again.", flash[:alert]
+    assert_equal current_user.id, session[:user_id]
+    assert_nil original_user.reload.github_uid
+    assert_nil current_user.reload.github_uid
+  end
+
+  test "GitHub access denied is a normal cancellation" do
+    user = create(:user)
+    sign_in_as(user)
+    get github_auth_path
+
+    get "/auth/github/callback", params: { error: "access_denied", state: session[:github_oauth_state_nonce] }
+
+    assert_redirected_to my_settings_path
+    assert_equal "Sign in cancelled", flash[:alert]
+    assert_nil user.reload.github_uid
   end
 
   test "expired token redirects to root with alert" do
