@@ -1,6 +1,8 @@
 ---
 title: DeepSeek Harness
+sidebar: { icon: "/images/editor-icons/deepseek-harness-32.webp" }
 ---
+![DeepSeek Harness](../../public/images/editor-icons/deepseek-harness-128.png)
 
 DeepSeek Harness (DSH) is an AI coding agent powered by the Atria model. You can
 track the time you spend working in it with Hackatime.
