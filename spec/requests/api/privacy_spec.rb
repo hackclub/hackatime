@@ -33,6 +33,9 @@ RSpec.describe "Privacy requests", type: :request do
       post("#{action.capitalize} the subject's Hackatime data") do
         tags "Privacy"
         description "No request body. Requires a short-lived ES256 Yeeter JWT with issuer hackclub-privacy, audience hackatime and the matching action. Exports report counts without modifying subject data."
+        if action == "delete"
+          description "No request body. Requires a short-lived ES256 Yeeter JWT with issuer hackclub-privacy, audience hackatime and the delete action. Real and dry-run deletions have a two-second lock budget. Exceeding it aborts database work and returns 409 manual_review_required, not a retryable work_in_progress response. Operators must review the account and any partially removed storage objects before retrying."
+        end
         security [ Bearer: [] ]
         produces "application/json"
 

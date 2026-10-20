@@ -21,6 +21,33 @@ module Privacy
       SlackUsernameUpdateJob UserSlackStatusUpdateJob WeeklySummaryEmailJob
       ReconcileActiveRepositoriesJob ScanGithubReposJob
     ].freeze
+    LOCK_BUDGET = 2.seconds
+
+    # Refresh before SQL, not after it: each statement and idle gap gets only
+    # the original budget's remainder, even if the control session has failed.
+    class DatabaseDeadline
+      def initialize(connection, expires_at)
+        @connection, @raw, @expires_at = connection, connection.raw_connection, expires_at
+      end
+
+      def start(_name, _id, payload)
+        return unless payload[:connection].equal?(@connection)
+        return if payload[:sql].match?(/\A\s*ROLLBACK\b/i)
+
+        refresh
+      end
+
+      def finish(_name, _id, _payload)
+      end
+
+      def refresh
+        remaining_ms = ((@expires_at - Process.clock_gettime(Process::CLOCK_MONOTONIC)) * 1000).floor
+        raise Error.new("manual_review_required", 409) unless remaining_ms.positive?
+        # Bypass notifications and lazy transaction materialisation here. This
+        # also runs before SAVEPOINT, when Rails is already materialising it.
+        @raw.exec_params("SELECT set_config('statement_timeout', $1, true), set_config('idle_in_transaction_session_timeout', $1, true)", [ remaining_ms.to_s ])
+      end
+    end
 
     def initialize(claims)
       @claims = claims
@@ -30,10 +57,20 @@ module Privacy
     end
 
     def call(action:)
+      if action == "delete"
+        with_deletion_deadline { |deadline| execute(action:, deadline:) }
+      else
+        execute(action:)
+      end
+    end
+
+    private
+
+    def execute(action:, deadline: nil)
       result = nil
       ActiveRecord::Base.transaction(requires_new: true) do
         connection.execute("SET LOCAL lock_timeout = '2s'")
-        connection.execute("SET LOCAL statement_timeout = '8s'")
+        connection.execute("SET LOCAL statement_timeout = '8s'") unless deadline
         if action == "delete" && !connection.select_value("SELECT pg_try_advisory_xact_lock(#{Cache::ActivityJob::ERASURE_LOCK_KEY})")
           raise Error.new("work_in_progress", 503)
         end
@@ -62,7 +99,12 @@ module Privacy
         elsif found
           check_manual_review!
           erase_database
-          erase_files_and_cache unless @claims["dry_run"]
+          unless @claims["dry_run"]
+            # Storage may never return, and the watchdog's connection can fail.
+            # PostgreSQL must release this idle transaction's locks on its own.
+            deadline.refresh
+            erase_files_and_cache
+          end
         end
 
         result = { request_id: @claims["request_id"], found: found, dry_run: @claims["dry_run"], deleted: @deleted, retained: @retained }
@@ -71,10 +113,62 @@ module Privacy
       result
     rescue ActiveRecord::LockWaitTimeout, ActiveRecord::StatementInvalid => error
       raise unless error.is_a?(ActiveRecord::LockWaitTimeout) || error.cause.is_a?(PG::QueryCanceled)
+      raise Error.new("manual_review_required", 409) if deadline && error.cause.is_a?(PG::QueryCanceled)
       raise Error.new("work_in_progress", 503)
     end
 
-    private
+    def with_deletion_deadline
+      # Reserve the control session before taking any erasure locks. Do not use
+      # the Rails pool: requests waiting on good_jobs may occupy every slot.
+      # Raw access also disables Rails' automatic transaction reconnection.
+      raw = connection.raw_connection
+      nested = connection.transaction_open?
+      PG.connect(raw.conninfo_hash.compact_blank.merge(connect_timeout: "2")) do |control|
+        control.exec("BEGIN; SET LOCAL statement_timeout = '1s'")
+        connection.transaction(requires_new: true) do
+          # Query inside BEGIN: libpq's backend_pid is not a Postgres PID when
+          # the application connects through transaction-pooling PgBouncer.
+          pid = connection.select_value("SELECT pg_backend_pid()")
+          expires_at = Process.clock_gettime(Process::CLOCK_MONOTONIC) + LOCK_BUDGET
+          deadline = DatabaseDeadline.new(connection, expires_at)
+          completed = Queue.new
+          expired = false
+          watchdog = Thread.new do
+            remaining = [ expires_at - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0 ].max
+            unless completed.pop(timeout: remaining)
+              expired = true
+              control.exec_params("SELECT pg_terminate_backend($1)", [ pid ])
+            end
+          end
+          watchdog.report_on_exception = false
+
+          begin
+            deadline.refresh
+            result = ActiveSupport::Notifications.subscribed(deadline, "sql.active_record") { yield deadline }
+          ensure
+            completed << true
+            # Join BEFORE commit/rollback can return the backend to PgBouncer.
+            # Never terminate a backend which another request may have borrowed.
+            begin
+              watchdog.value
+            rescue PG::Error
+              expired = true
+              Rails.logger.warn("Privacy erasure watchdog connection failed")
+            end
+            if expired || Process.clock_gettime(Process::CLOCK_MONOTONIC) >= expires_at
+              connection.disconnect! if expired
+              raise Error.new("manual_review_required", 409)
+            end
+          end
+          unless nested
+            # The watchdog must be disarmed before COMMIT. Bound that final
+            # command and the idle gap before it using transaction-local limits.
+            deadline.refresh
+          end
+          result
+        end
+      end
+    end
 
     def connection = ActiveRecord::Base.connection
 

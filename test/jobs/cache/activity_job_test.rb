@@ -4,9 +4,9 @@ class Cache::ActivityJobTest < ActiveSupport::TestCase
   self.use_transactional_tests = false
 
   # A real cache with a controllable publication boundary, not a mocked job or
-  # database. Both tests execute CurrentlyHackingJob's real calculation.
+  # database. Calculations use CurrentlyHackingJob's real queries.
   class PausingStore < ActiveSupport::Cache::MemoryStore
-    attr_accessor :pause_on
+    attr_accessor :pause_on, :clear_queries
     attr_reader :reached, :resume
 
     def initialize
@@ -21,6 +21,7 @@ class Cache::ActivityJobTest < ActiveSupport::TestCase
 
     def clear(...)
       result = super
+      clear_queries&.times { ActiveRecord::Base.connection.execute("SELECT pg_sleep(1.2)") }
       pause(:clear)
       result
     end
@@ -70,30 +71,160 @@ class Cache::ActivityJobTest < ActiveSupport::TestCase
     assert_not_includes Cache::CurrentlyHackingJob.perform_now[:users].map(&:id), @user.id
   end
 
-  test "a cache calculation started during erasure waits and publishes only post-commit data" do
+  test "cache reads during erasure finish without publishing a pre-commit snapshot" do
     @cache.pause_on = :clear
     eraser = in_connection { Privacy::Eraser.new(@claims).call(action: "delete") }
     Timeout.timeout(10) { @cache.reached.pop }
-    started = Queue.new
-    writer = in_connection do
-      started << ActiveRecord::Base.connection.select_value("SELECT pg_backend_pid()")
-      Cache::CurrentlyHackingJob.perform_now(force_reload: true)
-    end
-    pid = Timeout.timeout(10) { started.pop }
-    # Release erasure once the calculation either waits at the database barrier
-    # or finishes. Without the barrier it finishes with the uncommitted user.
-    Timeout.timeout(10) do
-      while writer.alive? && ActiveRecord::Base.connection.select_value("SELECT wait_event FROM pg_stat_activity WHERE pid = #{Integer(pid)}") != "advisory"
-        sleep 0.01
-      end
+    # Exercise ordinary reads and forced reloads while deletion is still paused.
+    [ false, true ].each do |force_reload|
+      writer = in_connection { Cache::CurrentlyHackingJob.perform_now(force_reload:) }
+      result = Timeout.timeout(1) { writer.value }
+      assert_includes result[:users].map(&:id), @user.id
+      assert_nil @cache.read("cache/currently_hacking_job")
     end
     @cache.resume << true
     Timeout.timeout(10) { eraser.value }
-    result = Timeout.timeout(10) { writer.value }
 
     assert_not User.exists?(@user.id)
+    result = Cache::CurrentlyHackingJob.perform_now
     assert_not_includes result[:users].map(&:id), @user.id
     assert_not_includes @cache.read("cache/currently_hacking_job")[:users].map(&:id), @user.id
+  end
+
+  test "a stalled storage operation releases job locks at the deadline before it resumes" do
+    @cache.pause_on = :clear
+    eraser = in_connection do
+      Privacy::Eraser.new(@claims).call(action: "delete")
+    rescue Privacy::Error => error
+      error
+    end
+    Timeout.timeout(10) { @cache.reached.pop }
+    enqueue = in_connection do
+      GoodJob::Job.create!(job_class: "UnrelatedJob", active_job_id: SecureRandom.uuid, serialized_params: {})
+    end
+    # The storage operation remains paused. PostgreSQL must release the locks
+    # independently, not just check elapsed time once storage eventually returns.
+    job = Timeout.timeout(4) { enqueue.value }
+    assert User.exists?(@user.id)
+    assert Heartbeat.with_deleted.with_excluded.exists?(user_id: @user.id)
+    assert GoodJob::Job.exists?(job.id)
+
+    @cache.resume << true
+    error = Timeout.timeout(10) { eraser.value }
+    assert_equal "manual_review_required", error.message
+    assert_equal 409, error.status
+    assert User.exists?(@user.id)
+  ensure
+    job&.delete
+  end
+
+  test "the deletion deadline spans multiple individually short statements and rolls back" do
+    @cache.clear_queries = 2
+    error = assert_raises(Privacy::Error) { Privacy::Eraser.new(@claims).call(action: "delete") }
+    assert_equal "manual_review_required", error.message
+    assert_equal 409, error.status
+    assert User.exists?(@user.id)
+    assert Heartbeat.with_deleted.with_excluded.exists?(user_id: @user.id)
+  ensure
+    @cache.clear_queries = nil
+  end
+
+  test "a failed watchdog cannot leave job locks held during stalled storage" do
+    @cache.pause_on = :clear
+    eraser = in_connection do
+      Privacy::Eraser.new(@claims).call(action: "delete")
+    rescue Privacy::Error, PG::Error => error
+      error
+    end
+    Timeout.timeout(10) { @cache.reached.pop }
+    # Drop the real control session while the application's transaction is idle
+    # in storage. This must not depend on a working watchdog to free job writers.
+    control_pids = ActiveRecord::Base.connection.select_values(<<~SQL)
+      SELECT pid FROM pg_stat_activity
+      WHERE datname = current_database() AND state = 'idle in transaction'
+        AND query = 'BEGIN; SET LOCAL statement_timeout = ''1s'''
+    SQL
+    assert_equal 1, control_pids.size
+    ActiveRecord::Base.connection.execute("SELECT pg_terminate_backend(#{Integer(control_pids.first)})")
+    job_id = SecureRandom.uuid
+    enqueue = in_connection do
+      GoodJob::Job.create!(job_class: "UnrelatedJob", active_job_id: job_id, serialized_params: {})
+    end
+    job = Timeout.timeout(4) { enqueue.value }
+    assert GoodJob::Job.exists?(job.id)
+    assert User.exists?(@user.id)
+    assert Heartbeat.with_deleted.with_excluded.exists?(user_id: @user.id)
+
+    @cache.resume << true
+    resumed = true
+    error = Timeout.timeout(10) { eraser.value }
+    assert_instance_of Privacy::Error, error
+    assert_equal "manual_review_required", error.message
+    assert_equal 409, error.status
+    # The terminated application's pooled connection must be usable again.
+    reader = in_connection { Cache::CurrentlyHackingJob.perform_now }
+    assert_includes Timeout.timeout(10) { reader.value }[:users].map(&:id), @user.id
+  ensure
+    @cache.resume << true unless resumed
+    [ eraser, enqueue ].compact.each { |worker| worker.join(10) }
+    GoodJob::Job.where(active_job_id: job_id).delete_all if job_id
+  end
+
+  [ false, true ].each do |dry_run|
+    test "a failed watchdog still bounds database deletion with dry_run=#{dry_run}" do
+      @claims["dry_run"] = dry_run
+      connection = ActiveRecord::Base.connection
+      # Several individually short DELETEs must share one budget. Versions are
+      # deleted repeatedly while detaching moderation, before storage begins.
+      connection.execute(<<~SQL)
+        CREATE FUNCTION privacy_test_slow_delete() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN PERFORM pg_sleep(0.7); RETURN NULL; END $$;
+        CREATE TRIGGER privacy_test_slow_delete AFTER DELETE ON versions
+          FOR EACH STATEMENT EXECUTE FUNCTION privacy_test_slow_delete();
+      SQL
+      eraser = in_connection do
+        Privacy::Eraser.new(@claims).call(action: "delete")
+      rescue Privacy::Error => error
+        error
+      end
+      connection.uncached do
+        Timeout.timeout(5) do
+          until connection.select_value(<<~SQL)
+            SELECT EXISTS (SELECT 1 FROM pg_stat_activity
+              WHERE datname = current_database() AND wait_event = 'PgSleep'
+                AND query LIKE 'DELETE FROM "versions"%')
+          SQL
+            sleep 0.01
+          end
+        end
+      end
+      control_pids = connection.select_values(<<~SQL)
+        SELECT pid FROM pg_stat_activity
+        WHERE datname = current_database() AND state = 'idle in transaction'
+          AND query = 'BEGIN; SET LOCAL statement_timeout = ''1s'''
+      SQL
+      assert_equal 1, control_pids.size
+      connection.execute("SELECT pg_terminate_backend(#{Integer(control_pids.first)})")
+      job_id = SecureRandom.uuid
+      enqueue = in_connection do
+        GoodJob::Job.create!(job_class: "UnrelatedJob", active_job_id: job_id, serialized_params: {})
+      end
+
+      job = Timeout.timeout(3) { enqueue.value }
+      error = Timeout.timeout(3) { eraser.value }
+      assert_equal "manual_review_required", error.message
+      assert_equal 409, error.status
+      assert GoodJob::Job.exists?(job.id)
+      assert User.exists?(@user.id)
+      assert Heartbeat.with_deleted.with_excluded.exists?(user_id: @user.id)
+      assert_includes Cache::CurrentlyHackingJob.perform_now[:users].map(&:id), @user.id
+    ensure
+      [ eraser, enqueue ].compact.each { |worker| worker.join(10) }
+      connection.execute("DROP TRIGGER IF EXISTS privacy_test_slow_delete ON versions")
+      connection.execute("DROP FUNCTION IF EXISTS privacy_test_slow_delete()")
+      GoodJob::Job.where(active_job_id: job_id).delete_all if job_id
+      @claims["dry_run"] = false
+    end
   end
 
   private

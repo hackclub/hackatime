@@ -11,9 +11,14 @@ class Cache::ActivityJob < ApplicationJob
 
   def perform(force_reload: false)
     ActiveRecord::Base.transaction do
-      ActiveRecord::Base.connection.execute("SELECT pg_advisory_xact_lock_shared(#{ERASURE_LOCK_KEY})")
-      Rails.cache.write(cache_key, calculate, expires_in: cache_expiration) if force_reload
-      Rails.cache.fetch(cache_key, expires_in: cache_expiration) { calculate }
+      if ActiveRecord::Base.connection.select_value("SELECT pg_try_advisory_xact_lock_shared(#{ERASURE_LOCK_KEY})")
+        Rails.cache.write(cache_key, calculate, expires_in: cache_expiration) if force_reload
+        Rails.cache.fetch(cache_key, expires_in: cache_expiration) { calculate }
+      else
+        # Do not tie up request threads behind erasure, or publish a snapshot
+        # that can still contain the account being erased. Only return it.
+        calculate
+      end
     end
   end
 
