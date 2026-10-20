@@ -129,6 +129,47 @@ class Cache::ActivityJobTest < ActiveSupport::TestCase
     @cache.clear_queries = nil
   end
 
+  test "a failed watchdog cannot leave job locks held during stalled storage" do
+    @cache.pause_on = :clear
+    eraser = in_connection do
+      Privacy::Eraser.new(@claims).call(action: "delete")
+    rescue Privacy::Error, PG::Error => error
+      error
+    end
+    Timeout.timeout(10) { @cache.reached.pop }
+    # Drop the real control session while the application's transaction is idle
+    # in storage. This must not depend on a working watchdog to free job writers.
+    control_pids = ActiveRecord::Base.connection.select_values(<<~SQL)
+      SELECT pid FROM pg_stat_activity
+      WHERE datname = current_database() AND state = 'idle in transaction'
+        AND query = 'BEGIN; SET LOCAL statement_timeout = ''1s'''
+    SQL
+    assert_equal 1, control_pids.size
+    ActiveRecord::Base.connection.execute("SELECT pg_terminate_backend(#{Integer(control_pids.first)})")
+    job_id = SecureRandom.uuid
+    enqueue = in_connection do
+      GoodJob::Job.create!(job_class: "UnrelatedJob", active_job_id: job_id, serialized_params: {})
+    end
+    job = Timeout.timeout(4) { enqueue.value }
+    assert GoodJob::Job.exists?(job.id)
+    assert User.exists?(@user.id)
+    assert Heartbeat.with_deleted.with_excluded.exists?(user_id: @user.id)
+
+    @cache.resume << true
+    resumed = true
+    error = Timeout.timeout(10) { eraser.value }
+    assert_instance_of Privacy::Error, error
+    assert_equal "manual_review_required", error.message
+    assert_equal 409, error.status
+    # The terminated application's pooled connection must be usable again.
+    reader = in_connection { Cache::CurrentlyHackingJob.perform_now }
+    assert_includes Timeout.timeout(10) { reader.value }[:users].map(&:id), @user.id
+  ensure
+    @cache.resume << true unless resumed
+    [ eraser, enqueue ].compact.each { |worker| worker.join(10) }
+    GoodJob::Job.where(active_job_id: job_id).delete_all if job_id
+  end
+
   private
 
   def in_connection(&block)

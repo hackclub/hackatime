@@ -32,7 +32,7 @@ module Privacy
 
     def call(action:)
       if action == "delete"
-        with_deletion_deadline { execute(action:) }
+        with_deletion_deadline { |deadline| execute(action:, deadline:) }
       else
         execute(action:)
       end
@@ -40,7 +40,7 @@ module Privacy
 
     private
 
-    def execute(action:)
+    def execute(action:, deadline: nil)
       result = nil
       ActiveRecord::Base.transaction(requires_new: true) do
         connection.execute("SET LOCAL lock_timeout = '2s'")
@@ -73,7 +73,12 @@ module Privacy
         elsif found
           check_manual_review!
           erase_database
-          erase_files_and_cache unless @claims["dry_run"]
+          unless @claims["dry_run"]
+            # Storage may never return, and the watchdog's connection can fail.
+            # PostgreSQL must release this idle transaction's locks on its own.
+            set_database_deadline(deadline)
+            erase_files_and_cache
+          end
         end
 
         result = { request_id: @claims["request_id"], found: found, dry_run: @claims["dry_run"], deleted: @deleted, retained: @retained }
@@ -107,14 +112,20 @@ module Privacy
               control.exec_params("SELECT pg_terminate_backend($1)", [ pid ])
             end
           end
+          watchdog.report_on_exception = false
 
           begin
-            result = yield
+            result = yield deadline
           ensure
             completed << true
             # Join BEFORE commit/rollback can return the backend to PgBouncer.
             # Never terminate a backend which another request may have borrowed.
-            watchdog.value
+            begin
+              watchdog.value
+            rescue PG::Error
+              expired = true
+              Rails.logger.warn("Privacy erasure watchdog connection failed")
+            end
             if expired || Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
               connection.disconnect! if expired
               raise Error.new("manual_review_required", 409)
@@ -123,13 +134,17 @@ module Privacy
           unless nested
             # The watchdog must be disarmed before COMMIT. Bound that final
             # command and the idle gap before it using transaction-local limits.
-            remaining_ms = ((deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)) * 1000).floor
-            raise Error.new("manual_review_required", 409) unless remaining_ms.positive?
-            raw.exec_params("SELECT set_config('statement_timeout', $1, true), set_config('idle_in_transaction_session_timeout', $1, true)", [ remaining_ms.to_s ])
+            set_database_deadline(deadline)
           end
           result
         end
       end
+    end
+
+    def set_database_deadline(deadline)
+      remaining_ms = ((deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)) * 1000).floor
+      raise Error.new("manual_review_required", 409) unless remaining_ms.positive?
+      connection.raw_connection.exec_params("SELECT set_config('statement_timeout', $1, true), set_config('idle_in_transaction_session_timeout', $1, true)", [ remaining_ms.to_s ])
     end
 
     def connection = ActiveRecord::Base.connection
