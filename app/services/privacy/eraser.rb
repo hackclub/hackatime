@@ -21,6 +21,7 @@ module Privacy
       SlackUsernameUpdateJob UserSlackStatusUpdateJob WeeklySummaryEmailJob
       ReconcileActiveRepositoriesJob ScanGithubReposJob
     ].freeze
+    LOCK_BUDGET = 2.seconds
 
     def initialize(claims)
       @claims = claims
@@ -30,6 +31,16 @@ module Privacy
     end
 
     def call(action:)
+      if action == "delete"
+        with_deletion_deadline { execute(action:) }
+      else
+        execute(action:)
+      end
+    end
+
+    private
+
+    def execute(action:)
       result = nil
       ActiveRecord::Base.transaction(requires_new: true) do
         connection.execute("SET LOCAL lock_timeout = '2s'")
@@ -74,7 +85,52 @@ module Privacy
       raise Error.new("work_in_progress", 503)
     end
 
-    private
+    def with_deletion_deadline
+      # Reserve the control session before taking any erasure locks. Do not use
+      # the Rails pool: requests waiting on good_jobs may occupy every slot.
+      # Raw access also disables Rails' automatic transaction reconnection.
+      raw = connection.raw_connection
+      nested = connection.transaction_open?
+      PG.connect(raw.conninfo_hash.compact_blank.merge(connect_timeout: "2")) do |control|
+        control.exec("BEGIN; SET LOCAL statement_timeout = '1s'")
+        connection.transaction(requires_new: true) do
+          # Query inside BEGIN: libpq's backend_pid is not a Postgres PID when
+          # the application connects through transaction-pooling PgBouncer.
+          pid = connection.select_value("SELECT pg_backend_pid()")
+          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + LOCK_BUDGET
+          completed = Queue.new
+          expired = false
+          watchdog = Thread.new do
+            remaining = [ deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC), 0 ].max
+            unless completed.pop(timeout: remaining)
+              expired = true
+              control.exec_params("SELECT pg_terminate_backend($1)", [ pid ])
+            end
+          end
+
+          begin
+            result = yield
+          ensure
+            completed << true
+            # Join BEFORE commit/rollback can return the backend to PgBouncer.
+            # Never terminate a backend which another request may have borrowed.
+            watchdog.value
+            if expired || Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+              connection.disconnect! if expired
+              raise Error.new("manual_review_required", 409)
+            end
+          end
+          unless nested
+            # The watchdog must be disarmed before COMMIT. Bound that final
+            # command and the idle gap before it using transaction-local limits.
+            remaining_ms = ((deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)) * 1000).floor
+            raise Error.new("manual_review_required", 409) unless remaining_ms.positive?
+            raw.exec_params("SELECT set_config('statement_timeout', $1, true), set_config('idle_in_transaction_session_timeout', $1, true)", [ remaining_ms.to_s ])
+          end
+          result
+        end
+      end
+    end
 
     def connection = ActiveRecord::Base.connection
 
