@@ -55,6 +55,7 @@ class Admin::AdminApiKeysController < Admin::BaseController
 
   def serialize_key(key, created_at:, token: nil)
     { id: key.id, name: key.name, token_preview: "#{key.token_preview}...", token: token, created_at: created_at,
+      last_used_at: key.last_used_at&.in_time_zone&.strftime("%b %d, %Y at %I:%M %p %Z"),
       user: { id: key.user.id, display_name: key.user.display_name, avatar_url: key.user.avatar_url } }
   end
 

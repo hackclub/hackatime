@@ -7,6 +7,7 @@
     name: string;
     token_preview: string;
     created_at: string;
+    last_used_at: string | null;
     user: { id: number; display_name: string; avatar_url: string | null };
   };
   let {
@@ -37,12 +38,16 @@
         >spawn in a new key</Button
       >{/if}
   </div>
+  <p class="text-sm text-muted mb-4">
+    Last used is recorded in the background, at most once per minute. Usage
+    before tracking began is not available.
+  </p>
   <div class="bg-dark rounded-lg overflow-hidden shadow-xl">
     <div class="overflow-x-auto">
       <table class="min-w-full">
         <thead
           ><tr class="bg-darkless"
-            >{#each ["name", "spawned by", "spawned at", "token", "perform"] as heading}<th
+            >{#each ["name", "spawned by", "spawned at", "last used", "token", "perform"] as heading}<th
                 class="px-6 py-3 text-left text-sm font-medium text-muted"
                 >{heading}</th
               >{/each}</tr
@@ -69,6 +74,8 @@
                 </div></td
               ><td class="px-6 py-4 whitespace-nowrap text-sm text-muted"
                 >{key.created_at}</td
+              ><td class="px-6 py-4 whitespace-nowrap text-sm text-muted"
+                >{key.last_used_at ?? "No use recorded"}</td
               ><td class="px-6 py-4 whitespace-nowrap"
                 ><code class="text-xs text-surface-content">
                   {key.token_preview}
