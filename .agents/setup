@@ -82,10 +82,10 @@ fi
 container_fingerprint="$(fingerprint Dockerfile.dev docker-compose.yml entrypoint.dev.sh Gemfile Gemfile.lock package.json bun.lock bunfig.toml patches)"
 if cache_matches containers "$container_fingerprint"; then
   echo "==> Starting existing development containers"
-  time sudo docker compose up -d
+  time sudo docker compose up -d --wait
 else
   echo "==> Building and starting development containers"
-  time sudo docker compose up -d --build
+  time sudo docker compose up -d --build --wait
   printf '%s\n' "$container_fingerprint" > "$cache_dir/containers"
 fi
 
@@ -96,13 +96,15 @@ sudo docker compose exec -T web sh -c '
     git config --global --add safe.directory "$repo_root"
 '
 
-assets_fingerprint="$(fingerprint app/javascript app/assets/tailwind config/routes.rb config/vite.json config/initializers/js_from_routes.rb vite.config.ts svelte.config.js tsconfig.json tsconfig.svelte-check.json package.json bun.lock bunfig.toml)"
-if cache_matches assets "$assets_fingerprint" && [ -f public/vite-dev/.vite/manifest.json ]; then
-  echo "==> Vite client assets are current"
+assets_fingerprint="$(fingerprint app/javascript app/assets/tailwind config/routes.rb config/vite.json config/initializers/js_from_routes.rb vite.config.ts svelte.config.js tsconfig.json tsconfig.svelte-check.json Gemfile Gemfile.lock package.json bun.lock bunfig.toml patches)"
+if cache_matches assets "$assets_fingerprint" && [ -f public/vite-dev/.vite/manifest.json ] && [ -f public/vite-ssr/ssr.js ]; then
+  echo "==> Vite assets are current"
 else
-  echo "==> Building Vite client assets"
+  echo "==> Building Vite client and SSR assets"
   time sudo docker compose exec -T web env JS_FROM_ROUTES_FORCE=true bin/rake js_from_routes:generate
-  time sudo docker compose exec -T web bin/vite build
+  # Vite's watched-file cache does not cover dependency patches.
+  time sudo docker compose exec -T web bin/vite build --force
+  time sudo docker compose exec -T web bin/vite build --ssr --force
   printf '%s\n' "$assets_fingerprint" > "$cache_dir/assets"
 fi
 
