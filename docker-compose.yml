@@ -20,6 +20,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "test", "-f", "/tmp/hackatime-ready"]
+      interval: 2s
+      timeout: 5s
+      retries: 120
     command: ["sleep", "infinity"]
 
   portal:
@@ -33,6 +38,8 @@ services:
       - DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_development
       - TEST_DATABASE_URL=postgres://postgres:secureorpheus123@db:5432/app_test
       - PUBLIC_URL=${PUBLIC_URL:-}
+    healthcheck:
+      disable: true
     entrypoint: []
     command: ["bin/rails", "server", "-b", "0.0.0.0", "-p", "3000", "-P", "/tmp/portal-server.pid"]
 
