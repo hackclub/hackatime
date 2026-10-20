@@ -153,7 +153,7 @@ end
 
 gem "premailer-rails"
 
-gem "doorkeeper", "~> 5.8"
+gem "doorkeeper", "~> 5.9"
 
 gem "inertia_rails", "~> 3.21"
 
