@@ -18,6 +18,28 @@ class UserTest < ActiveSupport::TestCase
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
+  test "timezone validation preserves IANA identifiers and rejects unknown values" do
+    user = create(:user)
+    [ "UTC", "America/New_York", "Asia/Kathmandu" ].each do |timezone|
+      user.update!(timezone: timezone)
+      assert_equal timezone, user.reload.timezone
+    end
+
+    [ nil, "", "Unknown/Timezone" ].each do |timezone|
+      assert_not user.update(timezone: timezone)
+      assert_includes user.errors[:timezone], "is not included in the list"
+      assert_equal "Asia/Kathmandu", user.reload.timezone
+    end
+  end
+
+  test "parses Rails timezone names into persistable IANA identifiers" do
+    user = create(:user)
+    user.parse_and_set_timezone("Eastern Time (US & Canada)")
+    assert_equal "America/New_York", user.timezone
+    user.save!
+    assert_equal "America/New_York", user.reload.timezone
+  end
+
   test "theme options include all supported themes in order" do
     values = User.theme_options.map { |option| option[:value] }
 

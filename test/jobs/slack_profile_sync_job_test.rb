@@ -33,6 +33,21 @@ class SlackProfileSyncJobTest < ActiveJob::TestCase
     assert_not_nil user.slack_synced_at
   end
 
+  test "syncs a profile with a legacy Rails timezone name" do
+    user = create(:user, slack_uid: "U_LEGACY_TIMEZONE")
+    user.update_column(:timezone, "Eastern Time (US & Canada)")
+    stub_request(:get, "https://cachet.hackclub.com/users/U_LEGACY_TIMEZONE")
+      .to_return(body: { displayName: "updated-name", imageUrl: "https://example.com/avatar.png" }.to_json)
+
+    SlackProfileSyncJob.perform_now(user.id)
+
+    user.reload
+    assert_equal "America/New_York", user.timezone
+    assert_equal "updated-name", user.slack_username
+    assert_equal "https://example.com/avatar.png", user.slack_avatar_url
+    assert_not_nil user.slack_synced_at
+  end
+
   test "preserves the existing profile while Cachet is fetching and saves it on retry" do
     synced_at = 2.days.ago
     user = create(:user,

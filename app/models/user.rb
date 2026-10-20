@@ -21,6 +21,7 @@ class User < ApplicationRecord
   after_update_commit :clear_sailors_log_leaderboards, if: :saved_change_to_leaderboard_opt_out?
   before_validation :normalize_username
   before_validation :normalize_display_name_override
+  before_validation :normalize_timezone
   encrypts :slack_access_token, :github_access_token, :hca_access_token
 
   validates :slack_uid, uniqueness: true, allow_nil: true
@@ -378,7 +379,13 @@ class User < ApplicationRecord
       rescue TZInfo::InvalidTimezoneIdentifier
       end
     end
-    as_tz ? (self.timezone = as_tz.name) : report_message("Invalid timezone #{timezone} for user #{id}")
+    as_tz ? (self.timezone = as_tz.tzinfo.identifier) : report_message("Invalid timezone #{timezone} for user #{id}")
+  end
+
+  private def normalize_timezone
+    return if TZInfo::Timezone.all_identifiers.include?(timezone)
+
+    self.timezone = ActiveSupport::TimeZone::MAPPING.fetch(timezone, timezone)
   end
 
   def avatar_url
