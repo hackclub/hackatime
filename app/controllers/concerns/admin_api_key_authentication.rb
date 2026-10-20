@@ -15,6 +15,7 @@ module AdminApiKeyAuthentication
       return false
     end
 
+    key.record_usage
     @admin_api_key, @current_user = key, user
     true
   end
