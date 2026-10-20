@@ -170,6 +170,63 @@ class Cache::ActivityJobTest < ActiveSupport::TestCase
     GoodJob::Job.where(active_job_id: job_id).delete_all if job_id
   end
 
+  [ false, true ].each do |dry_run|
+    test "a failed watchdog still bounds database deletion with dry_run=#{dry_run}" do
+      @claims["dry_run"] = dry_run
+      connection = ActiveRecord::Base.connection
+      # Several individually short DELETEs must share one budget. Versions are
+      # deleted repeatedly while detaching moderation, before storage begins.
+      connection.execute(<<~SQL)
+        CREATE FUNCTION privacy_test_slow_delete() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN PERFORM pg_sleep(0.7); RETURN NULL; END $$;
+        CREATE TRIGGER privacy_test_slow_delete AFTER DELETE ON versions
+          FOR EACH STATEMENT EXECUTE FUNCTION privacy_test_slow_delete();
+      SQL
+      eraser = in_connection do
+        Privacy::Eraser.new(@claims).call(action: "delete")
+      rescue Privacy::Error => error
+        error
+      end
+      connection.uncached do
+        Timeout.timeout(5) do
+          until connection.select_value(<<~SQL)
+            SELECT EXISTS (SELECT 1 FROM pg_stat_activity
+              WHERE datname = current_database() AND wait_event = 'PgSleep'
+                AND query LIKE 'DELETE FROM "versions"%')
+          SQL
+            sleep 0.01
+          end
+        end
+      end
+      control_pids = connection.select_values(<<~SQL)
+        SELECT pid FROM pg_stat_activity
+        WHERE datname = current_database() AND state = 'idle in transaction'
+          AND query = 'BEGIN; SET LOCAL statement_timeout = ''1s'''
+      SQL
+      assert_equal 1, control_pids.size
+      connection.execute("SELECT pg_terminate_backend(#{Integer(control_pids.first)})")
+      job_id = SecureRandom.uuid
+      enqueue = in_connection do
+        GoodJob::Job.create!(job_class: "UnrelatedJob", active_job_id: job_id, serialized_params: {})
+      end
+
+      job = Timeout.timeout(3) { enqueue.value }
+      error = Timeout.timeout(3) { eraser.value }
+      assert_equal "manual_review_required", error.message
+      assert_equal 409, error.status
+      assert GoodJob::Job.exists?(job.id)
+      assert User.exists?(@user.id)
+      assert Heartbeat.with_deleted.with_excluded.exists?(user_id: @user.id)
+      assert_includes Cache::CurrentlyHackingJob.perform_now[:users].map(&:id), @user.id
+    ensure
+      [ eraser, enqueue ].compact.each { |worker| worker.join(10) }
+      connection.execute("DROP TRIGGER IF EXISTS privacy_test_slow_delete ON versions")
+      connection.execute("DROP FUNCTION IF EXISTS privacy_test_slow_delete()")
+      GoodJob::Job.where(active_job_id: job_id).delete_all if job_id
+      @claims["dry_run"] = false
+    end
+  end
+
   private
 
   def in_connection(&block)
