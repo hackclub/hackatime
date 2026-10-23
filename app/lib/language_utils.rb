@@ -7,6 +7,7 @@ module LanguageUtils
   # will be accurate Most Of The Time(tm). Without this, it's the opposite!
   AUTHORITATIVE_EXTENSIONS = %w[.luau].freeze
   AUTO_DETECTED = "AUTO_DETECTED"
+  BROWSER_LANGUAGE = "Onshape"
 
   def self.data
     @data ||= begin
@@ -76,8 +77,10 @@ module LanguageUtils
   # read `.2` as Groff), and IDLE only edits and runs Python, so the editor is
   # authoritative over whatever language the client sent.
   #
-  # Browser entities are domains and URLs, not files, so their "extension" is a
-  # TLD or IP octet (`github.com` is not DIGITAL Command Language). Never guess.
+  # Browser time has no programming language. Domains and URLs are not files, so
+  # any language on them is a guess from the TLD (`github.com` is not DIGITAL
+  # Command Language, whether we or wakatime-cli guessed it) or one carried over
+  # from earlier coding. Only the Onshape plugin sends a real one.
   #
   # The JetBrains plugin sometimes sends the literal `AUTO_DETECTED` instead of
   # a language. Treat it as missing, and record Unknown if detection fails.
@@ -85,7 +88,7 @@ module LanguageUtils
     auto_detected = raw == AUTO_DETECTED
     raw = nil if auto_detected
     filled = if %w[domain url].include?(type)
-      raw
+      raw if raw == BROWSER_LANGUAGE
     else
       authoritative_language(entity) ||
         (editor.to_s.casecmp?("idle") ? "Python" : nil) ||
