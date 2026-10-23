@@ -2,7 +2,7 @@ class Settings::SetupController < Settings::BaseController
   private
 
   def page_props
-    api_key_token = @user.api_keys.last&.token
+    api_key_token = @user.hackatime_api_key&.token
 
     {
       config_file: {
