@@ -9,8 +9,17 @@ module Api
 
       before_action :authenticate_admin!
       before_action :set_paper_trail_whodunnit
+      include AuthenticatedApiRateLimiting
 
       private
+
+      def admin_api_rate_limit? = true
+
+      def authenticated_api_rate_limit_identity
+        return "admin_api_key:#{current_admin_api_key.id}" if current_admin_api_key
+
+        current_user && "user:#{current_user.id}"
+      end
 
       def authenticate_admin!
         authenticate_or_request_with_http_token do |token, _|
