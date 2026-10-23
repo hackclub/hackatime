@@ -1,8 +1,3 @@
-<script module lang="ts">
-  import settingsLayout from "./layout";
-  export const layout = settingsLayout;
-</script>
-
 <script lang="ts">
   import { Form, router } from "@inertiajs/svelte";
   import Button from "../../../components/Button.svelte";
