@@ -5,11 +5,12 @@
   import FormField from "../../components/FormField.svelte";
   import TextInput from "../../components/TextInput.svelte";
   import type { OAuthApplicationFormProps } from "./types";
-  import { doorkeeperApplications } from "../../api";
+  import { adminOauthApplications, doorkeeperApplications } from "../../api";
 
   let {
     form_mode,
     form_method,
+    admin_mode = false,
     labels,
     help_text,
     allow_blank_redirect_uri,
@@ -18,15 +19,26 @@
     errors,
   }: OAuthApplicationFormProps = $props();
 
-  const nameLocked = $derived(application.persisted && application.verified);
+  const nameLocked = $derived(
+    application.persisted && application.verified && !admin_mode,
+  );
   const selectedScopes = $derived(application.selected_scopes || []);
+  const parameterPrefix = $derived(
+    admin_mode ? "oauth_application" : "doorkeeper_application",
+  );
 
   const submitPath = $derived(
-    form_mode === "edit" && application.id != null
-      ? doorkeeperApplications.update.path({ id: application.id })
-      : doorkeeperApplications.create.path(),
+    admin_mode && application.id != null
+      ? adminOauthApplications.update.path({ id: application.id })
+      : form_mode === "edit" && application.id != null
+        ? doorkeeperApplications.update.path({ id: application.id })
+        : doorkeeperApplications.create.path(),
   );
-  const cancelPath = doorkeeperApplications.index.path();
+  const cancelPath = $derived(
+    admin_mode && application.id != null
+      ? adminOauthApplications.show.path({ id: application.id })
+      : doorkeeperApplications.index.path(),
+  );
 
   const row =
     "flex cursor-pointer items-start gap-3 rounded-lg border border-surface-200 bg-darker/70 p-3 hover:border-surface-300";
@@ -40,6 +52,15 @@
         <li>{error}</li>
       {/each}
     </ul>
+  </div>
+{/if}
+
+{#if admin_mode}
+  <div class="rounded-xl border border-blue/30 bg-blue/10 p-4">
+    <p class="text-sm font-semibold text-blue">Superadmin edit</p>
+    <p class="mt-1 text-xs text-blue/80">
+      You can edit all fields, including the name of a verified application.
+    </p>
   </div>
 {/if}
 
@@ -65,7 +86,7 @@
           />
           <input
             type="hidden"
-            name="doorkeeper_application[name]"
+            name={`${parameterPrefix}[name]`}
             value={application.name}
           />
           <p class="mt-2 text-xs text-yellow">
@@ -75,7 +96,7 @@
         {:else}
           <TextInput
             id="doorkeeper_application_name"
-            name="doorkeeper_application[name]"
+            name={`${parameterPrefix}[name]`}
             value={application.name}
             required
             placeholder="My Awesome App"
@@ -92,7 +113,7 @@
         </label>
         <textarea
           id="doorkeeper_application_redirect_uri"
-          name="doorkeeper_application[redirect_uri]"
+          name={`${parameterPrefix}[redirect_uri]`}
           rows="4"
           value={application.redirect_uri}
           placeholder="https://example.com/auth/callback"
@@ -112,7 +133,7 @@
         <p class="mb-2 block text-sm font-medium text-surface-content">
           Scopes
         </p>
-        <input type="hidden" name="doorkeeper_application[scopes][]" value="" />
+        <input type="hidden" name={`${parameterPrefix}[scopes][]`} value="" />
 
         <div class="space-y-2">
           {#each scope_options as scope}
@@ -120,7 +141,7 @@
               <input
                 id={`scope_${scope.value}`}
                 type="checkbox"
-                name="doorkeeper_application[scopes][]"
+                name={`${parameterPrefix}[scopes][]`}
                 value={scope.value}
                 checked={selectedScopes.includes(scope.value)}
                 class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
@@ -151,7 +172,7 @@
         class={row}
         inputClass="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
         checked={application.confidential}
-        name="doorkeeper_application[confidential]"
+        name={`${parameterPrefix}[confidential]`}
       >
         <span>
           <span class="text-sm font-medium text-surface-content"
@@ -169,7 +190,7 @@
         class={row}
         inputClass="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
         checked={application.redirect_to_hca_login}
-        name="doorkeeper_application[redirect_to_hca_login]"
+        name={`${parameterPrefix}[redirect_to_hca_login]`}
       >
         <span>
           <span class="text-sm font-medium text-surface-content"
