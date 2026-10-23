@@ -73,6 +73,30 @@ class Api::V1::My::HeartbeatsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized
   end
 
+  test "index rejects a malformed time range" do
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "test")
+
+    get "/api/v1/my/heartbeats",
+      params: { start_time: "not-a-date" },
+      headers: { "Authorization" => "Bearer #{api_key.token}" }
+
+    assert_response :bad_request
+    assert_equal({ "error" => "Invalid date range" }, response.parsed_body)
+  end
+
+  test "index rejects a reversed time range" do
+    user = create(:user)
+    api_key = create(:api_key, user: user, name: "test")
+
+    get "/api/v1/my/heartbeats",
+      params: { start_time: "2025-02-01T00:00:00Z", end_time: "2025-01-01T00:00:00Z" },
+      headers: { "Authorization" => "Bearer #{api_key.token}" }
+
+    assert_response :bad_request
+    assert_equal({ "error" => "Invalid date range" }, response.parsed_body)
+  end
+
   private
 
   def create_oauth_access_token(user, scopes:)
