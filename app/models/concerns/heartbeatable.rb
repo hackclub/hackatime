@@ -2,6 +2,7 @@ module Heartbeatable
   extend ActiveSupport::Concern
 
   BROWSER_EDITORS = %w[arc brave chrome chromium edge firefox floorp librewolf microsoft-edge opera opera-gx safari vivaldi waterfox zen].freeze
+  AI_PROMPT_CREDIT_WINDOW = 25.minutes
 
   included do
     # Filter heartbeats to only include those with category equal to "coding"
@@ -10,7 +11,7 @@ module Heartbeatable
       where("editor IS NULL OR LOWER(editor) NOT IN (?)", BROWSER_EDITORS)
     }
     scope :leaderboard_eligible, -> {
-      coding_only
+      where(category: [ "coding", "ai coding" ])
         .excluding_browser_time
         .where("project IS DISTINCT FROM ?", "<<LAST_PROJECT>>")
         .with_valid_timestamps
@@ -24,6 +25,19 @@ module Heartbeatable
   class_methods do
     def heartbeat_timeout_duration(duration = nil)
       duration ? (@heartbeat_timeout_duration = duration) : (@heartbeat_timeout_duration || 2.minutes)
+    end
+
+    # Heartbeats in range, except AI coding that comes more than
+    # AI_PROMPT_CREDIT_WINDOW after the user's latest prompt. An agent left
+    # running on its own stops earning time until the user prompts it again.
+    def prompted_ai_only(range)
+      candidates = where(time: (range.begin - AI_PROMPT_CREDIT_WINDOW)..range.end).select(:id, :user_id, :time, :category, <<~SQL.squish)
+        MAX(CASE WHEN category = 'ai coding' AND ai_prompt_length > 0 THEN time END)
+          OVER (PARTITION BY user_id ORDER BY time, id ROWS UNBOUNDED PRECEDING) AS last_ai_prompt_time
+      SQL
+
+      unscoped.from(candidates, table_name).where(time: range)
+        .where("category <> 'ai coding' OR time <= last_ai_prompt_time + ?", AI_PROMPT_CREDIT_WINDOW.to_i)
     end
 
     def to_span(timeout_duration: nil)

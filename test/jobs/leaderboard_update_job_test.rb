@@ -50,7 +50,50 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
     assert_equal [ user.id ], board.entries.reload.pluck(:user_id)
   end
 
+  test "perform counts AI coding only within 25 minutes of the latest prompt" do
+    freeze_time do
+      agent_user = create_user(username: "lb_job_agent", github_uid: "GH_LEADERBOARD_JOB_AGENT")
+      early_prompt_user = create_user(username: "lb_job_early_prompt", github_uid: "GH_LEADERBOARD_JOB_EARLY")
+
+      # Prompt, then the agent keeps working for 40 minutes. The heartbeat at
+      # exactly +25 minutes still counts; the ones after it do not.
+      prompt_at = 3.hours.ago
+      create_ai_heartbeat(user: agent_user, time: prompt_at, ai_prompt_length: 42)
+      (1..40).each { |minute| create_ai_heartbeat(user: agent_user, time: prompt_at + minute.minutes) }
+
+      # The prompt comes before the rolling 24 hours start but still credits
+      # the first 15 minutes of the range.
+      range_start = 24.hours.ago
+      create_ai_heartbeat(user: early_prompt_user, time: range_start - 10.minutes, ai_prompt_length: 42)
+      (1..20).each { |minute| create_ai_heartbeat(user: early_prompt_user, time: range_start + minute.minutes) }
+
+      LeaderboardUpdateJob.perform_now(:daily, Date.current, force_update: true)
+
+      board = Leaderboard.find_by!(start_date: Date.current, period_type: :daily, timezone_utc_offset: nil)
+      agent_entry = board.entries.find_by!(user_id: agent_user.id)
+      early_prompt_entry = board.entries.find_by!(user_id: early_prompt_user.id)
+
+      assert_equal 25.minutes.to_i, agent_entry.total_seconds
+      assert_equal 15.minutes.to_i, agent_entry.unprompted_ai_seconds
+      assert_equal 14.minutes.to_i, early_prompt_entry.total_seconds
+      assert_equal 5.minutes.to_i, early_prompt_entry.unprompted_ai_seconds
+    end
+  end
+
   private
+
+  def create_ai_heartbeat(user:, time:, ai_prompt_length: nil)
+    create(:heartbeat, user: user,
+      entity: "src/agent.rb",
+      type: "file",
+      category: "ai coding",
+      editor: "claude-code",
+      time: time.to_f,
+      project: "leaderboard-job-test",
+      ai_prompt_length: ai_prompt_length,
+      source_type: :test_entry
+    )
+  end
 
   def create_user(username:, github_uid:)
     create(:user,

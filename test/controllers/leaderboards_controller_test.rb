@@ -145,6 +145,22 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     assert_empty inertia.props.dig("entries", "entries")
   end
 
+  test "index flags viewers who lost at least 15 minutes of unprompted AI time" do
+    board = create_boards_for_today(period_type: :daily).first
+    affected = create_user(username: "lb_unprompted_ai")
+    barely_affected = create_user(username: "lb_barely_unprompted")
+    create(:leaderboard_entry, leaderboard: board, user: affected, total_seconds: 300, unprompted_ai_seconds: 15.minutes.to_i)
+    create(:leaderboard_entry, leaderboard: board, user: barely_affected, total_seconds: 300, unprompted_ai_seconds: 15.minutes.to_i - 1)
+
+    sign_in_as(affected)
+    get leaderboards_path
+    assert_inertia_props lost_unprompted_ai_time: true
+
+    sign_in_as(barely_affected)
+    get leaderboards_path
+    assert_inertia_props lost_unprompted_ai_time: false
+  end
+
   private
 
   def create_user(username:, country_code: nil, leaderboard_shadowbanned: false, admin_level: :default, trust_level: :blue)

@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { Deferred, Link } from "@inertiajs/svelte";
   import { Icon, MagnifyingGlass } from "svelte-hero-icons";
+  import Button from "../../components/Button.svelte";
   import Tabs from "./components/Tabs.svelte";
   import EntriesList from "./components/EntriesList.svelte";
   import type {
@@ -19,6 +21,7 @@
     is_logged_in,
     github_uid_blank,
     can_view_telescreen,
+    lost_unprompted_ai_time,
     entries,
   }: {
     period_type: string;
@@ -28,11 +31,23 @@
     is_logged_in: boolean;
     github_uid_blank: boolean;
     can_view_telescreen: boolean;
+    lost_unprompted_ai_time: boolean;
     entries?: LeaderboardEntriesPayload;
   } = $props();
 
   const settingsPath = settingsProfile.my.path();
   let searchQuery = $state("");
+
+  const aiNoticeKey = "leaderboard-unprompted-ai-notice-dismissed";
+  let aiNoticeDismissed = $state(true);
+  onMount(() => {
+    aiNoticeDismissed = localStorage.getItem(aiNoticeKey) === "true";
+  });
+
+  function dismissAiNotice() {
+    localStorage.setItem(aiNoticeKey, "true");
+    aiNoticeDismissed = true;
+  }
 
   const filteredEntries = $derived.by(() => {
     if (!entries?.entries) return [];
@@ -98,6 +113,29 @@
         >
         to unlock regional leaderboards.
       </p>
+    {/if}
+
+    {#if lost_unprompted_ai_time && !aiNoticeDismissed}
+      <div
+        class="rounded-xl border border-surface-200 bg-elevated p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div>
+          <p class="font-medium text-surface-content">
+            Some of your AI time isn't counted
+          </p>
+          <p class="text-sm text-muted">
+            AI time counts for 25 minutes after each prompt.
+          </p>
+        </div>
+        <Button
+          variant="surface"
+          size="sm"
+          class="w-full sm:w-fit shrink-0"
+          onclick={dismissAiNotice}
+        >
+          Dismiss
+        </Button>
+      </div>
     {/if}
 
     <div
