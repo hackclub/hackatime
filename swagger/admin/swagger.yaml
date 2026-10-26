@@ -573,6 +573,18 @@ paths:
         description: Filter by trust level change. Any unrecognized value (or omitting
           the parameter) returns all logs unfiltered.
         required: false
+      - name: limit
+        in: query
+        description: Logs per page, newest first (default 250, max 1000)
+        required: false
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        description: Logs to skip (default 0)
+        required: false
+        schema:
+          type: integer
       responses:
         '200':
           description: successful
@@ -638,6 +650,9 @@ paths:
                   total_count:
                     type: integer
                     example: 137
+                  has_more:
+                    type: boolean
+                    example: false
         '404':
           description: user not found
           content:

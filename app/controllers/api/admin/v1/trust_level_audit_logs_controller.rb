@@ -12,7 +12,9 @@ module Api
         before_action :can_write!, only: [ :update ]
 
         def index
-          audit_logs = TrustLevelAuditLog.includes(:user, :changed_by, :edited_by).recent.limit(250)
+          limit = (params[:limit] || 250).to_i.clamp(1, 1000)
+          offset = (params[:offset] || 0).to_i.clamp(0, Float::INFINITY)
+          audit_logs = TrustLevelAuditLog.includes(:user, :changed_by, :edited_by).recent.order(id: :desc)
 
           if params[:user_id].present?
             user = User.find_by(id: params[:user_id])
@@ -38,9 +40,11 @@ module Api
             audit_logs = audit_logs.where(new_trust_level: level)
           end
 
+          total_count = audit_logs.count
           render json: {
-            audit_logs: audit_logs.map { |log| audit_log_json(log) },
-            total_count: audit_logs.count
+            audit_logs: audit_logs.limit(limit).offset(offset).map { |log| audit_log_json(log) },
+            total_count: total_count,
+            has_more: (offset + limit) < total_count
           }
         end
 
