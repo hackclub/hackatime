@@ -10,6 +10,8 @@ module Api
           :ja4_id
         ].freeze
 
+        HEARTBEAT_AI_COLUMNS = %i[ai_model ai_session ai_subscription_plan ai_input_tokens ai_output_tokens ai_prompt_length ai_line_changes human_line_changes].freeze
+
         HEARTBEAT_FIELD_COLUMNS = {
           "projects" => "project",
           "languages" => "language",
@@ -308,10 +310,12 @@ module Api
 
           total_count = query.count
           source_types = Heartbeat.source_types.invert
-          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS, Arel.sql(HeartbeatExclusion::HIDDEN_SQL))
-          ja4s_by_id = Ja4.where(id: rows.filter_map { |*, ja4_id, _hidden| ja4_id }.uniq).index_by(&:id)
-          heartbeats = rows.map do |id, time, created_at, lineno, cursorpos, is_write, project, language, entity, branch, category, dependencies, editor, machine, operating_system, type, project_root_count, user_agent, line_additions, line_deletions, ip_address, lines, source_type, ja4_id, hidden|
-            {
+          include_ai = params[:include_ai] == "true"
+          rows = query.order(time: :asc, id: :asc).limit(limit).offset(offset).pluck(*HEARTBEAT_RESPONSE_COLUMNS, Arel.sql(HeartbeatExclusion::HIDDEN_SQL), *(include_ai ? HEARTBEAT_AI_COLUMNS : []))
+          ja4_index = HEARTBEAT_RESPONSE_COLUMNS.index(:ja4_id)
+          ja4s_by_id = Ja4.where(id: rows.filter_map { |row| row[ja4_index] }.uniq).index_by(&:id)
+          heartbeats = rows.map do |id, time, created_at, lineno, cursorpos, is_write, project, language, entity, branch, category, dependencies, editor, machine, operating_system, type, project_root_count, user_agent, line_additions, line_deletions, ip_address, lines, source_type, ja4_id, hidden, ai_model, ai_session, ai_subscription_plan, ai_input_tokens, ai_output_tokens, ai_prompt_length, ai_line_changes, human_line_changes|
+            heartbeat = {
               id: id,
               time: time,
               created_at: created_at,
@@ -338,6 +342,18 @@ module Api
               ja4: ja4s_by_id[ja4_id]&.then { |ja4| { fingerprint: ja4.fingerprint, name: ja4.name } },
               hidden: hidden
             }
+            next heartbeat unless include_ai
+
+            heartbeat.merge(
+              ai_model: ai_model,
+              ai_session: ai_session,
+              ai_subscription_plan: ai_subscription_plan,
+              ai_input_tokens: ai_input_tokens,
+              ai_output_tokens: ai_output_tokens,
+              ai_prompt_length: ai_prompt_length,
+              ai_line_changes: ai_line_changes,
+              human_line_changes: human_line_changes
+            )
           end
 
           render json: {
