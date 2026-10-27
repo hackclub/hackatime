@@ -1005,18 +1005,26 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
     end
   end
 
-  describe 'GET /api/admin/v1/user/heartbeats without include_ai' do
-    it 'leaves the AI columns out' do
-      user = create(:user, :with_email, username: 'hb_user_no_ai', email: 'hb-no-ai@example.com')
-      create(:heartbeat, user: user, entity: 'a.rb', time: Time.current.to_f, source_type: :direct_entry, ai_model: 'claude-sonnet-4-5')
+  describe 'GET /api/admin/v1/user/heartbeats include_ai' do
+    let(:user) { create(:user, :with_email, username: 'hb_user_no_ai', email: 'hb-no-ai@example.com') }
 
-      get '/api/admin/v1/user/heartbeats', params: { user_id: user.id },
+    before { create(:heartbeat, user: user, entity: 'a.rb', time: Time.current.to_f, source_type: :direct_entry, ai_model: 'claude-sonnet-4-5') }
+
+    def heartbeat_for(params)
+      get '/api/admin/v1/user/heartbeats', params: { user_id: user.id, **params },
         headers: { 'Authorization' => 'Bearer dev-admin-api-key-12345' }
-
       expect(response).to have_http_status(:ok)
-      heartbeat = JSON.parse(response.body).dig('heartbeats', 0)
+      JSON.parse(response.body).dig('heartbeats', 0)
+    end
+
+    it 'leaves the AI columns out by default' do
+      heartbeat = heartbeat_for({})
       expect(heartbeat).to include('entity' => 'a.rb')
       expect(heartbeat.keys).not_to include('ai_model', 'human_line_changes')
+    end
+
+    it 'accepts any Rails boolean true value' do
+      expect(heartbeat_for(include_ai: '1')).to include('ai_model' => 'claude-sonnet-4-5')
     end
   end
 end
