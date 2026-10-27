@@ -147,6 +147,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
       parameter name: :machine, in: :query, type: :string, description: 'Machine'
       parameter name: :limit, in: :query, type: :integer, description: 'Limit'
       parameter name: :offset, in: :query, type: :integer, description: 'Offset'
+      parameter name: :include_ai, in: :query, type: :boolean, required: false, description: 'Also return the AI columns (ai_model, ai_session, ai_subscription_plan, ai_input_tokens, ai_output_tokens, ai_prompt_length, ai_line_changes, human_line_changes). Off by default: they are null on most heartbeats and make every row bigger.'
 
       response(200, 'successful') do
         schema type: :object,
@@ -188,7 +189,15 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
                       fingerprint: { type: :string, example: 't13d1516h2_8daaf6152771_02713d6af862' },
                       name: { type: :string, nullable: true, example: 'Go net/http' }
                     }
-                  }
+                  },
+                  ai_model: { type: :string, nullable: true, example: 'claude-sonnet-4-5', description: 'Only with include_ai=true' },
+                  ai_session: { type: :string, nullable: true, example: 'sess_8f2c', description: 'Only with include_ai=true' },
+                  ai_subscription_plan: { type: :string, nullable: true, example: 'pro', description: 'Only with include_ai=true' },
+                  ai_input_tokens: { type: :integer, nullable: true, example: 1200, description: 'Only with include_ai=true' },
+                  ai_output_tokens: { type: :integer, nullable: true, example: 340, description: 'Only with include_ai=true' },
+                  ai_prompt_length: { type: :integer, nullable: true, example: 88, description: 'Only with include_ai=true' },
+                  ai_line_changes: { type: :integer, nullable: true, example: 14, description: 'Only with include_ai=true' },
+                  human_line_changes: { type: :integer, nullable: true, example: 3, description: 'Only with include_ai=true' }
                 }
               }
             },
@@ -210,10 +219,15 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
             line_additions: 8,
             line_deletions: 3,
             source_type: :direct_entry,
-            ja4: create(:ja4, fingerprint: 't13d1516h2_8daaf6152771_02713d6af862', name: 'Go net/http')
+            ja4: create(:ja4, fingerprint: 't13d1516h2_8daaf6152771_02713d6af862', name: 'Go net/http'),
+            ai_model: 'claude-sonnet-4-5',
+            ai_input_tokens: 1200,
+            ai_line_changes: 14,
+            human_line_changes: 3
           )
           u
         end
+        let(:include_ai) { 'true' }
         let(:user_id) { user.id }
         let(:start_date) { nil }
         let(:end_date) { nil }
@@ -240,6 +254,13 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
           expect(heartbeat.fetch('ja4')).to eq(
             'fingerprint' => 't13d1516h2_8daaf6152771_02713d6af862',
             'name' => 'Go net/http'
+          )
+          expect(heartbeat).to include(
+            'ai_model' => 'claude-sonnet-4-5',
+            'ai_input_tokens' => 1200,
+            'ai_line_changes' => 14,
+            'human_line_changes' => 3,
+            'ai_session' => nil
           )
         end
       end
@@ -981,6 +1002,29 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
         schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
+    end
+  end
+
+  describe 'GET /api/admin/v1/user/heartbeats include_ai' do
+    let(:user) { create(:user, :with_email, username: 'hb_user_no_ai', email: 'hb-no-ai@example.com') }
+
+    before { create(:heartbeat, user: user, entity: 'a.rb', time: Time.current.to_f, source_type: :direct_entry, ai_model: 'claude-sonnet-4-5') }
+
+    def heartbeat_for(params)
+      get '/api/admin/v1/user/heartbeats', params: { user_id: user.id, **params },
+        headers: { 'Authorization' => 'Bearer dev-admin-api-key-12345' }
+      expect(response).to have_http_status(:ok)
+      JSON.parse(response.body).dig('heartbeats', 0)
+    end
+
+    it 'leaves the AI columns out by default' do
+      heartbeat = heartbeat_for({})
+      expect(heartbeat).to include('entity' => 'a.rb')
+      expect(heartbeat.keys).not_to include('ai_model', 'human_line_changes')
+    end
+
+    it 'accepts any Rails boolean true value' do
+      expect(heartbeat_for(include_ai: '1')).to include('ai_model' => 'claude-sonnet-4-5')
     end
   end
 end
