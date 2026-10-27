@@ -1,0 +1,91 @@
+---
+title: Zed
+sidebar: { icon: "/images/editor-icons/zed-32.webp" }
+---
+import commandPaletteLight from "./images/zed-command-palette-light.png";
+import commandPaletteDark from "./images/zed-command-palette-dark.png";
+import extensionsSearchLight from "./images/zed-extensions-search-light.png";
+import extensionsSearchDark from "./images/zed-extensions-search-dark.png";
+import extensionCardLight from "./images/zed-extension-card-light.png";
+import extensionCardDark from "./images/zed-extension-card-dark.png";
+import restrictedModeLight from "./images/zed-restricted-mode-light.png";
+import restrictedModeDark from "./images/zed-restricted-mode-dark.png";
+import languageServersLight from "./images/zed-language-servers-light.png";
+import languageServersDark from "./images/zed-language-servers-dark.png";
+
+![Zed](../../public/images/editor-icons/zed-128.png)
+
+Follow these steps to start tracking your coding time in Zed with Hackatime. The screenshots are from macOS, but the steps are the same on Linux and Windows.
+
+## Step 1: Log into Hackatime
+
+Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
+
+## Step 2: Run the setup script
+
+Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
+
+If Zed is already installed, the setup script also tells Zed to install the Hackatime extension the next time it starts. Restart Zed and skip to [Step 4](#step-4-trust-your-project) if the extension shows up as installed.
+
+## Step 3: Install the Hackatime extension
+
+Open the Extensions page by pressing **Cmd+Shift+X** on Mac or **Ctrl+Shift+X** on Linux and Windows. You can also open the command palette (**Cmd+Shift+P** or **Ctrl+Shift+P**) and run **zed: extensions**.
+
+<img src={commandPaletteLight.src} width={760} alt="Zed command palette with the zed: extensions command selected" data-docs-theme="light" />
+<img src={commandPaletteDark.src} width={760} alt="Zed command palette with the zed: extensions command selected" data-docs-theme="dark" />
+
+Search for `hackatime` and press **Install** on the extension called **hackatime**. Its extension ID is `hackatime`.
+
+<img src={extensionsSearchLight.src} width={760} alt="Zed Extensions page showing the hackatime extension with an Install button" data-docs-theme="light" />
+<img src={extensionsSearchDark.src} width={760} alt="Zed Extensions page showing the hackatime extension with an Install button" data-docs-theme="dark" />
+
+Once it's installed, the button changes to **Uninstall**.
+
+<img src={extensionCardLight.src} width={746} alt="The installed hackatime extension with an Uninstall button" data-docs-theme="light" />
+<img src={extensionCardDark.src} width={746} alt="The installed hackatime extension with an Uninstall button" data-docs-theme="dark" />
+
+You can also install it from your Zed settings file. Run **zed: open settings file** from the command palette and add:
+
+```json
+{
+  "auto_install_extensions": {
+    "hackatime": true
+  }
+}
+```
+
+You only need this extension. If you also have the WakaTime extension installed, uninstall it so your time isn't sent twice.
+
+## Step 4: Trust your project
+
+Zed opens projects you haven't used before in Restricted Mode, which stops language servers from running. The Hackatime extension is a language server, so nothing is tracked until you trust the project. Press **Trust and Continue** when Zed asks.
+
+<img src={restrictedModeLight.src} width={620} alt="Zed's Unrecognized Project dialog with the Trust and Continue button" data-docs-theme="light" />
+<img src={restrictedModeDark.src} width={620} alt="Zed's Unrecognized Project dialog with the Trust and Continue button" data-docs-theme="dark" />
+
+Tick **Trust all projects in** to trust every project in that folder at once. If you see **Restricted Mode** in the title bar, click it to trust the project you have open.
+
+## Step 5: Check that it's running
+
+Open a file and click the lightning bolt in the bottom-left corner. **hackatime** should be listed with a green dot.
+
+<img src={languageServersLight.src} width={330} alt="Zed's language server menu showing hackatime running" data-docs-theme="light" />
+<img src={languageServersDark.src} width={330} alt="Zed's language server menu showing hackatime running" data-docs-theme="dark" />
+
+Start typing and your time will appear on your [Hackatime dashboard](https://hackatime.hackclub.com) within a few minutes.
+
+## What gets tracked
+
+Zed sends a heartbeat when you edit a file, at most once every two minutes for the same file. Your project, branch, language, line and cursor position come along with it. Opening or saving a file without editing it isn't tracked and neither are files in languages the extension doesn't support, such as plain text.
+
+## Troubleshooting
+
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, then edit a file. Heartbeats can take a few minutes to show up.
+- **No hackatime in the language server menu?** Check the title bar for **Restricted Mode** and trust the project.
+- **"Failed to run hackatime" in the status bar?** Click it to see the error. The extension downloads its helper programs from GitHub the first time it runs, so check your connection and restart Zed.
+- **Plugin not working?** Try restarting Zed after installation.
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel).
+
+## Next steps
+
+Once configured, your coding time will automatically appear on your [Hackatime dashboard](https://hackatime.hackclub.com). Happy coding!
