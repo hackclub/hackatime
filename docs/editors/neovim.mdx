@@ -9,7 +9,7 @@ import wakatimeTodayDark from "./images/neovim-wakatime-today-dark.png";
 
 ![Neovim](../../public/images/editor-icons/neovim-128.png)
 
-Follow these steps to start tracking your coding time in Neovim with Hackatime. The screenshots are from macOS, but the steps are the same on Linux and Windows.
+Follow these steps to start tracking your coding time in Neovim with Hackatime. The screenshots show Neovim in Ghostty on macOS, but the steps are the same in any terminal on Linux and Windows.
 
 ## Step 1: Log into Hackatime
 
@@ -48,14 +48,23 @@ Close Neovim and open it again. Both lazy.nvim and `vim.pack` install the plugin
 <img src={lazyLight.src} width={760} alt="lazy.nvim window listing vim-wakatime as loaded" data-docs-theme="light" />
 <img src={lazyDark.src} width={760} alt="lazy.nvim window listing vim-wakatime as loaded" data-docs-theme="dark" />
 
-The plugin downloads wakatime-cli the first time it runs and reads your API key from the setup script. If you skipped Step 2, run `:WakaTimeApiKey` and paste the key from your [Hackatime settings](https://hackatime.hackclub.com/my/settings).
+The plugin downloads wakatime-cli the first time it runs and reads your API key and Hackatime's server address from the setup script. If you skipped Step 2, open `~/.wakatime.cfg` (`%USERPROFILE%\.wakatime.cfg` on Windows) in a text editor and add both. Use the API key from your [Hackatime settings](https://hackatime.hackclub.com/my/settings):
+
+```ini title="~/.wakatime.cfg"
+[settings]
+api_url = https://hackatime.hackclub.com/api/hackatime/v1
+api_key = YOUR_API_KEY
+heartbeat_rate_limit_seconds = 30
+```
+
+Without `api_url`, your time is sent to WakaTime instead of Hackatime. [Plugin settings](../configuration/plugin-settings) lists the other options. `:WakaTimeApiKey` only changes the key, not the server address.
 
 ## Step 5: Check that it's running
 
 Edit and save a file, then run `:WakaTimeToday`. Your coding time for today appears at the bottom of the window.
 
-<img src={wakatimeTodayLight.src} width={760} alt="Neovim showing Today: 4m after running :WakaTimeToday" data-docs-theme="light" />
-<img src={wakatimeTodayDark.src} width={760} alt="Neovim showing Today: 4m after running :WakaTimeToday" data-docs-theme="dark" />
+<img src={wakatimeTodayLight.src} width={760} alt="Neovim showing Today: 5m after running :WakaTimeToday" data-docs-theme="light" />
+<img src={wakatimeTodayDark.src} width={760} alt="Neovim showing Today: 5m after running :WakaTimeToday" data-docs-theme="dark" />
 
 Your time will also appear on your [Hackatime dashboard](https://hackatime.hackclub.com) within a few minutes.
 
@@ -67,7 +76,7 @@ Files outside a git repository are still tracked, but Neovim can't tell which pr
 
 ## Troubleshooting
 
-- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, then edit a file. Heartbeats can take a few minutes to show up.
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, or that `~/.wakatime.cfg` has both `api_url` and `api_key` from [Step 4](#step-4-restart-neovim). Then edit a file. Heartbeats can take a few minutes to show up.
 - **Time missing from your projects?** The file isn't in a git repository. See [What gets tracked](#what-gets-tracked).
 - **`:WakaTimeToday` isn't a command?** The plugin isn't loaded. Check that `lazy = false` is set and run `:Lazy` to see whether it installed.
 - **Something else?** Run `:WakaTimeDebugEnable`, edit a file and read the messages with `:messages`. Run `:WakaTimeDebugDisable` when you're done.

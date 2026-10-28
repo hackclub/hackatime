@@ -51,7 +51,16 @@ Wait for the list of packages to load, then search for `wakatime` and press **En
 <img src={wakatimePackageLight.src} width={760} alt="Package Control search results showing the WakaTime package" data-docs-theme="light" />
 <img src={wakatimePackageDark.src} width={760} alt="Package Control search results showing the WakaTime package" data-docs-theme="dark" />
 
-The package downloads wakatime-cli in the background, so the status bar shows **WakaTime: Initializing...** for a moment. It reads your API key from the setup script, so you won't be asked for one. If you skipped Step 2 and Sublime Text asks for a key, paste the one from your [Hackatime settings](https://hackatime.hackclub.com/my/settings).
+The package downloads wakatime-cli in the background, so the status bar shows **WakaTime: Initializing...** for a moment. It reads your API key and Hackatime's server address from the setup script, so you won't be asked for a key. If you skipped Step 2, open `~/.wakatime.cfg` (`%USERPROFILE%\.wakatime.cfg` on Windows) in a text editor and add both. Use the API key from your [Hackatime settings](https://hackatime.hackclub.com/my/settings):
+
+```ini title="~/.wakatime.cfg"
+[settings]
+api_url = https://hackatime.hackclub.com/api/hackatime/v1
+api_key = YOUR_API_KEY
+heartbeat_rate_limit_seconds = 30
+```
+
+Without `api_url`, your time is sent to WakaTime instead of Hackatime. [Plugin settings](../configuration/plugin-settings) lists the other options. If Sublime Text asks for a key, paste the same one. The prompt only saves the key, not the server address.
 
 ## Step 5: Check that it's running
 
@@ -68,7 +77,7 @@ Sublime Text sends a heartbeat when you edit a file or move the cursor in it, at
 
 ## Troubleshooting
 
-- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, then edit a file. Heartbeats can take a few minutes to show up.
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, or that `~/.wakatime.cfg` has both `api_url` and `api_key` from [Step 4](#step-4-install-the-wakatime-package). Then edit a file. Heartbeats can take a few minutes to show up.
 - **Stuck on "WakaTime: Initializing..."?** The package downloads wakatime-cli from GitHub the first time it runs. Check your connection, wait a while if GitHub is rate limiting your network, then restart Sublime Text.
 - **Something else?** Open the console with **View → Show Console** and look for lines starting with `[WakaTime]`.
 - **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel).

@@ -31,9 +31,20 @@ Open a project and start typing. Your coding time for today appears in the statu
 
 Your time will also appear on your [Hackatime dashboard](https://hackatime.hackclub.com) within a few minutes.
 
-The plugin reads your API key from the setup script. If you skipped Step 2, open **Tools → WakaTime Settings**.
+The plugin reads your API key and Hackatime's server address from the setup script. If you skipped Step 2, open `~/.wakatime.cfg` in a text editor and add both. Use the API key from your [Hackatime settings](https://hackatime.hackclub.com/my/settings):
 
-Paste the key from your [Hackatime settings](https://hackatime.hackclub.com/my/settings) into **API key** and press **Save**.
+```ini title="~/.wakatime.cfg"
+[settings]
+api_url = https://hackatime.hackclub.com/api/hackatime/v1
+api_key = YOUR_API_KEY
+heartbeat_rate_limit_seconds = 30
+```
+
+Without `api_url`, your time is sent to WakaTime instead of Hackatime. [Plugin settings](../configuration/plugin-settings) lists the other options.
+
+To check which key the plugin is using, open **Tools → WakaTime Settings**.
+
+**API key** should match the key in your Hackatime settings. You can change the key here, but the server address can only be set in `~/.wakatime.cfg`.
 
 ## What gets tracked
 
@@ -41,7 +52,7 @@ AppCode sends a heartbeat when you open or switch to a file, edit it, move the c
 
 ## Troubleshooting
 
-- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, then edit a file. Heartbeats can take a few minutes to show up.
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, or that `~/.wakatime.cfg` has both `api_url` and `api_key` from [Step 4](#step-4-check-that-its-running). Then edit a file. Heartbeats can take a few minutes to show up.
 - **Can't find WakaTime Settings?** The plugin isn't loaded. Check that WakaTime is enabled on the **Installed** tab in **Settings → Plugins**, then restart AppCode.
 - **Something else?** Tick **Debug** in **Tools → WakaTime Settings**, restart AppCode and look for WakaTime messages in **Help → Show Log in Finder**.
 - **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel).
