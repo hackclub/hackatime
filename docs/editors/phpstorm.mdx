@@ -1,0 +1,92 @@
+---
+title: PhpStorm
+sidebar: { icon: "/images/editor-icons/phpstorm-32.webp" }
+---
+import editorLight from "./images/phpstorm-editor-light.png";
+import editorDark from "./images/phpstorm-editor-dark.png";
+import pluginMarketplaceLight from "./images/phpstorm-plugin-marketplace-light.png";
+import pluginMarketplaceDark from "./images/phpstorm-plugin-marketplace-dark.png";
+import thirdPartyNoticeLight from "./images/phpstorm-third-party-notice-light.png";
+import thirdPartyNoticeDark from "./images/phpstorm-third-party-notice-dark.png";
+import statusBarLight from "./images/phpstorm-status-bar-light.png";
+import statusBarDark from "./images/phpstorm-status-bar-dark.png";
+import toolsMenuLight from "./images/phpstorm-tools-menu-light.png";
+import toolsMenuDark from "./images/phpstorm-tools-menu-dark.png";
+import wakatimeSettingsLight from "./images/phpstorm-wakatime-settings-light.png";
+import wakatimeSettingsDark from "./images/phpstorm-wakatime-settings-dark.png";
+
+![PhpStorm](../../public/images/editor-icons/phpstorm-128.png)
+
+Follow these steps to start tracking your coding time in PhpStorm with Hackatime. PhpStorm uses the WakaTime plugin, which works with Hackatime once the setup script has run. The screenshots are from macOS, but the steps are the same on Linux and Windows.
+
+## Step 1: Log into Hackatime
+
+Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
+
+## Step 2: Run the setup script
+
+Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
+
+If PhpStorm is already installed, the setup script also installs the WakaTime plugin for you. Restart PhpStorm and skip to [Step 4](#step-4-check-that-its-running) if **WakaTime** is already listed on the **Installed** tab in **Settings → Plugins**.
+
+## Step 3: Install the WakaTime plugin
+
+Open Settings by pressing **Cmd+,** on Mac or **Ctrl+Alt+S** on Linux and Windows. Choose **Plugins**, open the **Marketplace** tab and search for `WakaTime`. Press **Install** next to **WakaTime**.
+
+<img src={pluginMarketplaceLight.src} width={760} alt="PhpStorm Settings on the Plugins Marketplace tab with WakaTime in the search results" data-docs-theme="light" />
+<img src={pluginMarketplaceDark.src} width={760} alt="PhpStorm Settings on the Plugins Marketplace tab with WakaTime in the search results" data-docs-theme="dark" />
+
+PhpStorm warns you that WakaTime is a third-party plugin. Press **Accept**.
+
+<img src={thirdPartyNoticeLight.src} width={440} alt="Third-Party Plugins Notice dialog listing WakaTime" data-docs-theme="light" />
+<img src={thirdPartyNoticeDark.src} width={440} alt="Third-Party Plugins Notice dialog listing WakaTime" data-docs-theme="dark" />
+
+When the button changes to **Restart IDE**, press it and confirm with **Restart**.
+
+## Step 4: Check that it's running
+
+Open a project and start typing. Your coding time for today appears in the status bar at the bottom of the window, next to the WakaTime icon.
+
+<img src={editorLight.src} width={760} alt="PhpStorm with a project open and the WakaTime time in the status bar" data-docs-theme="light" />
+<img src={editorDark.src} width={760} alt="PhpStorm with a project open and the WakaTime time in the status bar" data-docs-theme="dark" />
+
+<img src={statusBarLight.src} width={409} alt="PhpStorm status bar showing today's coding time next to the WakaTime icon" data-docs-theme="light" />
+<img src={statusBarDark.src} width={409} alt="PhpStorm status bar showing today's coding time next to the WakaTime icon" data-docs-theme="dark" />
+
+Your time will also appear on your [Hackatime dashboard](https://hackatime.hackclub.com) within a few minutes.
+
+The plugin reads your API key and Hackatime's server address from the setup script. If you skipped Step 2, open `~/.wakatime.cfg` (`%USERPROFILE%\.wakatime.cfg` on Windows) in a text editor and add both. Use the API key from your [Hackatime settings](https://hackatime.hackclub.com/my/settings):
+
+```ini title="~/.wakatime.cfg"
+[settings]
+api_url = https://hackatime.hackclub.com/api/hackatime/v1
+api_key = YOUR_API_KEY
+heartbeat_rate_limit_seconds = 30
+```
+
+Without `api_url`, your time is sent to WakaTime instead of Hackatime. [Plugin settings](../configuration/plugin-settings) lists the other options.
+
+To check which key the plugin is using, open **Tools → WakaTime Settings**.
+
+<img src={toolsMenuLight.src} width={317} alt="PhpStorm Tools menu with WakaTime Settings at the top" data-docs-theme="light" />
+<img src={toolsMenuDark.src} width={316} alt="PhpStorm Tools menu with WakaTime Settings at the top" data-docs-theme="dark" />
+
+**API key** should match the key in your Hackatime settings. You can change the key here, but the server address can only be set in `~/.wakatime.cfg`.
+
+<img src={wakatimeSettingsLight.src} width={760} alt="WakaTime Settings dialog with the API key field" data-docs-theme="light" />
+<img src={wakatimeSettingsDark.src} width={760} alt="WakaTime Settings dialog with the API key field" data-docs-theme="dark" />
+
+## What gets tracked
+
+PhpStorm sends a heartbeat when you open or switch to a file, edit it, move the cursor or scroll, at most once every two minutes for the same file, and every time you save. Your project, branch, language, line and cursor position come along with it.
+
+## Troubleshooting
+
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, or that `~/.wakatime.cfg` has both `api_url` and `api_key` from [Step 4](#step-4-check-that-its-running). Then edit a file. Heartbeats can take a few minutes to show up.
+- **Can't find WakaTime Settings?** The plugin isn't loaded. Check that WakaTime is enabled on the **Installed** tab in **Settings → Plugins**, then restart PhpStorm.
+- **Something else?** Tick **Debug** in **Tools → WakaTime Settings**, restart PhpStorm and look for WakaTime messages in **Help → Show Log in Finder** (**Show Log in Explorer** on Windows; on Linux the item is named after your file manager).
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel).
+
+## Next steps
+
+Once configured, your coding time will automatically appear on your [Hackatime dashboard](https://hackatime.hackclub.com). Happy coding!

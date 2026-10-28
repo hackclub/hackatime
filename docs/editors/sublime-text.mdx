@@ -1,0 +1,87 @@
+---
+title: Sublime Text
+sidebar: { icon: "/images/editor-icons/sublime-text-32.webp" }
+---
+import installPackageControlLight from "./images/sublime-text-install-package-control-light.png";
+import installPackageControlDark from "./images/sublime-text-install-package-control-dark.png";
+import packageControlInstalledLight from "./images/sublime-text-package-control-installed-light.png";
+import packageControlInstalledDark from "./images/sublime-text-package-control-installed-dark.png";
+import installPackageLight from "./images/sublime-text-install-package-light.png";
+import installPackageDark from "./images/sublime-text-install-package-dark.png";
+import wakatimePackageLight from "./images/sublime-text-wakatime-package-light.png";
+import wakatimePackageDark from "./images/sublime-text-wakatime-package-dark.png";
+import statusBarLight from "./images/sublime-text-status-bar-light.png";
+import statusBarDark from "./images/sublime-text-status-bar-dark.png";
+
+![Sublime Text](../../public/images/editor-icons/sublime-text-128.png)
+
+Follow these steps to start tracking your coding time in Sublime Text with Hackatime. The screenshots are from Sublime Text 4 on macOS, but the steps are the same on Linux and Windows.
+
+## Step 1: Log into Hackatime
+
+Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
+
+## Step 2: Run the setup script
+
+Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
+
+## Step 3: Install Package Control
+
+Skip this step if you already have Package Control.
+
+Open the command palette by pressing **Cmd+Shift+P** on Mac or **Ctrl+Shift+P** on Linux and Windows. Type `Install Package Control` and press **Enter**.
+
+<img src={installPackageControlLight.src} width={760} alt="Sublime Text command palette with the Install Package Control command selected" data-docs-theme="light" />
+<img src={installPackageControlDark.src} width={760} alt="Sublime Text command palette with the Install Package Control command selected" data-docs-theme="dark" />
+
+After a few seconds, Sublime Text tells you that Package Control was installed. Press **OK**.
+
+<img src={packageControlInstalledLight.src} width={260} alt="Dialog saying Package Control was successfully installed" data-docs-theme="light" />
+<img src={packageControlInstalledDark.src} width={260} alt="Dialog saying Package Control was successfully installed" data-docs-theme="dark" />
+
+## Step 4: Install the WakaTime package
+
+Open the command palette again, type `Install Package` and choose **Package Control: Install Package**.
+
+<img src={installPackageLight.src} width={760} alt="Sublime Text command palette with Package Control: Install Package selected" data-docs-theme="light" />
+<img src={installPackageDark.src} width={760} alt="Sublime Text command palette with Package Control: Install Package selected" data-docs-theme="dark" />
+
+Wait for the list of packages to load, then search for `wakatime` and press **Enter** on **WakaTime**.
+
+<img src={wakatimePackageLight.src} width={760} alt="Package Control search results showing the WakaTime package" data-docs-theme="light" />
+<img src={wakatimePackageDark.src} width={760} alt="Package Control search results showing the WakaTime package" data-docs-theme="dark" />
+
+The package downloads wakatime-cli in the background, so the status bar shows **WakaTime: Initializing...** for a moment. It reads your API key and Hackatime's server address from the setup script, so you won't be asked for a key. If you skipped Step 2, open `~/.wakatime.cfg` (`%USERPROFILE%\.wakatime.cfg` on Windows) in a text editor and add both. Use the API key from your [Hackatime settings](https://hackatime.hackclub.com/my/settings):
+
+```ini title="~/.wakatime.cfg"
+[settings]
+api_url = https://hackatime.hackclub.com/api/hackatime/v1
+api_key = YOUR_API_KEY
+heartbeat_rate_limit_seconds = 30
+```
+
+Without `api_url`, your time is sent to WakaTime instead of Hackatime. [Plugin settings](../configuration/plugin-settings) lists the other options. If Sublime Text asks for a key, paste the same one. The prompt only saves the key, not the server address.
+
+## Step 5: Check that it's running
+
+Open a project folder and edit a file. Your coding time for today appears on the left of the status bar.
+
+<img src={statusBarLight.src} width={760} alt="Sublime Text status bar showing Today: 15m" data-docs-theme="light" />
+<img src={statusBarDark.src} width={760} alt="Sublime Text status bar showing Today: 15m" data-docs-theme="dark" />
+
+Your time will also appear on your [Hackatime dashboard](https://hackatime.hackclub.com) within a few minutes.
+
+## What gets tracked
+
+Sublime Text sends a heartbeat when you edit a file or move the cursor in it, at most once every two minutes for the same file, and every time you save. Your project, branch, language, line and cursor position come along with it. The project name comes from the git repository, or from the folder you opened if there's no repository. Files you haven't saved yet aren't tracked.
+
+## Troubleshooting
+
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, or that `~/.wakatime.cfg` has both `api_url` and `api_key` from [Step 4](#step-4-install-the-wakatime-package). Then edit a file. Heartbeats can take a few minutes to show up.
+- **Stuck on "WakaTime: Initializing..."?** The package downloads wakatime-cli from GitHub the first time it runs. Check your connection, wait a while if GitHub is rate limiting your network, then restart Sublime Text.
+- **Something else?** Open the console with **View → Show Console** and look for lines starting with `[WakaTime]`.
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel).
+
+## Next steps
+
+Once configured, your coding time will automatically appear on your [Hackatime dashboard](https://hackatime.hackclub.com). Happy coding!

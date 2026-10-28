@@ -1,0 +1,87 @@
+---
+title: Neovim
+sidebar: { icon: "/images/editor-icons/neovim-32.webp" }
+---
+import lazyLight from "./images/neovim-lazy-light.png";
+import lazyDark from "./images/neovim-lazy-dark.png";
+import wakatimeTodayLight from "./images/neovim-wakatime-today-light.png";
+import wakatimeTodayDark from "./images/neovim-wakatime-today-dark.png";
+
+![Neovim](../../public/images/editor-icons/neovim-128.png)
+
+Follow these steps to start tracking your coding time in Neovim with Hackatime. The screenshots show Neovim in Ghostty on macOS, but the steps are the same in any terminal on Linux and Windows.
+
+## Step 1: Log into Hackatime
+
+Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
+
+## Step 2: Run the setup script
+
+Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
+
+## Step 3: Install the WakaTime plugin
+
+Hackatime works with the official [vim-wakatime](https://github.com/wakatime/vim-wakatime) plugin. If you use [lazy.nvim](https://lazy.folke.io), add it to your plugin list:
+
+```lua
+{ "wakatime/vim-wakatime", lazy = false },
+```
+
+Keep `lazy = false` so the plugin starts with Neovim, even if your config lazy-loads plugins by default. If your config loads plugins from `lua/plugins/`, you can put it in its own file instead:
+
+```lua title="~/.config/nvim/lua/plugins/wakatime.lua"
+return {
+  { "wakatime/vim-wakatime", lazy = false },
+}
+```
+
+On Neovim 0.12 or newer you can use the built-in plugin manager instead. Add this to your `init.lua`:
+
+```lua title="~/.config/nvim/init.lua"
+vim.pack.add({ "https://github.com/wakatime/vim-wakatime" })
+```
+
+## Step 4: Restart Neovim
+
+Close Neovim and open it again. Both lazy.nvim and `vim.pack` install the plugin when Neovim starts. With lazy.nvim, run `:Lazy` to check that **vim-wakatime** is listed under **Loaded**.
+
+<img src={lazyLight.src} width={760} alt="lazy.nvim window listing vim-wakatime as loaded" data-docs-theme="light" />
+<img src={lazyDark.src} width={760} alt="lazy.nvim window listing vim-wakatime as loaded" data-docs-theme="dark" />
+
+The plugin downloads wakatime-cli the first time it runs and reads your API key and Hackatime's server address from the setup script. If you skipped Step 2, open `~/.wakatime.cfg` (`%USERPROFILE%\.wakatime.cfg` on Windows) in a text editor and add both. Use the API key from your [Hackatime settings](https://hackatime.hackclub.com/my/settings):
+
+```ini title="~/.wakatime.cfg"
+[settings]
+api_url = https://hackatime.hackclub.com/api/hackatime/v1
+api_key = YOUR_API_KEY
+heartbeat_rate_limit_seconds = 30
+```
+
+Without `api_url`, your time is sent to WakaTime instead of Hackatime. [Plugin settings](../configuration/plugin-settings) lists the other options. `:WakaTimeApiKey` only changes the key, not the server address.
+
+## Step 5: Check that it's running
+
+Edit and save a file, then run `:WakaTimeToday`. Your coding time for today appears at the bottom of the window.
+
+<img src={wakatimeTodayLight.src} width={760} alt="Neovim showing Today: 5m after running :WakaTimeToday" data-docs-theme="light" />
+<img src={wakatimeTodayDark.src} width={760} alt="Neovim showing Today: 5m after running :WakaTimeToday" data-docs-theme="dark" />
+
+Your time will also appear on your [Hackatime dashboard](https://hackatime.hackclub.com) within a few minutes.
+
+## What gets tracked
+
+Neovim sends a heartbeat when you open or switch to a file, while you edit it or move the cursor (at most once every two minutes for the same file) and every time you save. Your project, branch, language, line and cursor position come along with it. Help pages, terminals and other buffers that aren't files aren't tracked.
+
+Files outside a git repository are still tracked, but Neovim can't tell which project they belong to. That time counts towards your total but isn't attached to any project. Run `git init` in the project folder or add a [`.wakatime-project` file](../configuration/projects#set-a-stable-project-name) to give that time a project.
+
+## Troubleshooting
+
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, or that `~/.wakatime.cfg` has both `api_url` and `api_key` from [Step 4](#step-4-restart-neovim). Then edit a file. Heartbeats can take a few minutes to show up.
+- **Time missing from your projects?** The file isn't in a git repository. See [What gets tracked](#what-gets-tracked).
+- **`:WakaTimeToday` isn't a command?** The plugin isn't loaded. Check that `lazy = false` is set and run `:Lazy` to see whether it installed.
+- **Something else?** Run `:WakaTimeDebugEnable`, edit a file and read the messages with `:messages`. Run `:WakaTimeDebugDisable` when you're done.
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel).
+
+## Next steps
+
+Once configured, your coding time will automatically appear on your [Hackatime dashboard](https://hackatime.hackclub.com). Happy coding!
