@@ -1,0 +1,81 @@
+---
+title: MPS
+sidebar: { icon: "/images/editor-icons/mps-32.webp" }
+---
+import editorLight from "./images/mps-editor-light.png";
+import editorDark from "./images/mps-editor-dark.png";
+import pluginMarketplaceLight from "./images/mps-plugin-marketplace-light.png";
+import pluginMarketplaceDark from "./images/mps-plugin-marketplace-dark.png";
+import thirdPartyNoticeLight from "./images/mps-third-party-notice-light.png";
+import thirdPartyNoticeDark from "./images/mps-third-party-notice-dark.png";
+import statusBarLight from "./images/mps-status-bar-light.png";
+import statusBarDark from "./images/mps-status-bar-dark.png";
+import toolsMenuLight from "./images/mps-tools-menu-light.png";
+import toolsMenuDark from "./images/mps-tools-menu-dark.png";
+import wakatimeSettingsLight from "./images/mps-wakatime-settings-light.png";
+import wakatimeSettingsDark from "./images/mps-wakatime-settings-dark.png";
+
+![MPS](../../public/images/editor-icons/mps-128.png)
+
+Follow these steps to start tracking your coding time in MPS with Hackatime. MPS uses the WakaTime plugin, which works with Hackatime once the setup script has run. The screenshots are from macOS, but the steps are the same on Linux and Windows.
+
+## Step 1: Log into Hackatime
+
+Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
+
+## Step 2: Run the setup script
+
+Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
+
+The setup script doesn't install plugins for MPS, so install the WakaTime plugin yourself in the next step.
+
+## Step 3: Install the WakaTime plugin
+
+Open Settings by pressing **Cmd+,** on Mac or **Ctrl+Alt+S** on Linux and Windows. Choose **Plugins**, open the **Marketplace** tab and search for `WakaTime`. Press **Install** next to **WakaTime**.
+
+<img src={pluginMarketplaceLight.src} width={760} alt="MPS Settings on the Plugins Marketplace tab with WakaTime in the search results" data-docs-theme="light" />
+<img src={pluginMarketplaceDark.src} width={760} alt="MPS Settings on the Plugins Marketplace tab with WakaTime in the search results" data-docs-theme="dark" />
+
+MPS warns you that WakaTime is a third-party plugin. Press **Accept**.
+
+<img src={thirdPartyNoticeLight.src} width={440} alt="Third-Party Plugins Notice dialog listing WakaTime" data-docs-theme="light" />
+<img src={thirdPartyNoticeDark.src} width={440} alt="Third-Party Plugins Notice dialog listing WakaTime" data-docs-theme="dark" />
+
+When the button changes to **Restart IDE**, press it and confirm with **Restart**.
+
+## Step 4: Check that it's running
+
+Open a project and start typing. Your coding time for today appears in the status bar at the bottom of the window, next to the WakaTime icon.
+
+<img src={editorLight.src} width={760} alt="MPS with a project open and the WakaTime time in the status bar" data-docs-theme="light" />
+<img src={editorDark.src} width={760} alt="MPS with a project open and the WakaTime time in the status bar" data-docs-theme="dark" />
+
+<img src={statusBarLight.src} width={495} alt="MPS status bar showing today's coding time next to the WakaTime icon" data-docs-theme="light" />
+<img src={statusBarDark.src} width={495} alt="MPS status bar showing today's coding time next to the WakaTime icon" data-docs-theme="dark" />
+
+Your time will also appear on your [Hackatime dashboard](https://hackatime.hackclub.com) within a few minutes.
+
+The plugin reads your API key from the setup script. If you skipped Step 2, open **Tools → WakaTime Settings**.
+
+<img src={toolsMenuLight.src} width={276} alt="MPS Tools menu with WakaTime Settings at the top" data-docs-theme="light" />
+<img src={toolsMenuDark.src} width={275} alt="MPS Tools menu with WakaTime Settings at the top" data-docs-theme="dark" />
+
+Paste the key from your [Hackatime settings](https://hackatime.hackclub.com/my/settings) into **API key** and press **Save**.
+
+<img src={wakatimeSettingsLight.src} width={760} alt="WakaTime Settings dialog with the API key field" data-docs-theme="light" />
+<img src={wakatimeSettingsDark.src} width={760} alt="WakaTime Settings dialog with the API key field" data-docs-theme="dark" />
+
+## What gets tracked
+
+MPS sends a heartbeat when you open or switch to a file, edit it, move the cursor or scroll, at most once every two minutes for the same file, and every time you save. Your project, branch, language, line and cursor position come along with it.
+
+## Troubleshooting
+
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, then edit a file. Heartbeats can take a few minutes to show up.
+- **Can't find WakaTime Settings?** The plugin isn't loaded. Check that WakaTime is enabled on the **Installed** tab in **Settings → Plugins**, then restart MPS.
+- **Something else?** Tick **Debug** in **Tools → WakaTime Settings**, restart MPS and look for WakaTime messages in **Help → Show Log in Finder** (**Show Log in Explorer** on Windows; on Linux the item is named after your file manager).
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel).
+
+## Next steps
+
+Once configured, your coding time will automatically appear on your [Hackatime dashboard](https://hackatime.hackclub.com). Happy coding!

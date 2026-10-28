@@ -1,0 +1,81 @@
+---
+title: DataGrip
+sidebar: { icon: "/images/editor-icons/datagrip-32.webp" }
+---
+import editorLight from "./images/datagrip-editor-light.png";
+import editorDark from "./images/datagrip-editor-dark.png";
+import pluginMarketplaceLight from "./images/datagrip-plugin-marketplace-light.png";
+import pluginMarketplaceDark from "./images/datagrip-plugin-marketplace-dark.png";
+import thirdPartyNoticeLight from "./images/datagrip-third-party-notice-light.png";
+import thirdPartyNoticeDark from "./images/datagrip-third-party-notice-dark.png";
+import statusBarLight from "./images/datagrip-status-bar-light.png";
+import statusBarDark from "./images/datagrip-status-bar-dark.png";
+import findActionLight from "./images/datagrip-find-action-light.png";
+import findActionDark from "./images/datagrip-find-action-dark.png";
+import wakatimeSettingsLight from "./images/datagrip-wakatime-settings-light.png";
+import wakatimeSettingsDark from "./images/datagrip-wakatime-settings-dark.png";
+
+![DataGrip](../../public/images/editor-icons/datagrip-128.png)
+
+Follow these steps to start tracking your coding time in DataGrip with Hackatime. DataGrip uses the WakaTime plugin, which works with Hackatime once the setup script has run. The screenshots are from macOS, but the steps are the same on Linux and Windows.
+
+## Step 1: Log into Hackatime
+
+Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
+
+## Step 2: Run the setup script
+
+Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
+
+If DataGrip is already installed, the setup script also installs the WakaTime plugin for you. Restart DataGrip and skip to [Step 4](#step-4-check-that-its-running) if **WakaTime** is already listed on the **Installed** tab in **Settings → Plugins**.
+
+## Step 3: Install the WakaTime plugin
+
+Open Settings by pressing **Cmd+,** on Mac or **Ctrl+Alt+S** on Linux and Windows. Choose **Plugins**, open the **Marketplace** tab and search for `WakaTime`. Press **Install** next to **WakaTime**.
+
+<img src={pluginMarketplaceLight.src} width={760} alt="DataGrip Settings on the Plugins Marketplace tab with WakaTime in the search results" data-docs-theme="light" />
+<img src={pluginMarketplaceDark.src} width={760} alt="DataGrip Settings on the Plugins Marketplace tab with WakaTime in the search results" data-docs-theme="dark" />
+
+DataGrip warns you that WakaTime is a third-party plugin. Press **Accept**.
+
+<img src={thirdPartyNoticeLight.src} width={440} alt="Third-Party Plugins Notice dialog listing WakaTime" data-docs-theme="light" />
+<img src={thirdPartyNoticeDark.src} width={440} alt="Third-Party Plugins Notice dialog listing WakaTime" data-docs-theme="dark" />
+
+When the button changes to **Restart IDE**, press it and confirm with **Restart**.
+
+## Step 4: Check that it's running
+
+Open a project and start typing. Your coding time for today appears in the status bar at the bottom of the window, next to the WakaTime icon.
+
+<img src={editorLight.src} width={760} alt="DataGrip with a project open and the WakaTime time in the status bar" data-docs-theme="light" />
+<img src={editorDark.src} width={760} alt="DataGrip with a project open and the WakaTime time in the status bar" data-docs-theme="dark" />
+
+<img src={statusBarLight.src} width={403} alt="DataGrip status bar showing today's coding time next to the WakaTime icon" data-docs-theme="light" />
+<img src={statusBarDark.src} width={403} alt="DataGrip status bar showing today's coding time next to the WakaTime icon" data-docs-theme="dark" />
+
+Your time will also appear on your [Hackatime dashboard](https://hackatime.hackclub.com) within a few minutes.
+
+The plugin reads your API key from the setup script. If you skipped Step 2, open **WakaTime Settings**. DataGrip has no **Tools** menu, so press **Cmd+Shift+A** on Mac or **Ctrl+Shift+A** on Linux and Windows, type `WakaTime Settings` and press **Enter**.
+
+<img src={findActionLight.src} width={700} alt="DataGrip Find Action popup with WakaTime Settings selected" data-docs-theme="light" />
+<img src={findActionDark.src} width={700} alt="DataGrip Find Action popup with WakaTime Settings selected" data-docs-theme="dark" />
+
+Paste the key from your [Hackatime settings](https://hackatime.hackclub.com/my/settings) into **API key** and press **Save**.
+
+<img src={wakatimeSettingsLight.src} width={760} alt="WakaTime Settings dialog with the API key field" data-docs-theme="light" />
+<img src={wakatimeSettingsDark.src} width={760} alt="WakaTime Settings dialog with the API key field" data-docs-theme="dark" />
+
+## What gets tracked
+
+DataGrip sends a heartbeat when you open or switch to a file, edit it, move the cursor or scroll, at most once every two minutes for the same file, and every time you save. Your project, branch, language, line and cursor position come along with it.
+
+## Troubleshooting
+
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, then edit a file. Heartbeats can take a few minutes to show up.
+- **Can't find WakaTime Settings?** The plugin isn't loaded. Check that WakaTime is enabled on the **Installed** tab in **Settings → Plugins**, then restart DataGrip.
+- **Something else?** Tick **Debug** in **WakaTime Settings** (find it with **Cmd+Shift+A** or **Ctrl+Shift+A**), restart DataGrip and look for WakaTime messages in **Help → Show Log in Finder** (**Show Log in Explorer** on Windows; on Linux the item is named after your file manager).
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel).
+
+## Next steps
+
+Once configured, your coding time will automatically appear on your [Hackatime dashboard](https://hackatime.hackclub.com). Happy coding!
