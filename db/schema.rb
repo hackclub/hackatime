@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_24_101411) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_28_150844) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -660,6 +660,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_24_101411) do
     t.string "slack_uid", null: false
     t.datetime "updated_at", null: false
     t.index ["slack_uid"], name: "index_sailors_logs_on_slack_uid", unique: true
+  end
+
+  create_table "sessions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "data"
+    t.string "session_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["data"], name: "index_sessions_on_data", opclass: :jsonb_path_ops, using: :gin
+    t.index ["session_id"], name: "index_sessions_on_session_id", unique: true
+    t.index ["updated_at"], name: "index_sessions_on_updated_at"
   end
 
   create_table "sign_in_tokens", force: :cascade do |t|
