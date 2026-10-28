@@ -239,6 +239,8 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
       parameter name: :user_search, in: :query, type: :string, description: 'Search user (fuzzy)', required: false
       parameter name: :admin_search, in: :query, type: :string, description: 'Search admin (fuzzy)', required: false
       parameter name: :trust_level_filter, in: :query, schema: { type: :string, enum: %w[to_convicted to_trusted to_suspected to_unscored] }, description: 'Filter by trust level change. Any unrecognized value (or omitting the parameter) returns all logs unfiltered.', required: false
+      parameter name: :limit, in: :query, type: :integer, description: 'Logs per page, newest first (default 250, max 1000)', required: false
+      parameter name: :offset, in: :query, type: :integer, description: 'Logs to skip (default 0)', required: false
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
@@ -247,6 +249,8 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
         let(:user_search) { nil }
         let(:admin_search) { nil }
         let(:trust_level_filter) { nil }
+        let(:limit) { nil }
+        let(:offset) { nil }
 
         schema type: :object,
           properties: {
@@ -281,7 +285,8 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
                 }
               }
             },
-            total_count: { type: :integer, example: 137 }
+            total_count: { type: :integer, example: 137 },
+            has_more: { type: :boolean, example: false }
           }
         run_test!
       end
@@ -293,6 +298,8 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
         let(:user_search) { nil }
         let(:admin_search) { nil }
         let(:trust_level_filter) { nil }
+        let(:limit) { nil }
+        let(:offset) { nil }
         schema(**error_schema)
         run_test!
       end
@@ -304,6 +311,8 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
         let(:user_search) { nil }
         let(:admin_search) { nil }
         let(:trust_level_filter) { nil }
+        let(:limit) { nil }
+        let(:offset) { nil }
         run_test!
       end
     end
@@ -609,6 +618,23 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
         let(:id) { '1' }
         run_test!
       end
+    end
+  end
+
+  describe 'GET /api/admin/v1/trust_level_audit_logs paging' do
+    it 'pages through every log, newest first' do
+      logs = create_list(:trust_level_audit_log, 3)
+      headers = { 'Authorization' => 'Bearer dev-admin-api-key-12345' }
+
+      get '/api/admin/v1/trust_level_audit_logs', params: { limit: 2 }, headers: headers
+      first = JSON.parse(response.body)
+      get '/api/admin/v1/trust_level_audit_logs', params: { limit: 2, offset: 2 }, headers: headers
+      second = JSON.parse(response.body)
+
+      expect(first.slice('total_count', 'has_more')).to eq('total_count' => 3, 'has_more' => true)
+      expect(second.slice('total_count', 'has_more')).to eq('total_count' => 3, 'has_more' => false)
+      ids = (first['audit_logs'] + second['audit_logs']).map { |log| log['id'] }
+      expect(ids).to eq(logs.map(&:id).reverse)
     end
   end
 end

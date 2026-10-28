@@ -35,10 +35,17 @@ class Settings::BaseController < InertiaController
   }.freeze
 
   def self.timezone_options
-    @timezone_options ||= ActiveSupport::TimeZone.all
+    @timezone_options ||= (ActiveSupport::TimeZone.all + canadian_timezones).sort
       .group_by { |z| z.tzinfo.identifier } # London & Edinburgh both map to Europe/London
-      .map { |identifier, zones| { label: "(GMT#{zones.first.formatted_offset}) #{zones.map(&:name).join(", ")}", value: identifier } }
+      .map { |identifier, zones| { label: "(GMT#{zones.first.formatted_offset}) #{zones.map { |z| z.name.split("/").last.tr("_", " ") }.join(", ")}", value: identifier } }
       .freeze
+  end
+
+  # Rails' list maps Canada onto US zones (Pacific Time is America/Los_Angeles), which
+  # diverge where provinces set their own rules, e.g. British Columbia's permanent UTC-7.
+  def self.canadian_timezones
+    covered = ActiveSupport::TimeZone.all.map { |z| z.tzinfo.identifier }
+    (TZInfo::Country.get("CA").zone_identifiers - covered).map { |identifier| ActiveSupport::TimeZone[identifier] }
   end
 
   # Build a base options hash containing only the requested keys.

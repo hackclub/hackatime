@@ -573,6 +573,18 @@ paths:
         description: Filter by trust level change. Any unrecognized value (or omitting
           the parameter) returns all logs unfiltered.
         required: false
+      - name: limit
+        in: query
+        description: Logs per page, newest first (default 250, max 1000)
+        required: false
+        schema:
+          type: integer
+      - name: offset
+        in: query
+        description: Logs to skip (default 0)
+        required: false
+        schema:
+          type: integer
       responses:
         '200':
           description: successful
@@ -638,6 +650,9 @@ paths:
                   total_count:
                     type: integer
                     example: 137
+                  has_more:
+                    type: boolean
+                    example: false
         '404':
           description: user not found
           content:
@@ -1912,6 +1927,14 @@ paths:
         description: Offset
         schema:
           type: integer
+      - name: include_ai
+        in: query
+        required: false
+        description: 'Also return the AI columns (ai_model, ai_session, ai_subscription_plan,
+          ai_input_tokens, ai_output_tokens, ai_prompt_length, ai_line_changes, human_line_changes).
+          Off by default: they are null on most heartbeats and make every row bigger.'
+        schema:
+          type: boolean
       responses:
         '200':
           description: successful
@@ -2037,6 +2060,46 @@ paths:
                               type: string
                               nullable: true
                               example: Go net/http
+                        ai_model:
+                          type: string
+                          nullable: true
+                          example: claude-sonnet-4-5
+                          description: Only with include_ai=true
+                        ai_session:
+                          type: string
+                          nullable: true
+                          example: sess_8f2c
+                          description: Only with include_ai=true
+                        ai_subscription_plan:
+                          type: string
+                          nullable: true
+                          example: pro
+                          description: Only with include_ai=true
+                        ai_input_tokens:
+                          type: integer
+                          nullable: true
+                          example: 1200
+                          description: Only with include_ai=true
+                        ai_output_tokens:
+                          type: integer
+                          nullable: true
+                          example: 340
+                          description: Only with include_ai=true
+                        ai_prompt_length:
+                          type: integer
+                          nullable: true
+                          example: 88
+                          description: Only with include_ai=true
+                        ai_line_changes:
+                          type: integer
+                          nullable: true
+                          example: 14
+                          description: Only with include_ai=true
+                        human_line_changes:
+                          type: integer
+                          nullable: true
+                          example: 3
+                          description: Only with include_ai=true
                   total_count:
                     type: integer
                     example: 15234
