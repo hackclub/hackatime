@@ -206,6 +206,16 @@ module Privacy
       @scopes["notable_requests"] = table("notable_requests").where(user_type: "User", user_id: @user_ids)
       @scopes["pghero_query_stats"] = table("pghero_query_stats").none
 
+      @scopes["sessions"] = WebSession.none
+      @users.each do |user|
+        pending = WebSession.where("data @> ?", { pending_deletion_request: { user_id: user.id } }.to_json)
+        @scopes["sessions"] = @scopes["sessions"].or(WebSession.for_user(user)).or(pending)
+      end
+      @identity_ids.each do |identity_id|
+        pending = WebSession.where("data @> ?", { pending_deletion_request: { hca_id: identity_id } }.to_json)
+        @scopes["sessions"] = @scopes["sessions"].or(pending)
+      end
+
       @import_ids = @scopes.fetch("heartbeat_import_runs").pluck(:id)
       @repository_ids = (@scopes.fetch("project_repo_mappings").pluck(:repository_id) + @scopes.fetch("commits").pluck(:repository_id)).compact.uniq
       @leaderboard_ids = @scopes.fetch("leaderboard_entries").pluck(:leaderboard_id).uniq

@@ -129,13 +129,55 @@ class Api::PrivacyControllerTest < ActionDispatch::IntegrationTest
       serialized_params: { arguments: [ identity ] })
     version = PaperTrail::Version.create!(item_type: "User", item_id: 0, event: "update",
       object: { hca_id: identity }.to_yaml)
+    orphan_session = WebSession.create!(session_id: SecureRandom.hex, data: {
+      pending_deletion_request: { hca_id: identity, attributes: { reason_details: "Private reasons" } }
+    })
     privacy_post(token: signed_token(@claims.merge(subject: { emails: [], identity_id: identity }, dry_run: false)))
     assert_response :ok
     assert_equal true, response.parsed_body["found"]
     assert_equal 1, response.parsed_body.dig("deleted", "good_jobs")
     assert_equal 1, response.parsed_body.dig("deleted", "versions")
+    assert_equal 1, response.parsed_body.dig("deleted", "sessions")
     assert_not GoodJob::Job.exists?(job.id)
     assert_not PaperTrail::Version.exists?(version.id)
+    assert_not WebSession.exists?(orphan_session.id)
+  end
+
+  test "privacy inventory includes sessions and erases their identity and pending deletion data" do
+    person = create(:user, :with_email, hca_id: "ident!SessionPrivacy")
+    other = create(:user)
+    @claims[:subject] = { emails: [ person.email_addresses.first.email ] }
+    sessions = [
+      { user_id: person.id, pending_deletion_request: { hca_id: person.hca_id, attributes: { reason_details: "Private reasons" } } },
+      { user_id: other.id, impersonater_user_id: person.id },
+      { user_id: other.id, pending_deletion_request: { user_id: person.id } },
+      { user_id: other.id, pending_deletion_request: { hca_id: person.hca_id } }
+    ].map { |data| WebSession.create!(session_id: SecureRandom.hex, data: data) }
+    unrelated = WebSession.create!(session_id: SecureRandom.hex, data: {
+      user_id: "#{person.id}0".to_i, impersonater_user_id: other.id,
+      pending_deletion_request: { user_id: other.id, hca_id: "#{person.hca_id}Other" }
+    })
+
+    original = sessions.map(&:attributes)
+    privacy_post("export", token: signed_token(@claims.merge(action: "export", dry_run: false)))
+    assert_response :ok
+    assert_equal 4, response.parsed_body["retained"].find { |entry| entry["type"] == "sessions" }&.fetch("count")
+    assert_empty response.parsed_body["deleted"]
+    assert_equal original, sessions.map { |record| record.reload.attributes }
+
+    privacy_post(token: signed_token(@claims.merge(jti: SecureRandom.uuid)))
+    assert_response :ok
+    assert_equal 4, response.parsed_body.dig("deleted", "sessions")
+    assert_equal original, sessions.map { |record| record.reload.attributes }
+    assert User.exists?(person.id)
+
+    privacy_post(token: signed_token(@claims.merge(jti: SecureRandom.uuid, dry_run: false)))
+    assert_response :ok
+    assert_not User.exists?(person.id)
+    assert_empty WebSession.where(id: sessions.map(&:id))
+    assert_equal 4, response.parsed_body.dig("deleted", "sessions")
+    assert WebSession.exists?(unrelated.id)
+    assert User.exists?(other.id)
   end
 
   test "history erasure matches decoded whole identifiers without erasing overlapping addresses" do
