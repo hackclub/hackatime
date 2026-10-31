@@ -53,7 +53,11 @@ createInertiaApp({
       head: string;
     };
     const body = rendered.body ?? rendered.html ?? "";
-    const layout = props.initialPage.props.layout as LayoutProps;
+    const layout = props.initialPage.props.layout as LayoutProps | undefined;
+    // Pages rendered outside InertiaController have no layout props, so the
+    // theme is unknown here; let Rails load the stylesheets normally instead.
+    if (!layout) return { body, head: rendered.head };
+
     const document = `<html data-theme="${escapeAttribute(layout.theme.name)}" data-color-scheme="${escapeAttribute(layout.theme.color_scheme)}"><body class="flex min-h-screen bg-darker">${body}</body></html>`;
     const critical = criticalCss.extract(document);
     const fontPreloads = critical.fontPreloads
