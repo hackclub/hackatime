@@ -77,7 +77,7 @@
 </script>
 
 <svelte:head>
-  <title>Privacy & Security - Hackatime Settings</title>
+  <title>Privacy & Security · Settings | Hackatime</title>
 </svelte:head>
 
 <SectionCard
@@ -243,9 +243,8 @@
             rotateApiKeyModalOpen = false;
             rotateApiKey();
           }}
-          disabled={rotatingApiKey}
         >
-          {rotatingApiKey ? "Rotating..." : "Rotate key"}
+          Rotate key
         </Button>
       {/snippet}
     </ModalActions>

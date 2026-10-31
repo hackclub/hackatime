@@ -16,7 +16,7 @@
   const path = (id: number) => adminOauthApplications.show.path({ id });
 </script>
 
-<svelte:head><title>All OAuth Applications - Admin</title></svelte:head>
+<svelte:head><title>OAuth apps · Admin | Hackatime</title></svelte:head>
 <div class="max-w-6xl mx-auto p-6 space-y-6">
   <header class="text-center mb-8">
     <h1 class="text-4xl font-bold text-surface-content mb-2">

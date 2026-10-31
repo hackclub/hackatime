@@ -18,7 +18,8 @@ class StaticPagesController < InertiaController
 
       render inertia: "Home/SignedIn", props: signed_in_props
     else
-      set_homepage_seo_content
+      use_og_page(:home)
+      @meta_keywords = "coding time tracker, programming stats, open source time tracker, hack club coding tracker, free time tracking, code statistics, high school programming, coding analytics"
       @home_stats = Cache::HomeStatsJob.perform_now
       render inertia: "Home/SignedOut", props: signed_out_props
     end
@@ -27,7 +28,9 @@ class StaticPagesController < InertiaController
   def signin
     return redirect_to root_path if current_user
 
+    use_og_page(:signin)
     render inertia: "Auth/SignIn", props: {
+      page_title: @page_title,
       sign_in_email: params[:sign_in_email].present?,
       show_dev_tool: Rails.env.development?,
       dev_magic_link: (Rails.env.development? ? session.delete(:dev_magic_link) : nil),
@@ -57,20 +60,12 @@ class StaticPagesController < InertiaController
   def currently_hacking_count = render(json: { count: Cache::CurrentlyHackingCountJob.perform_now[:count] })
 
   def wakatime_alternative
-    @meta_description = @og_description = @twitter_description = "Looking for a WakaTime alternative? Hackatime is a free, open source coding time tracker with all features unlocked. Compare features, pricing, and see why developers are switching."
-    @page_title = "WakaTime Alternative - Free & Open Source Coding Time Tracker | Hackatime"
+    use_og_page(:wakatime_alternative)
     @meta_keywords = "wakatime alternative, free time tracker, coding time tracker, open source wakatime, hackatime, developer analytics, programming stats"
-    @og_title = @twitter_title = "WakaTime Alternative - Free & Open Source | Hackatime"
-    render inertia: "WakatimeAlternative"
+    render inertia: "WakatimeAlternative", props: { page_title: @page_title }
   end
 
   private
-
-  def set_homepage_seo_content
-    @page_title = @og_title = @twitter_title = "Hackatime - Track your coding time"
-    @meta_description = @og_description = @twitter_description = "Free and open-source coding time tracker. Works with VS Code, JetBrains, vim, emacs, and 70+ editors. Built by Hack Club for teenage developers."
-    @meta_keywords = "coding time tracker, programming stats, open source time tracker, hack club coding tracker, free time tracking, code statistics, high school programming, coding analytics"
-  end
 
   def signed_in_props
     dashboard_stats = initial_dashboard_stats_prop
@@ -94,6 +89,7 @@ class StaticPagesController < InertiaController
 
   def signed_out_props
     {
+      page_title: @page_title,
       flavor_text: @flavor_text.to_s,
       sign_in_email: params[:sign_in_email].present?,
       show_dev_tool: Rails.env.development?,

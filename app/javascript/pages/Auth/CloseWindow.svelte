@@ -11,7 +11,7 @@
   });
 </script>
 
-<svelte:head><title>Successfully signed in!</title></svelte:head>
+<svelte:head><title>Signed in | Hackatime</title></svelte:head>
 <main>
   <p>Successfully signed in! You can close this window.</p>
 </main>

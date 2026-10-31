@@ -8,7 +8,7 @@
   }: { status_code?: number; title?: string; message?: string } = $props();
 </script>
 
-<svelte:head><title>{title} - Hackatime</title></svelte:head>
+<svelte:head><title>{title} | Hackatime</title></svelte:head>
 
 <div class="min-h-screen text-surface-content flex items-center justify-center">
   <div class="max-w-xl mx-auto px-6 py-8 text-center">

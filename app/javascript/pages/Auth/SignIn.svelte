@@ -13,17 +13,19 @@
     dev_magic_link,
     csrf_token,
     continue_param,
+    page_title,
   }: {
     sign_in_email: boolean;
     show_dev_tool: boolean;
     dev_magic_link?: string | null;
     csrf_token: string;
     continue_param?: string | null;
+    page_title: string;
   } = $props();
 </script>
 
 <svelte:head>
-  <title>Sign in - Hackatime</title>
+  <title>{page_title}</title>
 </svelte:head>
 
 <div

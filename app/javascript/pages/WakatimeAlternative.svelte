@@ -10,6 +10,8 @@
   import MarketingHeader from "../components/MarketingHeader.svelte";
   import Checkmark from "hcicons-svelte/checkmark";
 
+  let { page_title }: { page_title: string } = $props();
+
   type Feature = {
     name: string;
     hackatime: string;
@@ -134,7 +136,7 @@
 </script>
 
 <svelte:head>
-  <title>Wakatime vs Hackatime</title>
+  <title>{page_title}</title>
 </svelte:head>
 
 <div class="min-h-screen w-full bg-darker text-surface-content">

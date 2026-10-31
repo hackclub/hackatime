@@ -1,6 +1,8 @@
 <script lang="ts">
   import Download from "hcicons-svelte/download";
 
+  let { page_title }: { page_title: string } = $props();
+
   const EXTENSIONS: {
     name: string;
     source: string;
@@ -32,7 +34,7 @@
   ];
 </script>
 
-<svelte:head><title>Extensions - Hackatime</title></svelte:head>
+<svelte:head><title>{page_title}</title></svelte:head>
 
 <div>
   <div class="mb-6 sm:mb-8">
