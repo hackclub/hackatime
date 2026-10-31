@@ -61,6 +61,22 @@ class ApplicationController < ActionController::Base
     }
   end
 
+  # Sets the title, description and link-preview card from config/og_pages.yml.
+  def use_og_page(key)
+    page = OgPage.find(key)
+    @page_title = page.title
+    @meta_description = page.description
+    @og_image = og_image_url(page: page.key)
+  end
+
+  def send_og_image(generator)
+    expires_in 1.day, public: true
+    return unless stale?(etag: generator.fingerprint, public: true)
+
+    png = Rails.cache.fetch([ "og_image", generator.fingerprint ], expires_in: 1.week) { generator.call.png }
+    send_data png, type: "image/png", disposition: "inline"
+  end
+
   def safe_return_url(url)
     return nil if url.blank?
     return nil unless url.start_with?("/") && !url.start_with?("//")

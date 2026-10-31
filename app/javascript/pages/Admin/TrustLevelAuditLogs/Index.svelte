@@ -45,7 +45,7 @@
     })[level ?? ""];
 </script>
 
-<svelte:head><title>admin aboose logs</title></svelte:head>
+<svelte:head><title>Trust level logs · Admin | Hackatime</title></svelte:head>
 <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
   <div class="mb-8">
     <h1 class="mb-2 text-3xl font-bold text-surface-content">

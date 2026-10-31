@@ -38,12 +38,9 @@ class ProfilesController < InertiaController
   end
 
   def project
-    return head :not_found if @user.nil?
+    return head :not_found unless (mapping = shared_project_mapping)
 
-    project_name = CGI.unescape(params[:project_name])
-    mapping = @user.project_repo_mappings.find_by(project_name: project_name)
-    return head :not_found unless mapping&.public_shared_at.present?
-
+    project_name = mapping.project_name
     h = ApplicationController.helpers
     hb = @user.heartbeats.where(project: project_name)
     stats = ProjectStatsService.new(hb).call(
@@ -52,8 +49,12 @@ class ProfilesController < InertiaController
     first_heartbeat = hb.minimum(:time)
     since_date = first_heartbeat ? Time.at(first_heartbeat).to_date.strftime("%-m/%-d/%Y") : nil
 
+    @page_title = "#{project_name} by @#{@user.username} | Hackatime"
+    @meta_description = project_social_description(project_name, stats[:total_time])
+    @og_image = profile_project_og_image_url(username: @user.username, project_name: project_name)
+
     render inertia: "Projects/PublicShow", props: {
-      page_title: "#{project_name} — @#{@user.username} | Hackatime",
+      page_title: @page_title,
       project_name: project_name, username: @user.username,
       since_date: since_date, repo_url: mapping.repo_url,
       total_time_label: h.short_time_detailed(stats[:total_time]),
@@ -64,7 +65,31 @@ class ProfilesController < InertiaController
     }
   end
 
+  def project_og_image
+    return head :not_found unless (mapping = shared_project_mapping)
+
+    project_name = mapping.project_name
+    total = @user.heartbeats.where(project: project_name).duration_seconds
+    send_og_image PageOgImageGenerator.new(
+      headline: project_name,
+      description: project_social_description(project_name, total),
+      path: "/@#{@user.username}/project/#{project_name}"
+    )
+  end
+
   private
+
+  def shared_project_mapping
+    return if @user.nil?
+
+    mapping = @user.project_repo_mappings.find_by(project_name: CGI.unescape(params[:project_name]))
+    mapping if mapping&.public_shared_at.present?
+  end
+
+  def project_social_description(project_name, total_seconds)
+    time = ApplicationController.helpers.short_time_simple(total_seconds)
+    "@#{@user.username} has spent #{time} coding #{project_name}. Tracked with Hackatime."
+  end
 
   def render_profile_not_found
     render inertia: "Errors/NotFound", props: {

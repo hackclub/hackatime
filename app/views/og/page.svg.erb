@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="<%= width %>" height="<%= height %>" viewBox="0 0 <%= width %> <%= height %>">
+  <defs>
+    <style type="text/css">
+      text {
+        font-family: "Spline Sans", system-ui, sans-serif;
+        text-rendering: geometricPrecision;
+      }
+    </style>
+  </defs>
+
+  <rect width="<%= width %>" height="<%= height %>" fill="<%= palette[:bg] %>" />
+
+  <!-- Decorative heatmap -->
+  <g shape-rendering="crispEdges">
+    <% heatmap_cells.each do |cell| %><rect x="<%= cell[:x] %>" y="<%= cell[:y] %>" width="<%= heatmap_cell %>" height="<%= heatmap_cell %>" rx="4" fill="<%= cell[:color] %>" opacity="<%= cell[:opacity] %>" /><% end %>
+  </g>
+
+  <!-- Brand row -->
+  <image href="<%= icon_data_uri %>" x="74" y="66" width="52" height="52" />
+  <text x="136" y="102" font-size="26" font-weight="700" fill="<%= palette[:text] %>">Hackatime</text>
+  <text x="1120" y="102" text-anchor="end" font-size="22" font-weight="500" fill="<%= palette[:dim] %>"><%= url %></text>
+
+  <!-- Headline -->
+  <% title[:lines].each_with_index do |line, i| %>
+    <text x="80" y="<%= title[:y] + i * title[:step] %>" font-size="<%= title[:size] %>" font-weight="700" fill="<%= palette[:text] %>" letter-spacing="<%= title[:letter_spacing] %>"><%= line %></text>
+  <% end %>
+
+  <!-- Description -->
+  <% description_lines.each_with_index do |line, i| %>
+    <text x="80" y="<%= description_y + i * 38 %>" font-size="28" font-weight="500" fill="<%= palette[:muted] %>"><%= line %></text>
+  <% end %>
+</svg>

@@ -1,6 +1,16 @@
 require "test_helper"
 
 class StaticPagesControllerTest < ActionDispatch::IntegrationTest
+  test "sign in page has its own title and absolute link preview card" do
+    get signin_path
+
+    assert_response :success
+    assert_select "title", "Sign in | Hackatime"
+    assert_select "meta[property='og:title'][content=?]", "Sign in | Hackatime"
+    assert_select "meta[property='og:image'][content=?]", og_image_url(page: "signin")
+    assert_select "meta[name='twitter:image'][content=?]", og_image_url(page: "signin")
+  end
+
   test "signed in homepage includes dashboard stats immediately when rollups exist" do
     travel_to Time.utc(2026, 4, 14, 12, 0, 0) do
       user = create(:user)

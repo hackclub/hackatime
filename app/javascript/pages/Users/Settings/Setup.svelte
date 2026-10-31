@@ -21,7 +21,7 @@
 </script>
 
 <svelte:head>
-  <title>Setup - Hackatime Settings</title>
+  <title>Setup · Settings | Hackatime</title>
 </svelte:head>
 
 <SectionCard

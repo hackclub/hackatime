@@ -30,7 +30,7 @@
 </script>
 
 <svelte:head>
-  <title>Editors - Hackatime Settings</title>
+  <title>Editors · Settings | Hackatime</title>
 </svelte:head>
 
 <SectionCard

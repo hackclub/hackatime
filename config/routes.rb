@@ -362,6 +362,8 @@ Rails.application.routes.draw do
 
   get "/@:username", to: "profiles#show", as: :profile, constraints: { username: /[A-Za-z0-9_-]+/ }, export: true
   get "/@:username/og.png", to: "profiles#og_image", as: :profile_og_image, constraints: { username: /[A-Za-z0-9_-]+/ }
+  get "/@:username/project/:project_name/og.png", to: "profiles#project_og_image", as: :profile_project_og_image, constraints: { username: /[A-Za-z0-9_-]+/, project_name: /.+/ }, format: false
+  get "/og/:page.png", to: "og_images#show", as: :og_image, constraints: { page: /[a-z_]+/ }, format: false
   get "/@:username/project/:project_name", to: "profiles#project", as: :profile_project, constraints: { username: /[A-Za-z0-9_-]+/, project_name: /.+/ }, export: true
 
   # SEO routes

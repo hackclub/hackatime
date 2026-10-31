@@ -6,7 +6,7 @@
   let { errors }: { errors: string[] } = $props();
 </script>
 
-<svelte:head><title>spawn in a new key</title></svelte:head>
+<svelte:head><title>New admin API key · Admin | Hackatime</title></svelte:head>
 <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
   <div class="mb-8 flex items-center justify-between">
     <div>

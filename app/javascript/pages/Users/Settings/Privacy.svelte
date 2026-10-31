@@ -77,7 +77,7 @@
 </script>
 
 <svelte:head>
-  <title>Privacy & Security - Hackatime Settings</title>
+  <title>Privacy & Security · Settings | Hackatime</title>
 </svelte:head>
 
 <SectionCard
