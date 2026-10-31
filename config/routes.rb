@@ -189,6 +189,7 @@ Rails.application.routes.draw do
     get "my/settings/privacy", to: "settings/privacy#show", as: :my_settings_privacy
     patch "my/settings/privacy", to: "settings/privacy#update", as: :my_settings_privacy_update
     post "my/settings/privacy/rotate_api_key", to: "settings/privacy#rotate_api_key", as: :my_settings_rotate_api_key
+    post "my/settings/privacy/logout_all_devices", to: "settings/privacy#logout_all_devices", as: :my_settings_logout_all_devices
     delete "my/settings/privacy/authorized_applications/:application_id", to: "settings/privacy#revoke_application", as: :my_settings_revoke_authorized_application
 
     # Goals

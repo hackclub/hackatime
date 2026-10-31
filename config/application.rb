@@ -39,8 +39,9 @@ module Harbor
 
     config.active_job.queue_adapter = :good_job
 
-    config.session_store :cookie_store,
+    config.session_store :active_record_store,
       key: "_hackatime_session",
+      secure_session_only: true,
       expire_after: 14.days,
       secure: Rails.env.production?,
       httponly: true

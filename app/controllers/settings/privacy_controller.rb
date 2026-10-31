@@ -22,6 +22,12 @@ class Settings::PrivacyController < Settings::BaseController
     redirect_to my_settings_privacy_path, notice: "Application access revoked"
   end
 
+  def logout_all_devices
+    WebSession.for_user(@user).delete_all
+    reset_session
+    redirect_to signin_path, notice: "Logged out of all devices. Please sign in again."
+  end
+
   private
 
   def page_props
