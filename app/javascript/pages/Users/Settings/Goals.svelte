@@ -179,7 +179,7 @@
 </script>
 
 <svelte:head>
-  <title>Goals - Hackatime Settings</title>
+  <title>Goals · Settings | Hackatime</title>
 </svelte:head>
 
 <SectionCard

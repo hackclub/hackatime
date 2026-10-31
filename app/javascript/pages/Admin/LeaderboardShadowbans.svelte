@@ -80,7 +80,7 @@
 </script>
 
 <svelte:head>
-  <title>Leaderboard Shadowbans</title>
+  <title>Leaderboard shadowbans · Admin | Hackatime</title>
 </svelte:head>
 
 <div class="mx-auto max-w-5xl space-y-6">

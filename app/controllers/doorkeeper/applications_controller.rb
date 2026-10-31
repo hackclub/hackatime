@@ -144,7 +144,7 @@ module Doorkeeper
     end
 
     def index_props
-      { page_title: "OAuth Applications",
+      { page_title: "OAuth apps | Hackatime",
         applications: @applications.map { |a|
           { id: a.id, name: a.name, verified: a.verified?, confidential: a.confidential?,
             scopes: a.scopes.to_a.map(&:to_s), redirect_uris: redirect_uris_for(a) }
@@ -154,7 +154,7 @@ module Doorkeeper
     def show_props
       secret = flash[:application_secret].presence
       {
-        page_title: "#{@application.name} - OAuth Application",
+        page_title: "#{@application.name} · OAuth apps | Hackatime",
         heading: I18n.t("doorkeeper.applications.show.title", name: @application.name),
         subheading: "OAuth application credentials and settings.",
         application: {
@@ -186,7 +186,7 @@ module Doorkeeper
       heading = I18n.t(meta[:title_key])
       subheading = meta[:subheading] || format(meta[:subheading_template], name: @application.name)
       {
-        page_title: heading,
+        page_title: "#{heading} | Hackatime",
         heading: heading,
         subheading: subheading,
         form_mode: meta[:form_mode],

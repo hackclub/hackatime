@@ -74,7 +74,7 @@ class UsersController < InertiaController
   end
 
   def set_setup_meta
-    @page_title = @og_title = "Set Up Your Editor - Hackatime"
+    @page_title = @og_title = "Set up your editor | Hackatime"
     @meta_description = @og_description = "Connect your code editor to Hackatime in minutes. Install the WakaTime plugin and start tracking your coding time for free."
   end
 

@@ -12,6 +12,27 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "I like building tools", inertia.props.dig("profile", "bio")
   end
 
+  test "shared projects get their own link preview card while unshared ones stay hidden" do
+    user = create(:user, username: "proj_#{SecureRandom.hex(3)}")
+    create(:project_repo_mapping, user: user, project_name: "C++ game", public_shared_at: Time.current)
+    create(:project_repo_mapping, user: user, project_name: "secret-thing")
+
+    get profile_project_path(user.username, CGI.escape("C++ game"))
+
+    assert_response :success
+    assert_select "meta[property='og:title'][content=?]", "C++ game by @#{user.username} | Hackatime"
+
+    get css_select("meta[property='og:image']").first["content"]
+
+    assert_response :success
+    assert_equal "image/png", response.media_type
+    assert response.body.start_with?("\x89PNG".b)
+
+    get profile_project_og_image_path(user.username, "secret-thing")
+
+    assert_response :not_found
+  end
+
   test "returns inertia not found for unknown profile" do
     get profile_path("missing_#{SecureRandom.hex(4)}")
 

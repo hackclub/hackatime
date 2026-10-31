@@ -11,7 +11,7 @@ class My::ProjectRepoMappingsController < InertiaController
     projects_data = projects_data_for_index(archived: archived)
 
     render inertia: "Projects/Index", props: {
-      page_title: "My Projects",
+      page_title: "Projects | Hackatime",
       show_archived: archived,
       archived_count: current_user.project_repo_mappings.archived.count,
       github_connected: current_user.github_uid.present?,
@@ -55,7 +55,7 @@ class My::ProjectRepoMappingsController < InertiaController
     end
 
     render inertia: "Projects/Show", props: {
-      page_title: "#{project_name} | My Projects",
+      page_title: "#{project_name} · Projects | Hackatime",
       project_name: project_name,
       since_date: since_date,
       repo_url: mapping&.repo_url,
