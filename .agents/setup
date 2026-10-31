@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Include elapsed time for expensive steps in Amp's setup log.
+TIMEFORMAT='==> Step completed in %3R seconds'
+
 cache_dir=".amp/setup-cache"
 mkdir -p "$cache_dir"
 
@@ -23,8 +26,8 @@ if [ -z "$gh_version" ] || ! dpkg --compare-versions "$gh_version" ge "$gh_min_v
   rm -f "$keyring"
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" |
     sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
-  sudo apt-get update
-  sudo apt-get install -y gh
+  time sudo apt-get update
+  time sudo apt-get install -y gh
 fi
 
 docker_packages=()
@@ -45,8 +48,8 @@ if [ "${#docker_packages[@]}" -gt 0 ]; then
   sudo chmod a+r /etc/apt/keyrings/docker.asc
   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" |
     sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-  sudo apt-get update
-  sudo apt-get install -y "${docker_packages[@]}"
+  time sudo apt-get update
+  time sudo apt-get install -y "${docker_packages[@]}"
 fi
 
 setup_user="$(id -un)"
@@ -76,13 +79,13 @@ if [ ! -f .env ]; then
   cp -- .env.example .env
 fi
 
-container_fingerprint="$(fingerprint Dockerfile.dev docker-compose.yml entrypoint.dev.sh Gemfile Gemfile.lock package.json bun.lock bunfig.toml)"
+container_fingerprint="$(fingerprint Dockerfile.dev docker-compose.yml entrypoint.dev.sh Gemfile Gemfile.lock package.json bun.lock bunfig.toml patches)"
 if cache_matches containers "$container_fingerprint"; then
   echo "==> Starting existing development containers"
-  sudo docker compose up -d
+  time sudo docker compose up -d --wait
 else
   echo "==> Building and starting development containers"
-  sudo docker compose up -d --build
+  time sudo docker compose up -d --build --wait
   printf '%s\n' "$container_fingerprint" > "$cache_dir/containers"
 fi
 
@@ -93,13 +96,15 @@ sudo docker compose exec -T web sh -c '
     git config --global --add safe.directory "$repo_root"
 '
 
-assets_fingerprint="$(fingerprint app/javascript app/assets/tailwind config/routes.rb config/vite.json config/initializers/js_from_routes.rb vite.config.ts svelte.config.js tsconfig.json tsconfig.svelte-check.json package.json bun.lock bunfig.toml)"
-if cache_matches assets "$assets_fingerprint" && [ -f public/vite-dev/.vite/manifest.json ]; then
-  echo "==> Vite client assets are current"
+assets_fingerprint="$(fingerprint app/javascript app/assets/tailwind config/routes.rb config/vite.json config/initializers/js_from_routes.rb vite.config.ts svelte.config.js tsconfig.json tsconfig.svelte-check.json Gemfile Gemfile.lock package.json bun.lock bunfig.toml patches)"
+if cache_matches assets "$assets_fingerprint" && [ -f public/vite-dev/.vite/manifest.json ] && [ -f public/vite-ssr/ssr.js ]; then
+  echo "==> Vite assets are current"
 else
-  echo "==> Building Vite client assets"
-  sudo docker compose exec -T web env JS_FROM_ROUTES_FORCE=true bin/rake js_from_routes:generate
-  sudo docker compose exec -T web bin/vite build
+  echo "==> Building Vite client and SSR assets"
+  time sudo docker compose exec -T web env JS_FROM_ROUTES_FORCE=true bin/rake js_from_routes:generate
+  # Vite's watched-file cache does not cover dependency patches.
+  time sudo docker compose exec -T web bin/vite build --force
+  time sudo docker compose exec -T web bin/vite build --ssr --force
   printf '%s\n' "$assets_fingerprint" > "$cache_dir/assets"
 fi
 
@@ -112,17 +117,9 @@ if cache_matches database "$database_fingerprint" && [ "$development_seeded" = "
   echo "==> Development and test databases are current"
 else
   echo "==> Preparing and seeding the development database"
-  sudo docker compose exec -T web bin/rails db:prepare db:seed
+  time sudo docker compose exec -T web bin/rails db:prepare db:seed
 
   echo "==> Preparing the test database"
-  sudo docker compose exec -T web env RAILS_ENV=test bin/rails db:prepare
+  time sudo docker compose exec -T web env RAILS_ENV=test bin/rails db:prepare
   printf '%s\n' "$database_fingerprint" > "$cache_dir/database"
 fi
-
-echo "==> Disabling thread ID trailer"
-mkdir -p "$HOME/.config/amp"
-cat > "$HOME/.config/amp/settings.json" <<'EOF'
-{
-  "amp.git.commit.ampThread.enabled": false
-}
-EOF

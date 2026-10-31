@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Exercise setup against real, persistent dependency volumes without changing
+# the working checkout or its development database.
+repo_root="$(git rev-parse --show-toplevel)"
+fixture="$(mktemp -d /tmp/hackatime-setup-test-XXXXXX)"
+git clone --quiet --shared "$repo_root" "$fixture"
+git ls-files -z | tar -C "$repo_root" --null -T - -cf - | tar -C "$fixture" -xf -
+
+cat > "$fixture/docker-compose.override.yml" <<'YAML'
+services:
+  web:
+    ports: !reset []
+  db:
+    ports: !reset []
+YAML
+
+cd "$fixture"
+unset COMPOSE_FILE COMPOSE_PROJECT_NAME COMPOSE_PROFILES
+trap 'sudo docker compose down --volumes --remove-orphans --rmi local >/dev/null 2>&1; sudo rm -rf -- "$fixture"' EXIT
+
+run_setup() {
+  if ! .agents/setup > setup.log 2>&1; then
+    tail -40 setup.log | sed -E 's/(API Key|Sign-in Token):.*/\1: [redacted]/'
+    return 1
+  fi
+  grep '^==>' setup.log
+}
+
+echo "==> Initial setup with empty dependency volumes"
+run_setup
+initial_manifest="$(stat -c '%y' public/vite-dev/.vite/manifest.json)"
+initial_ssr="$(stat -c '%y' public/vite-ssr/ssr.js)"
+
+# Change the installed compiler's contents without changing its package version.
+sed -i '/^+.*!rule.nodes/s|$| /* orb-setup-regression */|' patches/beasties@0.5.4.patch
+grep -Fq 'orb-setup-regression' patches/beasties@0.5.4.patch
+
+echo "==> Upgrading an existing orb after a dependency patch changes"
+run_setup
+if ! sudo docker compose exec -T web grep -Fq 'orb-setup-regression' node_modules/beasties/dist/compiler.mjs; then
+  echo "Dependency patch changed, but the installed dependency is still stale" >&2
+  exit 1
+fi
+updated_manifest="$(stat -c '%y' public/vite-dev/.vite/manifest.json)"
+updated_ssr="$(stat -c '%y' public/vite-ssr/ssr.js)"
+if [ "$initial_manifest" = "$updated_manifest" ] || [ "$initial_ssr" = "$updated_ssr" ]; then
+  echo "Dependency patches changed, but client or SSR assets were not rebuilt" >&2
+  exit 1
+fi
+
+echo "==> Repeating setup with unchanged inputs"
+container_id="$(sudo docker compose ps -q web)"
+run_setup
+test "$container_id" = "$(sudo docker compose ps -q web)"
+test "$updated_manifest" = "$(stat -c '%y' public/vite-dev/.vite/manifest.json)"
+test "$updated_ssr" = "$(stat -c '%y' public/vite-ssr/ssr.js)"
+sudo docker compose exec -T web grep -Fq 'orb-setup-regression' node_modules/beasties/dist/compiler.mjs
+
+echo "Setup regression passed: patched dependency refreshed, assets rebuilt and unchanged work reused"
