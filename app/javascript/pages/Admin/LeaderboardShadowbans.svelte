@@ -179,12 +179,8 @@
 </div>
 
 <Modal
-  bind:open={
-    () => pending !== null,
-    (v) => {
-      if (!v) pending = null;
-    }
-  }
+  data={pending && { kind: pending.kind, submitting }}
+  onClose={() => (pending = null)}
   title={pending?.kind === "unban"
     ? "Remove leaderboard shadowban?"
     : "Confirm leaderboard shadowban"}
@@ -194,7 +190,7 @@
   maxWidth="max-w-lg"
   hasActions
 >
-  {#snippet actions()}
+  {#snippet actions({ kind, submitting })}
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <Button
         type="button"
@@ -206,16 +202,16 @@
       <Button
         type="button"
         variant="primary"
-        class="h-10 w-full text-on-primary {pending?.kind === 'unban'
+        class="h-10 w-full text-on-primary {kind === 'unban'
           ? ''
           : redButtonClass}"
         disabled={submitting}
         onclick={submit}
       >
         {#if submitting}
-          {pending?.kind === "unban" ? "Removing..." : "Saving..."}
+          {kind === "unban" ? "Removing..." : "Saving..."}
         {:else}
-          {pending?.kind === "unban" ? "Remove shadowban" : "Confirm shadowban"}
+          {kind === "unban" ? "Remove shadowban" : "Confirm shadowban"}
         {/if}
       </Button>
     </div>

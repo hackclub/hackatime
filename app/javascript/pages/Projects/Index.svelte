@@ -64,7 +64,6 @@
 
   let editingProjectKey = $state<string | null>(null);
   let repoUrlDraft = $state("");
-  let statusChangeModalOpen = $state(false);
   let brokenNameModalOpen = $state(false);
   let pendingStatusAction = $state<{
     path: string;
@@ -188,18 +187,15 @@
         : "This project will be hidden from most stats and listings, but it'll still be visible to you and any time logged will still count towards it. You can restore it anytime from the Archived Projects page.",
       confirmLabel: restoring ? "Restore project" : "Archive project",
     };
-    statusChangeModalOpen = true;
   };
 
   const closeStatusChangeModal = () => {
-    statusChangeModalOpen = false;
     pendingStatusAction = null;
   };
 
-  const confirmStatusChange = () => {
-    if (!pendingStatusAction) return;
+  const confirmStatusChange = (path: string) => {
     router.patch(
-      pendingStatusAction.path,
+      path,
       {},
       { preserveScroll: true, onSuccess: closeStatusChangeModal },
     );
@@ -386,34 +382,32 @@
 </div>
 
 <Modal
-  bind:open={statusChangeModalOpen}
-  title={pendingStatusAction?.title ?? "Confirm project change"}
-  description={pendingStatusAction?.description ??
-    "Confirm this project status change."}
+  data={pendingStatusAction}
+  onClose={closeStatusChangeModal}
+  title={pendingStatusAction?.title ?? ""}
+  description={pendingStatusAction?.description}
   maxWidth="max-w-md"
   hasActions
 >
-  {#snippet actions()}
-    {#if pendingStatusAction}
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Button
-          type="button"
-          variant="dark"
-          class="h-10 w-full border border-surface-300 text-muted"
-          onclick={closeStatusChangeModal}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="button"
-          variant="primary"
-          class="h-10 w-full text-on-primary"
-          onclick={confirmStatusChange}
-        >
-          {pendingStatusAction.confirmLabel}
-        </Button>
-      </div>
-    {/if}
+  {#snippet actions(action)}
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <Button
+        type="button"
+        variant="dark"
+        class="h-10 w-full border border-surface-300 text-muted"
+        onclick={closeStatusChangeModal}
+      >
+        Cancel
+      </Button>
+      <Button
+        type="button"
+        variant="primary"
+        class="h-10 w-full text-on-primary"
+        onclick={() => confirmStatusChange(action.path)}
+      >
+        {action.confirmLabel}
+      </Button>
+    </div>
   {/snippet}
 </Modal>
 
