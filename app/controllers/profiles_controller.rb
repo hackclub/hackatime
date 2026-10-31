@@ -51,7 +51,8 @@ class ProfilesController < InertiaController
 
     @page_title = "#{project_name} by @#{@user.username} | Hackatime"
     @meta_description = project_social_description(project_name, stats[:total_time])
-    @og_image = profile_project_og_image_url(username: @user.username, project_name: project_name)
+    # Escaped like the share link, because shared_project_mapping unescapes the param again.
+    @og_image = profile_project_og_image_url(username: @user.username, project_name: CGI.escape(project_name))
 
     render inertia: "Projects/PublicShow", props: {
       page_title: @page_title,

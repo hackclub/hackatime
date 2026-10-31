@@ -61,7 +61,6 @@ class ApplicationController < ActionController::Base
     }
   end
 
-  # Sets the title, description and link-preview card from config/og_pages.yml.
   def use_og_page(key)
     page = OgPage.find(key)
     @page_title = page.title
