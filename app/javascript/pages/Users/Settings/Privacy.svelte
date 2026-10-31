@@ -243,9 +243,8 @@
             rotateApiKeyModalOpen = false;
             rotateApiKey();
           }}
-          disabled={rotatingApiKey}
         >
-          {rotatingApiKey ? "Rotating..." : "Rotate key"}
+          Rotate key
         </Button>
       {/snippet}
     </ModalActions>
