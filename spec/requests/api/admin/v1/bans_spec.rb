@@ -29,7 +29,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
 
     get('Get Ban State') do
       tags 'Admin Resources'
-      description "Report the current heartbeat poisoning state. Requires a superadmin API key.\n"
+      description "Report the current heartbeat poisoning state. Requires an admin, superadmin or ultraadmin API key.\n"
       security [ AdminToken: [] ]
       produces 'application/json'
 
@@ -61,7 +61,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
     post('Poison Heartbeats') do
       tags 'Admin Resources'
       description <<~DESC
-        Poison Heartbeats!
+        Poison heartbeats. Requires an admin, superadmin or ultraadmin API key.
       DESC
       security [ AdminToken: [] ]
       consumes 'application/json'
@@ -123,7 +123,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
         run_test!
       end
 
-      response(401, 'unauthorized - Returned when the key is missing, invalid, or not superadmin level.') do
+      response(401, 'unauthorized - Returned when the key is missing, invalid, or below admin level.') do
         let(:Authorization) { "Bearer viewer-admin-api-key-rswag-ban" }
         let(:hackatime_id) { '1' }
         let(:payload) { { date: (Date.current - 30).to_s } }
@@ -140,7 +140,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
     delete('Un-Poison Heartbeats') do
       tags 'Admin Resources'
       description <<~DESC
-        Lift the poison. Requires a superadmin API key.
+        Lift the poison. Requires an admin, superadmin or ultraadmin API key.
       DESC
       security [ AdminToken: [] ]
       produces 'application/json'

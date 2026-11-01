@@ -3106,8 +3106,8 @@ paths:
       summary: Get Ban State
       tags:
       - Admin Resources
-      description: 'Report the current heartbeat poisoning state. Requires a superadmin
-        API key.
+      description: 'Report the current heartbeat poisoning state. Requires an admin,
+        superadmin or ultraadmin API key.
 
         '
       security:
@@ -3159,7 +3159,8 @@ paths:
       summary: Poison Heartbeats
       tags:
       - Admin Resources
-      description: 'Poison Heartbeats!
+      description: 'Poison heartbeats. Requires an admin, superadmin or ultraadmin
+        API key.
 
         '
       security:
@@ -3217,7 +3218,7 @@ paths:
                     example: User not found
         '401':
           description: unauthorized - Returned when the key is missing, invalid, or
-            not superadmin level.
+            below admin level.
       requestBody:
         content:
           application/json:
@@ -3249,7 +3250,8 @@ paths:
       summary: Un-Poison Heartbeats
       tags:
       - Admin Resources
-      description: 'Lift the poison. Requires a superadmin API key.
+      description: 'Lift the poison. Requires an admin, superadmin or ultraadmin API
+        key.
 
         '
       security:
