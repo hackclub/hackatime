@@ -31,9 +31,7 @@
     "w-full inline-flex items-center justify-center gap-2 px-4 py-2 text-on-primary font-medium rounded transition-colors duration-200";
 </script>
 
-<svelte:head
-  ><title>{application.name} - Admin OAuth Application</title></svelte:head
->
+<svelte:head><title>{application.name} · Admin | Hackatime</title></svelte:head>
 <div class="max-w-4xl mx-auto p-6 space-y-6">
   <header class="text-center mb-8">
     <h1 class="text-4xl font-bold text-surface-content mb-2">

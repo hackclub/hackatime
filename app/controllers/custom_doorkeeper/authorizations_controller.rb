@@ -20,7 +20,7 @@ module CustomDoorkeeper
 
     def show
       render inertia: "OAuthAuthorize/Show", props: {
-        page_title: I18n.t("doorkeeper.authorizations.show.title"),
+        page_title: "#{I18n.t("doorkeeper.authorizations.show.title")} | Hackatime",
         code: params[:code]
       }
     end
@@ -77,7 +77,7 @@ module CustomDoorkeeper
 
     def render_oauth_error(desc, status: :ok)
       render inertia: "OAuthAuthorize/Error", props: {
-        page_title: I18n.t("doorkeeper.authorizations.error.title"),
+        page_title: "#{I18n.t("doorkeeper.authorizations.error.title")} | Hackatime",
         error_description: desc
       }, status: status
     end
@@ -85,7 +85,7 @@ module CustomDoorkeeper
     def authorize_props
       a = pre_auth.client.application
       {
-        page_title: I18n.t("doorkeeper.authorizations.new.title"),
+        page_title: "#{I18n.t("doorkeeper.authorizations.new.title")} | Hackatime",
         client_name: pre_auth.client.name,
         verified: a.verified?,
         has_admin_scope: pre_auth.scopes.include?(OauthApplication::ADMIN_SCOPE),

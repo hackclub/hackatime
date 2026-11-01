@@ -8,7 +8,9 @@ class LeaderboardsController < InertiaController
 
     leaderboard = LeaderboardService.get(period: period_type, date: Date.current)
 
+    use_og_page(:leaderboards)
     render inertia: "Leaderboards/Index", props: {
+      page_title: @page_title,
       period_type: period_type.to_s,
       scope: leaderboard_scope.to_s,
       country: country,

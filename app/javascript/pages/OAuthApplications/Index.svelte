@@ -2,7 +2,9 @@
   import { Link } from "@inertiajs/svelte";
   import Button from "../../components/Button.svelte";
   import DetailField from "../../components/DetailField.svelte";
-  import DestructiveActionModal from "./DestructiveActionModal.svelte";
+  import DestructiveActionModal, {
+    type DestructiveAction,
+  } from "./DestructiveActionModal.svelte";
   import Badge from "./components/Badge.svelte";
   import ChipList from "./components/ChipList.svelte";
   import type { OAuthApplicationsIndexProps } from "./types";
@@ -12,12 +14,18 @@
 
   const newApplicationPath = doorkeeperApplications.new.path();
 
-  let deleteModalOpen = $state(false);
-  let pendingDelete = $state<{ name: string; path: string } | null>(null);
+  let pendingDelete = $state<DestructiveAction | null>(null);
 
   const openDeleteModal = (name: string, path: string) => {
-    pendingDelete = { name, path };
-    deleteModalOpen = true;
+    pendingDelete = {
+      title: `Delete ${name}?`,
+      description:
+        "This action permanently deletes the OAuth application and any integrations using it will stop working.",
+      actionPath: path,
+      confirmLabel: "Delete application",
+      method: "delete",
+      confirmStyle: "danger",
+    };
   };
 </script>
 
@@ -138,13 +146,6 @@
 </div>
 
 <DestructiveActionModal
-  bind:open={deleteModalOpen}
-  title={pendingDelete
-    ? `Delete ${pendingDelete.name}?`
-    : "Delete OAuth application?"}
-  description="This action permanently deletes the OAuth application and any integrations using it will stop working."
-  actionPath={pendingDelete?.path || ""}
-  confirmLabel="Delete application"
-  method="delete"
-  confirmStyle="danger"
+  action={pendingDelete}
+  onClose={() => (pendingDelete = null)}
 />

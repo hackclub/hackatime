@@ -21,6 +21,7 @@
   let {
     home_stats,
     flash = [],
+    page_title,
   }: {
     sign_in_email: boolean;
     show_dev_tool: boolean;
@@ -28,6 +29,7 @@
     csrf_token: string;
     home_stats: HomeStats;
     flash?: FlashMessage[];
+    page_title: string;
   } = $props();
 
   const fmt = new Intl.NumberFormat("en-US");
@@ -83,7 +85,7 @@
 </script>
 
 <svelte:head>
-  <title>Hackatime - Track your coding time</title>
+  <title>{page_title}</title>
 </svelte:head>
 
 <div class="landing-page min-h-screen w-full bg-darker text-surface-content">

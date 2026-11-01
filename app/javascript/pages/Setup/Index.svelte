@@ -66,7 +66,7 @@
 </script>
 
 <svelte:head>
-  <title>Set Up Hackatime</title>
+  <title>Set up your editor | Hackatime</title>
 </svelte:head>
 
 <div

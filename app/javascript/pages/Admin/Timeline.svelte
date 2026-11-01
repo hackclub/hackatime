@@ -302,7 +302,7 @@
   }
 </script>
 
-<svelte:head><title>Admin Timeline</title></svelte:head>
+<svelte:head><title>Review timeline · Admin | Hackatime</title></svelte:head>
 <div class="flex h-screen flex-col p-5 font-sans text-surface-content">
   <div class="mb-4 shrink-0 rounded-md bg-dark p-3">
     <Form action={adminTimeline.show.path()} method="get">

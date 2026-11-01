@@ -14,7 +14,7 @@
   let { api_key, show_token }: { api_key: Key; show_token: boolean } = $props();
 </script>
 
-<svelte:head><title>Admin API Key Details</title></svelte:head>
+<svelte:head><title>Admin API key · Admin | Hackatime</title></svelte:head>
 <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
   <div class="mb-8 flex items-center justify-between">
     <div>

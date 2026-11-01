@@ -1,22 +1,12 @@
-<script lang="ts">
+<script lang="ts" generics="T = undefined">
   import { onMount } from "svelte";
-  import type { Component, Snippet } from "svelte";
-
-  type InnerProps = {
-    open?: boolean;
-    title: string;
-    description?: string;
-    maxWidth?: string;
-    bodyClass?: string;
-    onContentClick?: (event: MouseEvent) => void;
-    hasBody?: boolean;
-    hasActions?: boolean;
-    body?: Snippet;
-    actions?: Snippet;
-  };
+  import type { Snippet } from "svelte";
+  import type ModalInner from "./ModalInner.svelte";
 
   let {
     open = $bindable(false),
+    data,
+    onClose,
     title,
     description = "",
     maxWidth = "",
@@ -26,9 +16,46 @@
     hasActions = false,
     body,
     actions,
-  }: InnerProps = $props();
+  }: {
+    /** Open state for modals whose content never changes. */
+    open?: boolean;
+    /**
+     * Payload for modals that show per-open content, such as the item being
+     * confirmed. The modal is open while `data` is not null, and `body` and
+     * `actions` receive it. Reset it to null to close the modal.
+     */
+    data?: T | null;
+    /** Called when the user dismisses the modal. */
+    onClose?: () => void;
+    title: string;
+    description?: string;
+    maxWidth?: string;
+    bodyClass?: string;
+    onContentClick?: (event: MouseEvent) => void;
+    hasBody?: boolean;
+    hasActions?: boolean;
+    body?: Snippet<[T]>;
+    actions?: Snippet<[T]>;
+  } = $props();
 
-  let Inner = $state<Component<InnerProps> | null>(null);
+  const isOpen = $derived(data === undefined ? open : data !== null);
+
+  // The dialog stays on screen for its close animation. Keep showing what it
+  // showed while open, so callers can reset its state as soon as it closes.
+  let lastShown: { title: string; description: string; data: T } | undefined;
+  const shown = $derived.by(() => {
+    if (isOpen || !lastShown) {
+      lastShown = { title, description, data: data as T };
+    }
+    return lastShown;
+  });
+
+  function onOpenChange(next: boolean) {
+    open = next;
+    if (!next) onClose?.();
+  }
+
+  let Inner = $state<typeof ModalInner | null>(null);
 
   function load() {
     if (Inner) return;
@@ -38,7 +65,7 @@
   }
 
   $effect(() => {
-    if (open) load();
+    if (isOpen) load();
   });
 
   onMount(() => {
@@ -58,9 +85,11 @@
 
 {#if Inner}
   <Inner
-    bind:open
-    {title}
-    {description}
+    open={isOpen}
+    {onOpenChange}
+    title={shown.title}
+    description={shown.description}
+    data={shown.data}
     {maxWidth}
     {bodyClass}
     {onContentClick}

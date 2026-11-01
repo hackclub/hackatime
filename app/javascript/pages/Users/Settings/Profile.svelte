@@ -63,7 +63,7 @@
 </script>
 
 <svelte:head>
-  <title>Profile - Hackatime Settings</title>
+  <title>Profile · Settings | Hackatime</title>
 </svelte:head>
 
 <SectionCard

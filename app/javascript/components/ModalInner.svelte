@@ -1,9 +1,10 @@
-<script lang="ts">
+<script lang="ts" generics="T">
   import { Dialog } from "bits-ui";
   import type { Snippet } from "svelte";
 
   let {
-    open = $bindable(false),
+    open,
+    onOpenChange,
     title,
     description = "",
     maxWidth = "",
@@ -11,10 +12,12 @@
     onContentClick,
     hasBody = false,
     hasActions = false,
+    data,
     body,
     actions,
   }: {
-    open?: boolean;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
     title: string;
     description?: string;
     maxWidth?: string;
@@ -22,12 +25,13 @@
     onContentClick?: (event: MouseEvent) => void;
     hasBody?: boolean;
     hasActions?: boolean;
-    body?: Snippet;
-    actions?: Snippet;
+    data: T;
+    body?: Snippet<[T]>;
+    actions?: Snippet<[T]>;
   } = $props();
 </script>
 
-<Dialog.Root bind:open>
+<Dialog.Root bind:open={() => open, onOpenChange}>
   <Dialog.Portal>
     <Dialog.Overlay
       class="bits-modal-overlay fixed inset-0 z-9999 bg-darker/80 backdrop-blur-md"
@@ -78,11 +82,11 @@
         </div>
 
         {#if hasBody}
-          <div class={bodyClass}>{@render body?.()}</div>
+          <div class={bodyClass}>{@render body?.(data)}</div>
         {/if}
 
         {#if hasActions}
-          <div>{@render actions?.()}</div>
+          <div>{@render actions?.(data)}</div>
         {/if}
       </div>
     </Dialog.Content>

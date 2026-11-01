@@ -41,7 +41,6 @@
     });
 
   type ActionKey = "delete" | "rotate";
-  let modalOpen = $state(false);
   let pending = $state<ActionKey | null>(null);
 
   const modal = $derived(
@@ -64,19 +63,11 @@
             method: "post" as const,
             confirmStyle: "primary" as const,
           }
-        : {
-            title: "Confirm action",
-            description: "",
-            actionPath: "",
-            confirmLabel: "Confirm",
-            method: "post" as const,
-            confirmStyle: "primary" as const,
-          },
+        : null,
   );
 
   const openModal = (action: ActionKey) => {
     pending = action;
-    modalOpen = true;
   };
 
   const dangerBtn =
@@ -233,4 +224,4 @@
   </div>
 </div>
 
-<DestructiveActionModal bind:open={modalOpen} {...modal} />
+<DestructiveActionModal action={modal} onClose={() => (pending = null)} />

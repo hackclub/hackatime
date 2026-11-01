@@ -4,7 +4,7 @@ module Api
       class BansController < Api::Admin::V1::ApplicationController
         MAX_RAW_DATE_LENGTH = 40
 
-        before_action :require_superadmin
+        before_action :require_poison_permission
         before_action :set_user
 
         def create
@@ -36,6 +36,10 @@ module Api
         end
 
         private
+
+        def require_poison_permission
+          render_unauthorized("lmao no perms") unless current_user&.admin_level.in?(%w[admin superadmin ultraadmin])
+        end
 
         def set_user
           @user = User.lookup_by_identifier(params[:hackatime_id].to_s)

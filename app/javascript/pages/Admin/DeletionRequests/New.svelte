@@ -5,7 +5,7 @@
   import { adminDeletionRequests } from "../../../api";
 </script>
 
-<svelte:head><title>delete account</title></svelte:head>
+<svelte:head><title>Delete an account · Admin | Hackatime</title></svelte:head>
 <div class="max-w-lg mx-auto p-6 space-y-6">
   <header class="text-center mb-8">
     <h1 class="text-4xl font-bold text-surface-content mb-2">delete account</h1>

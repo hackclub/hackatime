@@ -23,6 +23,7 @@
     can_view_telescreen,
     lost_unprompted_ai_time,
     entries,
+    page_title,
   }: {
     period_type: string;
     scope: string;
@@ -33,6 +34,7 @@
     can_view_telescreen: boolean;
     lost_unprompted_ai_time: boolean;
     entries?: LeaderboardEntriesPayload;
+    page_title: string;
   } = $props();
 
   const settingsPath = settingsProfile.my.path();
@@ -91,7 +93,7 @@
 </script>
 
 <svelte:head>
-  <title>Leaderboards | Hackatime</title>
+  <title>{page_title}</title>
 </svelte:head>
 
 <div>

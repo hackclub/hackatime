@@ -44,6 +44,7 @@ class ErrorsController < ApplicationController
   private
 
   def render_error
+    @page_title = "#{@title} | Hackatime"
     respond_to do |format|
       format.html do
         render inertia: "Errors/Show", props: {

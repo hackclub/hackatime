@@ -42,7 +42,7 @@ class My::HeartbeatImportsController < ApplicationController
   end
 
   def wakatime_download_link
-    render inertia: "HeartbeatImports/WakatimeDownloadLink", props: { page_title: "Paste your WakaTime export link" }
+    render inertia: "HeartbeatImports/WakatimeDownloadLink", props: { page_title: "Import from WakaTime | Hackatime" }
   end
 
   private

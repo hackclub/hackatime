@@ -20,7 +20,7 @@
 </script>
 
 <svelte:head>
-  <title>Account Deletion Pending - Hackatime</title>
+  <title>Account deletion pending | Hackatime</title>
 </svelte:head>
 
 <div class="mx-auto w-full max-w-2xl py-8">

@@ -18,7 +18,7 @@
 </script>
 
 <svelte:head>
-  <title>Notifications - Hackatime Settings</title>
+  <title>Notifications · Settings | Hackatime</title>
 </svelte:head>
 
 <SectionCard

@@ -37,7 +37,8 @@ RUN apt-get update -qq && \
     curl \
     fontconfig \
     libjemalloc2 \
-    tar && \
+    tar \
+    tzdata && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install only the compiler toolchain needed by native gems.

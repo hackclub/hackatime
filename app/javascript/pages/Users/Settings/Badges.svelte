@@ -63,7 +63,7 @@
 {/snippet}
 
 <svelte:head>
-  <title>Badges - Hackatime Settings</title>
+  <title>Badges · Settings | Hackatime</title>
 </svelte:head>
 
 {#if !allow_public_stats_lookup}

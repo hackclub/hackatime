@@ -39,7 +39,7 @@
 </script>
 
 <svelte:head>
-  <title>Appearance - Hackatime Settings</title>
+  <title>Appearance · Settings | Hackatime</title>
 </svelte:head>
 
 <SectionCard

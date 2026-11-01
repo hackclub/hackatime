@@ -69,8 +69,9 @@
   const defaultPeriod = () =>
     (options.goals.periods[0]?.value as ProgrammingGoal["period"]) || "day";
 
-  let goalModalOpen = $state(false);
-  let editingGoal = $state<ProgrammingGoal | null>(null);
+  // The goal being edited, or null when creating one. The modal is closed when
+  // this whole object is null.
+  let goalModal = $state<{ goal: ProgrammingGoal | null } | null>(null);
   let targetAmount = $state(30);
   let targetUnit = $state<"minutes" | "hours">("minutes");
   let selectedPeriod = $state<ProgrammingGoal["period"]>(defaultPeriod());
@@ -79,18 +80,23 @@
   let submitting = $state(false);
 
   $effect(() => {
-    goalModalOpen = goal_form?.open ?? false;
-    if (!goal_form?.open) return;
+    if (!goal_form?.open) {
+      goalModal = null;
+      return;
+    }
     selectedPeriod =
       (goal_form.period as ProgrammingGoal["period"]) || defaultPeriod();
     setFromSeconds(goal_form.target_seconds || 1800);
     selectedLanguages = goal_form.languages || [];
     selectedProjects = goal_form.projects || [];
-    editingGoal =
-      goal_form.mode === "edit" && goal_form.goal_id
-        ? ((programming_goals || []).find((g) => g.id === goal_form.goal_id) ??
-          null)
-        : null;
+    goalModal = {
+      goal:
+        goal_form.mode === "edit" && goal_form.goal_id
+          ? ((programming_goals || []).find(
+              (g) => g.id === goal_form.goal_id,
+            ) ?? null)
+          : null,
+    };
   });
 
   const currentTargetSeconds = $derived(
@@ -113,21 +119,19 @@
   }
 
   function openCreateModal() {
-    editingGoal = null;
     selectedPeriod = defaultPeriod();
     setFromSeconds(options.goals.preset_target_seconds[0] || 1800);
     selectedLanguages = [];
     selectedProjects = [];
-    goalModalOpen = true;
+    goalModal = { goal: null };
   }
 
   function openEditModal(goal: ProgrammingGoal) {
-    editingGoal = goal;
     selectedPeriod = goal.period;
     setFromSeconds(goal.target_seconds);
     selectedLanguages = [...goal.languages];
     selectedProjects = [...goal.projects];
-    goalModalOpen = true;
+    goalModal = { goal };
   }
 
   function submit(
@@ -140,8 +144,7 @@
     const options = {
       preserveScroll: true,
       onSuccess: () => {
-        goalModalOpen = false;
-        editingGoal = null;
+        goalModal = null;
       },
       onFinish: () => {
         submitting = false;
@@ -154,7 +157,7 @@
     }
   }
 
-  function saveGoal() {
+  function saveGoal(editingGoal: ProgrammingGoal | null) {
     const data = {
       goal: {
         period: selectedPeriod,
@@ -176,7 +179,7 @@
 </script>
 
 <svelte:head>
-  <title>Goals - Hackatime Settings</title>
+  <title>Goals · Settings | Hackatime</title>
 </svelte:head>
 
 <SectionCard
@@ -271,14 +274,15 @@
 </SectionCard>
 
 <Modal
-  bind:open={goalModalOpen}
-  title={editingGoal ? "Edit target" : "Set a new target"}
+  data={goalModal && { ...goalModal, submitting, errors: modalErrors }}
+  onClose={() => (goalModal = null)}
+  title={goalModal?.goal ? "Edit target" : "Set a new target"}
   maxWidth="max-w-2xl"
   bodyClass="mb-6"
   hasBody
   hasActions
 >
-  {#snippet body()}
+  {#snippet body({ errors })}
     <div class="space-y-4">
       <div
         class="grid grid-cols-1 gap-3 sm:grid-cols-[auto_auto_auto_auto] sm:items-center"
@@ -340,23 +344,23 @@
         />
       </div>
 
-      {#if modalErrors.length > 0}
+      {#if errors.length > 0}
         <p
           class="rounded-md border border-red/40 bg-red/10 px-3 py-2 text-xs text-red"
         >
-          {modalErrors.join(", ")}
+          {errors.join(", ")}
         </p>
       {/if}
     </div>
   {/snippet}
 
-  {#snippet actions()}
+  {#snippet actions({ goal, submitting })}
     <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
       <Button
         type="button"
         variant="dark"
         class="h-10 rounded-md border border-surface-300 text-muted"
-        onclick={() => (goalModalOpen = false)}
+        onclick={() => (goalModal = null)}
       >
         Cancel
       </Button>
@@ -364,10 +368,10 @@
         type="button"
         variant="primary"
         class="h-10 rounded-md"
-        onclick={saveGoal}
+        onclick={() => saveGoal(goal)}
         disabled={submitting}
       >
-        {submitting ? "Saving..." : editingGoal ? "Update Goal" : "Create Goal"}
+        {submitting ? "Saving..." : goal ? "Update Goal" : "Create Goal"}
       </Button>
     </div>
   {/snippet}

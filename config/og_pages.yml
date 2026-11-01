@@ -1,0 +1,45 @@
+# Link previews for pages that crawlers can reach without signing in.
+# Each entry sets the page title and description, and generates the
+# Open Graph card served at /og/<key>.png on a distinct pastel background.
+home:
+  title: Hackatime - Track your coding time
+  headline: Track your coding time
+  description: Free and open-source coding time tracker. Works with VS Code, JetBrains, vim, emacs and 70+ editors. Built by Hack Club.
+  path: /
+  background: "#d6f5c4"
+signin:
+  title: Sign in | Hackatime
+  headline: Sign in to Hackatime
+  description: Pick up where you left off and see where your coding time goes.
+  path: /signin
+  background: "#cfe2ff"
+leaderboards:
+  title: Leaderboards | Hackatime
+  headline: Leaderboards
+  description: Who's coding the most today and this week, worldwide and in your country.
+  path: /leaderboards
+  background: "#ffe7a3"
+extensions:
+  title: Extensions | Hackatime
+  headline: Extensions
+  description: Desktop apps, pets and Slack bots built on Hackatime by the community.
+  path: /extensions
+  background: "#e4d7ff"
+wakatime_alternative:
+  title: WakaTime Alternative - Free & Open Source Coding Time Tracker | Hackatime
+  headline: The free WakaTime alternative
+  description: Every feature unlocked, no paid plans and fully open source. Works with your existing WakaTime plugins.
+  path: /wakatime-alternative
+  background: "#ffd6cc"
+api_docs:
+  title: API Reference | Hackatime
+  headline: API Reference
+  description: Query coding stats, heartbeats and leaderboards over a simple REST API.
+  path: /api-docs
+  background: "#c6efe8"
+admin_api_docs:
+  title: Admin API Reference | Hackatime
+  headline: Admin API Reference
+  description: Endpoints for Hackatime admins to review users, trust levels and heartbeats.
+  path: /api-docs/admin
+  background: "#f7d4ea"

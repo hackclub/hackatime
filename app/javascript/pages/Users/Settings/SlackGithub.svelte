@@ -35,7 +35,7 @@
 </script>
 
 <svelte:head>
-  <title>Slack & GitHub - Hackatime Settings</title>
+  <title>Slack & GitHub · Settings | Hackatime</title>
 </svelte:head>
 
 <SectionCard

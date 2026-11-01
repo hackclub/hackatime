@@ -103,10 +103,4 @@ module ApplicationHelper
     parts = entity.split("/")
     parts.length <= 3 ? entity : "#{parts.first}/…/#{parts.last(2).join("/")}"
   end
-
-  def safe_asset_path(asset_name, fallback: nil)
-    asset_path(asset_name)
-  rescue StandardError
-    fallback.present? ? asset_path(fallback) : asset_name
-  end
 end

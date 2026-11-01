@@ -1,0 +1,62 @@
+---
+title: AppCode
+sidebar: { icon: "/images/editor-icons/appcode-32.webp" }
+---
+
+![AppCode](../../public/images/editor-icons/appcode-128.png)
+
+Follow these steps to start tracking your coding time in AppCode with Hackatime. AppCode uses the WakaTime plugin, which works with Hackatime once the setup script has run. JetBrains discontinued AppCode in 2022 and 2023.1 is its last release, but the WakaTime plugin still supports it. AppCode only runs on macOS. This page has no screenshots for that reason. The steps are the same as in the [IntelliJ IDEA guide](./intellij-idea), which has them.
+
+## Step 1: Log into Hackatime
+
+Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
+
+## Step 2: Run the setup script
+
+Visit the [setup page](https://hackatime.hackclub.com/setup) to automatically configure your API key and endpoint. This ensures everything works perfectly with Hackatime.
+
+If AppCode is already installed, the setup script also installs the WakaTime plugin for you. Restart AppCode and skip to [Step 4](#step-4-check-that-its-running) if **WakaTime** is already listed on the **Installed** tab in **Settings → Plugins**.
+
+## Step 3: Install the WakaTime plugin
+
+Open Settings by pressing **Cmd+,**. Choose **Plugins**, open the **Marketplace** tab and search for `WakaTime`. Press **Install** next to **WakaTime**.
+
+AppCode warns you that WakaTime is a third-party plugin. Press **Accept**.
+
+When the button changes to **Restart IDE**, press it and confirm with **Restart**.
+
+## Step 4: Check that it's running
+
+Open a project and start typing. Your coding time for today appears in the status bar at the bottom of the window, next to the WakaTime icon.
+
+Your time will also appear on your [Hackatime dashboard](https://hackatime.hackclub.com) within a few minutes.
+
+The plugin reads your API key and Hackatime's server address from the setup script. If you skipped Step 2, open `~/.wakatime.cfg` in a text editor and add both. Use the API key from your [Hackatime settings](https://hackatime.hackclub.com/my/settings):
+
+```ini title="~/.wakatime.cfg"
+[settings]
+api_url = https://hackatime.hackclub.com/api/hackatime/v1
+api_key = YOUR_API_KEY
+heartbeat_rate_limit_seconds = 30
+```
+
+Without `api_url`, your time is sent to WakaTime instead of Hackatime. [Plugin settings](../configuration/plugin-settings) lists the other options.
+
+To check which key the plugin is using, open **Tools → WakaTime Settings**.
+
+**API key** should match the key in your Hackatime settings. You can change the key here, but the server address can only be set in `~/.wakatime.cfg`.
+
+## What gets tracked
+
+AppCode sends a heartbeat when you open or switch to a file, edit it, move the cursor or scroll, at most once every two minutes for the same file, and every time you save. Your project, branch, language, line and cursor position come along with it.
+
+## Troubleshooting
+
+- **Not seeing your time?** Make sure you completed the [setup page](https://hackatime.hackclub.com/setup) first, or that `~/.wakatime.cfg` has both `api_url` and `api_key` from [Step 4](#step-4-check-that-its-running). Then edit a file. Heartbeats can take a few minutes to show up.
+- **Can't find WakaTime Settings?** The plugin isn't loaded. Check that WakaTime is enabled on the **Installed** tab in **Settings → Plugins**, then restart AppCode.
+- **Something else?** Tick **Debug** in **Tools → WakaTime Settings**, restart AppCode and look for WakaTime messages in **Help → Show Log in Finder**.
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel).
+
+## Next steps
+
+Once configured, your coding time will automatically appear on your [Hackatime dashboard](https://hackatime.hackclub.com). Happy coding!
