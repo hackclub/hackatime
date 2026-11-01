@@ -162,12 +162,13 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil response.parsed_body["poisoned_at"]
   end
 
-  test "show requires a superadmin key" do
+  test "show accepts a plain admin key" do
     key = create(:admin_api_key, user: create(:user, admin_level: :admin), name: "Admin")
 
     get "/api/admin/v1/ban/#{@user.id}", headers: auth_headers(key), as: :json
 
-    assert_response :unauthorized
+    assert_response :success
+    assert_equal false, response.parsed_body["poisoned"]
   end
 
 
@@ -206,13 +207,23 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
     assert_response :created
   end
 
-  test "a plain admin key is rejected" do
+  test "a plain admin can poison and restore heartbeats with an audit trail" do
     key = create(:admin_api_key, user: create(:user, admin_level: :admin), name: "Admin")
 
     post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers(key), as: :json
 
-    assert_response :unauthorized
+    assert_response :created
+    assert @user.reload.poisoned?
+    assert_not_includes Heartbeat.all, @before_cutoff
+    assert_includes Heartbeat.all, @after_cutoff
+    assert_equal key.user, @user.active_poison.created_by
+
+    delete "/api/admin/v1/ban/#{@user.id}", headers: auth_headers(key), as: :json
+
+    assert_response :success
     assert_not @user.reload.poisoned?
+    assert_includes Heartbeat.all, @before_cutoff
+    assert_equal key.user, @user.heartbeat_exclusions.sole.revoked_by
   end
 
   test "a viewer key is rejected" do
@@ -224,9 +235,13 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
     assert_not @user.reload.poisoned?
   end
 
-  test "a non-admin key cannot unban either" do
+  test "a viewer key cannot read ban state or unban either" do
     @user.apply_poison!(@cutoff)
-    key = create(:admin_api_key, user: create(:user, admin_level: :admin), name: "Admin")
+    key = create(:admin_api_key, user: create(:user, admin_level: :viewer), name: "Viewer")
+
+    get "/api/admin/v1/ban/#{@user.id}", headers: auth_headers(key), as: :json
+
+    assert_response :unauthorized
 
     delete "/api/admin/v1/ban/#{@user.id}", headers: auth_headers(key), as: :json
 
