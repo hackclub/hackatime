@@ -19,7 +19,11 @@ class Api::V1::LeaderboardController < ApplicationController
       .where(users: { leaderboard_shadowbanned: false })
       .preload(:user)
       .order(total_seconds: :desc)
-      .map.with_index do |entry, idx|
+      .to_a
+    # User#display_name and #avatar_url fall back to the first email address,
+    # the lowest id when not loaded.
+    ActiveRecord::Associations::Preloader.new(records: entries.map(&:user), associations: :email_addresses, scope: EmailAddress.order(:id)).call
+    entries = entries.map.with_index do |entry, idx|
       { rank: idx + 1,
         user: { id: entry.user.id, username: entry.user.display_name, avatar_url: entry.user.avatar_url },
         total_seconds: entry.total_seconds }
