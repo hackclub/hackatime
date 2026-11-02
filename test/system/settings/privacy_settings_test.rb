@@ -28,13 +28,38 @@ class PrivacySettingsTest < ApplicationSystemTestCase
     assert_settings_page(
       path: my_settings_privacy_path,
       marker_text: "Public Stats",
-      card_count: 4
+      card_count: 5
     )
 
+    assert_text "Browser Sessions"
     assert_text "Authorized Applications"
     assert_text "Test Integration"
     assert_text "API Key"
     assert_text "Account Deletion"
+  end
+
+  test "log out all devices can be cancelled and then confirmed without revoking integrations" do
+    api_key = @user.api_keys.first!
+    visit my_settings_privacy_path
+    click_on "Log out all devices"
+
+    within("[role='dialog']") do
+      assert_text "including this one"
+      click_on "Cancel"
+    end
+    assert_no_selector "[role='dialog']"
+    visit my_settings_privacy_path
+    assert_text "Browser Sessions"
+
+    click_on "Log out all devices"
+    within("[role='dialog']") { click_on "Log out all devices" }
+
+    assert_current_path signin_path
+    assert_text "Sign in with Hack Club"
+    visit my_settings_privacy_path
+    assert_current_path root_path
+    assert_equal api_key.token, api_key.reload.token
+    assert_not_predicate @access_token.reload, :revoked?
   end
 
   test "privacy settings revokes an authorized application" do

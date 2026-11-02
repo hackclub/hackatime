@@ -3,6 +3,7 @@ source "https://rubygems.org"
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 # gem "rails", github: "rails/rails", branch: "main" # currently broken w/ bullet
 gem "rails", "~> 8.1.2"
+gem "activerecord-session_store", "~> 2.0"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use PostgreSQL as the database for Wakatime

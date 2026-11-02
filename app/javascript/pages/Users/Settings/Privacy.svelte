@@ -46,6 +46,7 @@
   let rotatingApiKey = $state(false);
   let apiKeyCopied = $state(false);
   let rotateApiKeyModalOpen = $state(false);
+  let logoutAllDevicesModalOpen = $state(false);
   let deletionRequestModalOpen = $state(false);
   let deletionReason = $state("");
   let deletionReasonDetails = $state("");
@@ -110,6 +111,19 @@
     <Button type="submit" variant="primary" form="privacy-public-stats-form"
       >Save privacy settings</Button
     >
+  {/snippet}
+</SectionCard>
+
+<SectionCard
+  id="browser_sessions"
+  title="Browser Sessions"
+  description="Log out of every browser, including this one, if you think someone else has access to your account. API keys and authorized applications will stay active."
+  hasBody={false}
+>
+  {#snippet footer()}
+    <Button type="button" onclick={() => (logoutAllDevicesModalOpen = true)}>
+      Log out all devices
+    </Button>
   {/snippet}
 </SectionCard>
 
@@ -224,6 +238,33 @@
     {/if}
   {/snippet}
 </SectionCard>
+
+<Modal
+  bind:open={logoutAllDevicesModalOpen}
+  title="Log out all devices?"
+  description="Every browser session will be signed out, including this one. You will need to sign in again. API keys and authorized applications will stay active."
+  maxWidth="max-w-md"
+  hasActions
+>
+  {#snippet actions()}
+    <Form action={settingsPrivacy.logoutAllDevices.path()} method="post">
+      {#snippet children({ processing })}
+        <ModalActions onCancel={() => (logoutAllDevicesModalOpen = false)}>
+          {#snippet confirm()}
+            <Button
+              type="submit"
+              variant="primary"
+              class="h-10 w-full text-on-primary"
+              disabled={processing}
+            >
+              {processing ? "Logging out..." : "Log out all devices"}
+            </Button>
+          {/snippet}
+        </ModalActions>
+      {/snippet}
+    </Form>
+  {/snippet}
+</Modal>
 
 <Modal
   bind:open={rotateApiKeyModalOpen}

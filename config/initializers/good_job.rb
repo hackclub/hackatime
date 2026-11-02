@@ -95,6 +95,10 @@ Rails.application.configure do
       class: "WeeklySummaryEmailJob",
       description: "Sends weekly coding summaries on Sundays at 18:30 GMT."
     },
+    cleanup_expired_sessions: {
+      cron: "0 0 * * *",
+      class: "CleanupExpiredSessionsJob"
+    },
     cleanup_successful_jobs: {
       cron: "0 0 * * *",
       class: "CleanupSuccessfulJobsJob"

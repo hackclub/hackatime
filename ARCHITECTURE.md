@@ -7,7 +7,7 @@ the linked source when behavior and this summary disagree.
 
 | Domain | Source of truth | Derived / disposable state |
 | --- | --- | --- |
-| Identity | `users`, `email_addresses`, provider IDs and encrypted provider tokens | Session cookie |
+| Identity | `users`, `email_addresses`, provider IDs, encrypted provider tokens and server-side `sessions` | Opaque session cookie |
 | Coding activity | Non-deleted `heartbeats` | Durations, dashboard/profile payloads, rollups, leaderboards, streaks, Rails caches |
 | Heartbeat project identity | `heartbeats.project` | Project lists and project statistics |
 | Per-user project settings | `project_repo_mappings` keyed by project name | Discovery retry/coalescing cache keys |
@@ -56,7 +56,25 @@ example, request host), or for external links. API-only controllers may inherit
 [`ApplicationController#current_user`](app/controllers/application_controller.rb)
 is exactly `User.find_by(id: session[:user_id])`. HCA, Slack, and single-use
 email-link sign-in converge on a `User`; successful login resets the session
-before assigning that ID. Slack and GitHub callback state is consumed and
+before assigning that ID. Sessions live in PostgreSQL through
+`activerecord-session_store`; cookies contain only an opaque session ID.
+`reset_session` deletes the server-side record, so copied cookies cannot restore
+authentication after logout. `CleanupExpiredSessionsJob` removes records last
+updated more than 14 days ago, daily.
+
+`WebSession` stores session data as indexed JSONB so account-wide logout can
+delete sessions for a user without loading every session into Ruby. It matches
+both the active user and the original impersonating admin. Privacy & Security
+settings can revoke all browser sessions, including the current session; this
+does not revoke API keys or delegated OAuth access.
+
+Deploy the sessions-table migration before starting code using this store. The
+switch from cookie-only sessions intentionally signs everyone out, including
+holders of previously copied cookies. Do not roll back to cookie-only sessions:
+that would accept old encrypted cookies again until they expire (unless the
+cookie key or signing secrets are also rotated).
+
+Slack and GitHub callback state is consumed and
 compared with `secure_compare`; HCA currently does not use an OAuth state
 nonce. Continuation URLs must be local paths (not `//...`). See
 [`SessionsController`](app/controllers/sessions_controller.rb).
