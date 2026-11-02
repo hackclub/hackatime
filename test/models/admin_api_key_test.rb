@@ -28,6 +28,36 @@ class AdminApiKeyTest < ActiveSupport::TestCase
     assert_equal later, key.reload.last_used_at
   end
 
+  test "records who revoked a key without storing the token" do
+    admin = create(:user, :admin)
+    revoker = create(:user, :admin)
+    key = create(:admin_api_key, user: admin, name: "Audited")
+    raw_token = key.token
+
+    PaperTrail.request(whodunnit: revoker.id.to_s) { AdminApiKey.find(key.id).revoke! }
+
+    versions = PaperTrail::Version.where(item_type: "AdminApiKey", item_id: key.id).order(:id)
+    assert_equal %w[create update], versions.map(&:event)
+    revocation = versions.last
+    assert_equal revoker.id.to_s, revocation.whodunnit
+    assert_nil YAML.unsafe_load(revocation.object_changes)["revoked_at"].first
+    versions.each do |version|
+      [ version.object, version.object_changes ].compact.each do |stored|
+        assert_not_includes stored, raw_token
+        assert_not_includes stored, key.token_bidx
+      end
+    end
+  end
+
+  test "usage tracking does not create versions" do
+    key = create(:admin_api_key, user: create(:user, :admin), name: "Busy key")
+
+    assert_no_difference -> { PaperTrail::Version.where(item_type: "AdminApiKey", item_id: key.id).count } do
+      key.record_usage
+      RecordAdminApiKeyUsageJob.perform_now(key.id, Time.current)
+    end
+  end
+
   test "stores a fixed-length preview of the token" do
     admin = create(:user, :admin)
     key = create(:admin_api_key, user: admin, name: "CLI")
