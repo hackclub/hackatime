@@ -286,7 +286,9 @@ module Heartbeatable
       connection.select_all(sql).each_with_object({}) { |row, hash| hash[row["bucket"]] = row["duration"].to_i }
     end
 
-    def duration_seconds(scope = all)
+    # With async: true, a grouped scope's query runs on the async query
+    # executor and an ActiveRecord::Promise of the durations is returned.
+    def duration_seconds(scope = all, async: false)
       scope = scope.with_valid_timestamps
 
       if scope.group_values.any?
@@ -300,9 +302,12 @@ module Heartbeatable
           .where.not(time: nil).unscope(:group)
         capped_durations = with_capped_duration(heartbeat_gaps)
 
-        connection.select_all(
-          "SELECT grouped_time, COALESCE(SUM(duration), 0)::integer as duration FROM (#{capped_durations.to_sql}) AS durations GROUP BY grouped_time"
-        ).each_with_object({}) { |row, hash| hash[row["grouped_time"]] = row["duration"].to_i }
+        durations = connection.select_all(
+          "SELECT grouped_time, COALESCE(SUM(duration), 0)::integer as duration FROM (#{capped_durations.to_sql}) AS durations GROUP BY grouped_time",
+          "Heartbeat Durations", async:
+        )
+        to_hash = ->(rows) { rows.each_with_object({}) { |row, hash| hash[row["grouped_time"]] = row["duration"].to_i } }
+        async ? durations.then(&to_hash) : to_hash.call(durations)
       else
         # when not grouped, return a single value
         heartbeat_gaps = scope.select("LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) as duration_start, time as duration_end").where.not(time: nil)
