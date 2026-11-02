@@ -40,6 +40,22 @@ module Heartbeatable
         .where("category <> 'ai coding' OR time <= last_ai_prompt_time + ?", AI_PROMPT_CREDIT_WINDOW.to_i)
     end
 
+    # The relation's distinct non-null values of column, in column order. A
+    # loose index scan steps through a (user_id, column, ...) index one value
+    # per probe instead of reading every heartbeat.
+    def distinct_values(column)
+      probe = unscope(:select, :order).select(column).order(column).limit(1)
+      connection.select_values(<<~SQL)
+        WITH RECURSIVE distinct_values(value) AS (
+          (#{probe.where.not(column => nil).to_sql})
+          UNION ALL
+          SELECT (#{probe.where(arel_table[column].gt(Arel.sql("distinct_values.value"))).to_sql})
+          FROM distinct_values WHERE distinct_values.value IS NOT NULL
+        )
+        SELECT value FROM distinct_values WHERE value IS NOT NULL
+      SQL
+    end
+
     def to_span(timeout_duration: nil)
       timeout_duration ||= heartbeat_timeout_duration.to_i
 

@@ -117,7 +117,7 @@ class DashboardStats
     reverse_lookup = cache_keys.invert
 
     cached = Rails.cache.fetch_multi(*cache_keys.values, expires_in: 15.minutes) do |cache_key|
-      dashboard_heartbeats.distinct.pluck(reverse_lookup.fetch(cache_key)).compact_blank
+      dashboard_heartbeats.distinct_values(reverse_lookup.fetch(cache_key)).compact_blank
     end
 
     cache_keys.transform_values { |cache_key| cached.fetch(cache_key, []) }

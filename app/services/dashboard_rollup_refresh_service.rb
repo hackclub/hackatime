@@ -90,6 +90,6 @@ class DashboardRollupRefreshService < ApplicationService
   end
 
   def filter_options_payload
-    GROUPED_DIMENSIONS.index_with { |d| @scope.distinct.pluck(d).compact_blank.sort }
+    GROUPED_DIMENSIONS.index_with { |d| @scope.distinct_values(d).compact_blank.sort }
   end
 end
