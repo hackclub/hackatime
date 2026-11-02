@@ -6,22 +6,25 @@
 # restores its heartbeats and keeps the rule as history.
 class HeartbeatExclusion < ApplicationRecord
   # Raw SQL over the heartbeats table must filter on VISIBLE_SQL to match model reads.
-  MATCHED_SQL = <<~SQL.squish.freeze
-    EXISTS (
-      SELECT 1 FROM heartbeat_exclusions
-      WHERE heartbeat_exclusions.user_id = heartbeats.user_id
-        AND heartbeat_exclusions.revoked_at IS NULL
-        AND (heartbeat_exclusions.project IS NULL OR heartbeat_exclusions.project = heartbeats.project)
-        AND (heartbeat_exclusions.starts_at IS NULL OR heartbeats.time >= EXTRACT(EPOCH FROM heartbeat_exclusions.starts_at))
-        AND (heartbeat_exclusions.ends_at IS NULL OR heartbeats.time < EXTRACT(EPOCH FROM heartbeat_exclusions.ends_at))
-    )
+  MATCH_CONDITIONS_SQL = <<~SQL.squish.freeze
+    heartbeat_exclusions.user_id = heartbeats.user_id
+      AND heartbeat_exclusions.revoked_at IS NULL
+      AND (heartbeat_exclusions.project IS NULL OR heartbeat_exclusions.project = heartbeats.project)
+      AND (heartbeat_exclusions.starts_at IS NULL OR heartbeats.time >= EXTRACT(EPOCH FROM heartbeat_exclusions.starts_at))
+      AND (heartbeat_exclusions.ends_at IS NULL OR heartbeats.time < EXTRACT(EPOCH FROM heartbeat_exclusions.ends_at))
   SQL
+  MATCHED_SQL = "EXISTS ( SELECT 1 FROM heartbeat_exclusions WHERE #{MATCH_CONDITIONS_SQL} )".freeze
   VISIBLE_SQL = "NOT #{MATCHED_SQL}".freeze
   # Select-list form of MATCHED_SQL. The IN check is a hashed lookup, so the
   # correlated EXISTS only runs for heartbeats of users with an active rule.
   HIDDEN_SQL = <<~SQL.squish.freeze
     (heartbeats.user_id IN (SELECT user_id FROM heartbeat_exclusions WHERE revoked_at IS NULL) AND #{MATCHED_SQL})
   SQL
+  # Join form of HIDDEN_SQL for aggregates over many heartbeats: a heartbeat is
+  # hidden when `heartbeat_exclusions.id IS NOT NULL`. A heartbeat matching
+  # several rules repeats, which MIN, MAX and BOOL_AND ignore, and unlike the
+  # correlated EXISTS the join can run in parallel workers.
+  HIDDEN_JOIN_SQL = "LEFT JOIN heartbeat_exclusions ON #{MATCH_CONDITIONS_SQL}".freeze
 
   # Marks SQL that intentionally reads hidden heartbeats. Heartbeat.with_excluded
   # adds it; raw SQL that must include hidden rows embeds INCLUDE_HIDDEN_COMMENT.
