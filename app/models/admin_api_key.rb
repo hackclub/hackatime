@@ -4,6 +4,8 @@ class AdminApiKey < ApplicationRecord
   belongs_to :user
 
   attribute :token, :string
+  # Never write the plaintext token or its digest to versions; usage timestamps are noise.
+  has_paper_trail skip: %i[token token_bidx], ignore: %i[last_used_at usage_tracking_enqueued_at]
   blind_index :token, algorithm: :pbkdf2_sha256, cost: { iterations: 1 }
 
   validates :token_bidx, presence: true, uniqueness: true

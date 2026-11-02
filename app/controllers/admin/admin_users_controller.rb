@@ -29,8 +29,12 @@ class Admin::AdminUsersController < Admin::BaseController
   def inertia_layout_props = super.merge(full_width: true)
 
   def admin_groups
-    %w[ultraadmin superadmin admin viewer].to_h do |level|
-      [ level, User.where(admin_level: level).order(:slack_username).map { |user| serialize_user(user) } ]
+    levels = %w[ultraadmin superadmin admin viewer]
+    users = User.where(admin_level: levels).order(:slack_username).to_a
+    keys = AdminApiKey.active.where(user_id: users.map(&:id)).order(:created_at).group_by(&:user_id)
+    groups = users.group_by(&:admin_level)
+    levels.to_h do |level|
+      [ level, groups.fetch(level, []).map { |user| serialize_user(user, keys: keys.fetch(user.id, [])) } ]
     end
   end
 
@@ -40,9 +44,15 @@ class Admin::AdminUsersController < Admin::BaseController
     { query: query, users: users.map { |user| serialize_user(user, all_actions: true) } }
   end
 
-  def serialize_user(user, all_actions: false)
+  def serialize_user(user, all_actions: false, keys: nil)
     levels = all_actions ? %w[ultraadmin superadmin admin viewer] : %w[ultraadmin superadmin admin viewer default]
     { id: user.id, display_name: user.display_name, avatar_url: user.avatar_url, slack_uid: user.slack_uid,
-      admin_level: user.admin_level, allowed_levels: levels.select { |level| current_user.can_change_admin_level_of?(user, level) } }
+      admin_level: user.admin_level, allowed_levels: levels.select { |level| current_user.can_change_admin_level_of?(user, level) },
+      admin_api_keys: keys&.map { |key| serialize_key(key) } }.compact
+  end
+
+  def serialize_key(key)
+    { id: key.id, name: key.name, token_preview: "#{key.token_preview}...",
+      last_used_at: key.last_used_at&.in_time_zone&.strftime("%b %d, %Y at %I:%M %p %Z") }
   end
 end

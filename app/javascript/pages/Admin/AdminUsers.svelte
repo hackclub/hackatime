@@ -10,6 +10,13 @@
     slack_uid: string | null;
     admin_level: string;
     allowed_levels: string[];
+    admin_api_keys?: AdminApiKey[];
+  };
+  type AdminApiKey = {
+    id: number;
+    name: string;
+    token_preview: string;
+    last_used_at: string | null;
   };
   let {
     groups,
@@ -53,8 +60,13 @@
     default: "Default",
   };
   const confirmation = (user: User, level: string) => {
-    if (level === "default")
-      return `Remove ${user.display_name}'s ${user.admin_level === "viewer" ? "viewer" : "admin"} privileges?`;
+    if (level === "default") {
+      const keyCount = user.admin_api_keys?.length ?? 0;
+      const keyWarning = keyCount
+        ? ` Their ${keyCount} active admin API ${keyCount === 1 ? "key" : "keys"} will be revoked the next time ${keyCount === 1 ? "it is" : "they are"} used.`
+        : "";
+      return `Remove ${user.display_name}'s ${user.admin_level === "viewer" ? "viewer" : "admin"} privileges?${keyWarning}`;
+    }
     const ranks: Record<string, number> = {
       viewer: 1,
       admin: 2,
@@ -112,6 +124,7 @@
               ><tr class="border-b border-surface-200"
                 ><th class="py-3 px-4">User</th><th class="py-3 px-4"
                   >Slack ID</th
+                ><th class="py-3 px-4">Admin API keys</th
                 >{#if groups[level].some((u) => u.allowed_levels.length)}<th
                     class="py-3 px-4">Actions</th
                   >{/if}</tr
@@ -145,6 +158,7 @@
         class="border-b border-surface-200 hover:bg-surface-100/50"
         ><td class="py-3 px-4">{@render User(user)}</td><td
           class="py-3 px-4 text-muted">{user.slack_uid || "N/A"}</td
+        ><td class="py-3 px-4">{@render Keys(user.admin_api_keys ?? [])}</td
         >{#if groups[user.admin_level].some((u) => u.allowed_levels.length)}<td
             class="py-3 px-4"
             >{#if user.allowed_levels.length}{@render Actions(
@@ -182,3 +196,12 @@
         ></Form
       >{/each}
   </div>{/snippet}
+{#snippet Keys(keys: AdminApiKey[])}{#if keys.length}<ul class="space-y-1">
+      {#each keys as key (key.id)}<li class="text-sm">
+          <span class="text-surface-content">{key.name}</span>
+          <code class="text-xs text-muted">{key.token_preview}</code>
+          <div class="text-xs text-muted">
+            {key.last_used_at ? `Last used ${key.last_used_at}` : "Never used"}
+          </div>
+        </li>{/each}
+    </ul>{:else}<span class="text-sm text-muted">None</span>{/if}{/snippet}
