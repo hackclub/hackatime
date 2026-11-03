@@ -89,7 +89,7 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
       )
       [ slack_uid, create(:sailors_log, user:, slack_uid:, projects_summary: { "nixos" => 3_500 }) ]
     end
-    stub_request(:get, %r{https://cachet.hackclub.com/users/}).to_return(status: 200, body: { displayName: "Sailor" }.to_json)
+    stub_request(:get, %r{\Ahttps://cachet\.hackclub\.com/users/}).to_return(status: 200, body: { displayName: "Sailor" }.to_json)
     stub_request(:post, "https://slack.com/api/chat.postMessage").to_return(status: 200, body: { ok: true }.to_json)
 
     SailorsLogPollForChangesJob.perform_now
