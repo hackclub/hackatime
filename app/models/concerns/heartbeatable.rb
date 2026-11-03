@@ -302,12 +302,18 @@ module Heartbeatable
           .where.not(time: nil).unscope(:group)
         capped_durations = with_capped_duration(heartbeat_gaps)
 
+        # Async queries need the executor's query session and are not allowed
+        # inside a transaction, so elsewhere (console, transactions) the query
+        # runs in the foreground and the promise is already complete.
+        background = async && Rails.application.executor.active? && !connection.current_transaction.joinable?
         durations = connection.select_all(
           "SELECT grouped_time, COALESCE(SUM(duration), 0)::integer as duration FROM (#{capped_durations.to_sql}) AS durations GROUP BY grouped_time",
-          "Heartbeat Durations", async:
+          "Heartbeat Durations", async: background
         )
         to_hash = ->(rows) { rows.each_with_object({}) { |row, hash| hash[row["grouped_time"]] = row["duration"].to_i } }
-        async ? durations.then(&to_hash) : to_hash.call(durations)
+        return durations.then(&to_hash) if background
+
+        async ? ActiveRecord::Promise::Complete.new(to_hash.call(durations)) : to_hash.call(durations)
       else
         # when not grouped, return a single value
         heartbeat_gaps = scope.select("LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) as duration_start, time as duration_end").where.not(time: nil)
