@@ -100,6 +100,8 @@ class Api::Admin::V1::AdminControllerTest < ActionDispatch::IntegrationTest
         source_type: :direct_entry, machine: "shared-machine", ip_address: "203.0.113.9")
     end
     poisoned.apply_poison!(Date.current.to_s)
+    # Overlapping rules must not duplicate rows or change the hidden flags.
+    2.times { HeartbeatExclusion.create!(user: poisoned, kind: :project_deletion, project: "p") }
 
     get "/api/admin/v1/users/#{poisoned.id}/visualization/quantized",
       params: { year: time.year, month: time.month }, headers: auth_headers(key)
@@ -110,7 +112,9 @@ class Api::Admin::V1::AdminControllerTest < ActionDispatch::IntegrationTest
     [ "/api/admin/v1/heartbeats/ip_machine_pairs", "/api/admin/v1/alts/candidates" ].each do |path|
       get path, headers: auth_headers(key)
       assert_response :success
-      row = response.parsed_body.values.first.find { |r| r.fetch("user_a_id") == [ poisoned.id, clean.id ].min }
+      rows = response.parsed_body.values.first.select { |r| r.fetch("user_a_id") == [ poisoned.id, clean.id ].min }
+      assert_equal 1, rows.size, path
+      row = rows.first
       assert_equal poisoned.id < clean.id, row.fetch("user_a_hidden"), path
       assert_equal poisoned.id > clean.id, row.fetch("user_b_hidden"), path
     end

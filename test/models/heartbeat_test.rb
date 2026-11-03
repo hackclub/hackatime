@@ -132,6 +132,21 @@ class HeartbeatTest < ActiveSupport::TestCase
     assert_not_includes buckets.keys, ""
   end
 
+  test "distinct_values lists a relation's distinct non-null values like DISTINCT" do
+    user = create(:user)
+    other = create(:user)
+    base = Time.current.to_i.to_f
+    [ [ user, "Ruby", "a" ], [ user, "ruby", "a" ], [ user, nil, "b" ], [ user, "", "b" ], [ user, "Go", "b" ],
+      [ user, "Rust", "c" ], [ other, "Elixir", "a" ] ].each_with_index do |(owner, language, project), index|
+      create(:heartbeat, user: owner, language:, project:, entity: "f#{index}.rb", time: base + index, source_type: :test_entry)
+    end
+    user.heartbeats.find_by!(language: "Rust").soft_delete
+    scope = user.heartbeats.where(project: %w[a b c])
+
+    assert_equal scope.distinct.pluck(:language).compact.sort, scope.distinct_values(:language).sort
+    assert_equal [ "", "Go" ], user.heartbeats.where(project: "b").distinct_values(:language).sort
+  end
+
   test "creating a heartbeat schedules a dashboard rollup refresh" do
     user = create(:user)
 
