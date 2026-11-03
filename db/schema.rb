@@ -381,7 +381,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_02_120100) do
     t.bigint "user_id", null: false
     t.integer "ysws_program", default: 0, null: false
     t.index ["category", "time"], name: "index_heartbeats_on_category_and_time"
-    t.index ["created_at"], name: "index_heartbeats_on_created_at_brin", using: :brin
     t.index ["fields_hash"], name: "index_heartbeats_on_fields_hash_when_not_deleted", unique: true, where: "(deleted_at IS NULL)"
     t.index ["ip_address"], name: "index_heartbeats_on_ip_address"
     t.index ["ja4_id"], name: "index_heartbeats_on_ja4_id", where: "(ja4_id IS NOT NULL)"
