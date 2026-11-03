@@ -40,6 +40,22 @@ module Heartbeatable
         .where("category <> 'ai coding' OR time <= last_ai_prompt_time + ?", AI_PROMPT_CREDIT_WINDOW.to_i)
     end
 
+    # The relation's distinct non-null values of column, in column order. A
+    # loose index scan steps through a (user_id, column, ...) index one value
+    # per probe instead of reading every heartbeat.
+    def distinct_values(column)
+      probe = unscope(:select, :order).select(column).order(column).limit(1)
+      connection.select_values(<<~SQL)
+        WITH RECURSIVE distinct_values(value) AS (
+          (#{probe.where.not(column => nil).to_sql})
+          UNION ALL
+          SELECT (#{probe.where(arel_table[column].gt(Arel.sql("distinct_values.value"))).to_sql})
+          FROM distinct_values WHERE distinct_values.value IS NOT NULL
+        )
+        SELECT value FROM distinct_values WHERE value IS NOT NULL
+      SQL
+    end
+
     def to_span(timeout_duration: nil)
       timeout_duration ||= heartbeat_timeout_duration.to_i
 
@@ -270,7 +286,9 @@ module Heartbeatable
       connection.select_all(sql).each_with_object({}) { |row, hash| hash[row["bucket"]] = row["duration"].to_i }
     end
 
-    def duration_seconds(scope = all)
+    # With async: true, a grouped scope's query runs on the async query
+    # executor and an ActiveRecord::Promise of the durations is returned.
+    def duration_seconds(scope = all, async: false)
       scope = scope.with_valid_timestamps
 
       if scope.group_values.any?
@@ -284,9 +302,18 @@ module Heartbeatable
           .where.not(time: nil).unscope(:group)
         capped_durations = with_capped_duration(heartbeat_gaps)
 
-        connection.select_all(
-          "SELECT grouped_time, COALESCE(SUM(duration), 0)::integer as duration FROM (#{capped_durations.to_sql}) AS durations GROUP BY grouped_time"
-        ).each_with_object({}) { |row, hash| hash[row["grouped_time"]] = row["duration"].to_i }
+        # Async queries need the executor's query session and are not allowed
+        # inside a transaction, so elsewhere (console, transactions) the query
+        # runs in the foreground and the promise is already complete.
+        background = async && Rails.application.executor.active? && !connection.current_transaction.joinable?
+        durations = connection.select_all(
+          "SELECT grouped_time, COALESCE(SUM(duration), 0)::integer as duration FROM (#{capped_durations.to_sql}) AS durations GROUP BY grouped_time",
+          "Heartbeat Durations", async: background
+        )
+        to_hash = ->(rows) { rows.each_with_object({}) { |row, hash| hash[row["grouped_time"]] = row["duration"].to_i } }
+        return durations.then(&to_hash) if background
+
+        async ? ActiveRecord::Promise::Complete.new(to_hash.call(durations)) : to_hash.call(durations)
       else
         # when not grouped, return a single value
         heartbeat_gaps = scope.select("LAG(time) OVER (ORDER BY time, #{quoted_table_name}.id) as duration_start, time as duration_end").where.not(time: nil)

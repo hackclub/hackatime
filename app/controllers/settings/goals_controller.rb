@@ -40,14 +40,8 @@ class Settings::GoalsController < Settings::BaseController
   end
 
   def goal_options
-    goal_languages = []
-    goal_projects = @user.project_repo_mappings.distinct.pluck(:project_name)
-
-    @user.heartbeats.distinct.pluck(:language, :project).each do |language, project|
-      categorized = language&.categorize_language
-      goal_languages << categorized if categorized.present?
-      goal_projects << project if project.present?
-    end
+    goal_languages = @user.heartbeats.distinct_values(:language).map(&:categorize_language).compact_blank
+    goal_projects = @user.project_repo_mappings.distinct.pluck(:project_name) + @user.heartbeats.distinct_values(:project).compact_blank
 
     {
       periods: Goal::PERIODS.map { |p| { label: p.humanize, value: p } },

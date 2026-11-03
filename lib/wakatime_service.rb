@@ -87,6 +87,10 @@ class WakatimeService
     summary[:range] = "all_time"
     summary[:human_readable_range] = "All Time"
 
+    # The grouped durations run on the async query executor while the total is computed.
+    chunks = { languages: :language, projects: :project }.select { |filter, _| @specific_filters.include?(filter) }
+      .to_h { |filter, group_by| [ filter, [ group_by, @scope.group(group_by).duration_seconds(async: true) ] ] }
+
     @total_seconds = if @boundary_aware
       Heartbeat.duration_seconds_boundary_aware(@scope, @start_date, @end_date, excluded_categories: @exclude_categories) || 0
     else
@@ -100,8 +104,7 @@ class WakatimeService
     summary[:human_readable_total] = ApplicationController.helpers.short_time_detailed(@total_seconds)
     summary[:human_readable_daily_average] = ApplicationController.helpers.short_time_detailed(summary[:daily_average])
 
-    summary[:languages] = generate_summary_chunk(:language) if @specific_filters.include?(:languages)
-    summary[:projects] = generate_summary_chunk(:project) if @specific_filters.include?(:projects)
+    chunks.each { |filter, (group_by, durations)| summary[filter] = generate_summary_chunk(group_by, durations.value) }
 
     summary
   end
@@ -113,9 +116,9 @@ class WakatimeService
     [ "wakatime_service", "summary", "v1", scope_digest, filters, @limit, @user&.heartbeat_cache_version ].join(":")
   end
 
-  def generate_summary_chunk(group_by)
+  def generate_summary_chunk(group_by, durations)
     result = []
-    @scope.group(group_by).duration_seconds.each do |key, value|
+    durations.each do |key, value|
       entry = {
         name: @raw_names ? (key.presence || "Other") : transform_display_name(group_by, key),
         total_seconds: value,

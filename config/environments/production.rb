@@ -82,6 +82,12 @@ Rails.application.configure do
   # Only use :id for inspections in production.
   config.active_record.attributes_for_inspect = [ :id ]
 
+  # Run independent queries such as WakatimeService's grouped durations
+  # concurrently. Each process uses up to global_executor_concurrency (4)
+  # connections beyond its threads, within the pool's RAILS_MAX_THREADS + 8.
+  # Other environments run them in the foreground.
+  config.active_record.async_query_executor = :global_thread_pool
+
   # Enable DNS rebinding protection and other `Host` header attacks.
   # config.hosts = [
   #   "example.com",     # Allow requests from example.com

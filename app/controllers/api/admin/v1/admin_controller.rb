@@ -144,6 +144,24 @@ module Api
 
           query = <<-SQL
             #{HeartbeatExclusion::INCLUDE_HIDDEN_COMMENT}
+            WITH combos AS MATERIALIZED (
+                SELECT
+                    heartbeats.user_id,
+                    machine,
+                    ip_address,
+                    MIN(time) as first_seen,
+                    MAX(time) as last_seen,
+                    BOOL_AND(heartbeat_exclusions.id IS NOT NULL) as hidden
+                FROM heartbeats
+                #{HeartbeatExclusion::HIDDEN_JOIN_SQL}
+                WHERE
+                    heartbeats.user_id IS NOT NULL
+                    AND machine IS NOT NULL
+                    AND ip_address IS NOT NULL
+                    AND deleted_at IS NULL
+                    AND time >= ?
+                GROUP BY 1, 2, 3
+            )
             SELECT
                 r1.user_id AS user_a_id,
                 r2.user_id AS user_b_id,
@@ -155,49 +173,15 @@ module Api
                 r2.last_seen as user_b_last_seen_on_combo,
                 r1.hidden as user_a_hidden,
                 r2.hidden as user_b_hidden
-            FROM
-                (
-                    SELECT
-                        user_id,
-                        machine,
-                        ip_address,
-                        MIN(time) as first_seen,
-                        MAX(time) as last_seen,
-                        BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) as hidden
-                    FROM heartbeats
-                    WHERE
-                        user_id IS NOT NULL
-                        AND machine IS NOT NULL
-                        AND ip_address IS NOT NULL
-                        AND deleted_at IS NULL
-                        AND time >= ?
-                    GROUP BY 1, 2, 3
-                ) r1
-            JOIN
-                (
-                    SELECT
-                        user_id,
-                        machine,
-                        ip_address,
-                        MIN(time) as first_seen,
-                        MAX(time) as last_seen,
-                        BOOL_AND(#{HeartbeatExclusion::HIDDEN_SQL}) as hidden
-                    FROM heartbeats
-                    WHERE
-                        user_id IS NOT NULL
-                        AND machine IS NOT NULL
-                        AND ip_address IS NOT NULL
-                        AND deleted_at IS NULL
-                        AND time >= ?
-                    GROUP BY 1, 2, 3
-                ) r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
+            FROM combos r1
+            JOIN combos r2 ON r1.machine = r2.machine AND r1.ip_address = r2.ip_address
             WHERE
                 r1.user_id < r2.user_id
             LIMIT 5000
           SQL
 
           result = ActiveRecord::Base.connection.exec_query(
-            ActiveRecord::Base.sanitize_sql([ query, cutoff, cutoff ])
+            ActiveRecord::Base.sanitize_sql([ query, cutoff ])
           )
 
           render json: { candidates: result.to_a }

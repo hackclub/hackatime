@@ -38,9 +38,6 @@ class Heartbeat < ApplicationRecord
 
   # after_create :mirror_to_wakatime
 
-  def self.recent_count = Cache::HeartbeatCountsJob.perform_now[:recent_count]
-  def self.recent_imported_count = Cache::HeartbeatCountsJob.perform_now[:recent_imported_count]
-
   def self.generate_fields_hash(attributes)
     attributes = attributes.transform_keys(&:to_s)
     indexed = attributes.slice(*indexed_attributes)

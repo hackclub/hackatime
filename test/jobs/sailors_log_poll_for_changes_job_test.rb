@@ -76,6 +76,28 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
     end
   end
 
+  test "notifies only for direct heartbeats received since the cutoff" do
+    logs = { 20.minutes.ago => "U_OLD_DIRECT", Time.current => "U_NEW_DIRECT" }.to_h do |created_at, slack_uid|
+      user = create(:user, slack_uid:)
+      create(:heartbeat,
+        user:, time: 3.weeks.ago.to_f, project: "nixos", category: "coding", created_at:,
+        entity: "/tmp/configuration.nix", type: "file", source_type: :direct_entry
+      )
+      create(:dashboard_rollup,
+        user_id: user.id, dimension: "project", bucket_value: "nixos",
+        bucket_value_present: true, total_seconds: 22_209
+      )
+      [ slack_uid, create(:sailors_log, user:, slack_uid:, projects_summary: { "nixos" => 3_500 }) ]
+    end
+    stub_request(:get, %r{\Ahttps://cachet\.hackclub\.com/users/}).to_return(status: 200, body: { displayName: "Sailor" }.to_json)
+    stub_request(:post, "https://slack.com/api/chat.postMessage").to_return(status: 200, body: { ok: true }.to_json)
+
+    SailorsLogPollForChangesJob.perform_now
+
+    assert_equal 0, logs.fetch("U_OLD_DIRECT").notifications.count
+    assert_equal 1, logs.fetch("U_NEW_DIRECT").notifications.count
+  end
+
   test "does not notify for a recently imported heartbeat with an old coding timestamp" do
     user = create(:user, slack_uid: "U_DELAYED_IMPORT")
     sailors_log = create(:sailors_log, user: user, slack_uid: user.slack_uid, projects_summary: { "imported" => 3_500 })
