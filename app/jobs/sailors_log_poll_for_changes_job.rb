@@ -13,10 +13,12 @@ class SailorsLogPollForChangesJob < ApplicationJob
     cutoff = 10.minutes.ago
     users_who_coded = Heartbeat.with_valid_timestamps
       .where(
-        "time >= :coding_cutoff OR (source_type = :direct_entry AND created_at >= :arrival_cutoff)",
+        "time >= :coding_cutoff OR (source_type = :direct_entry AND created_at >= :arrival_cutoff " \
+        "AND id >= :arrival_floor)",
         coding_cutoff: cutoff.to_f,
         direct_entry: Heartbeat.source_types.fetch("direct_entry"),
-        arrival_cutoff: cutoff
+        arrival_cutoff: cutoff,
+        arrival_floor: arrival_floor(cutoff)
       )
       .distinct
       .pluck(:user_id)
@@ -33,6 +35,13 @@ class SailorsLogPollForChangesJob < ApplicationJob
   end
 
   private
+
+  # Ids follow arrival order (in production, never more than a couple of seconds apart), so heartbeats received
+  # since the cutoff have ids above the newest one received a minute before it. Scanning the primary key backwards
+  # finds that id without an index on created_at, and passing it as a value lets the planner use the primary key.
+  def arrival_floor(cutoff)
+    Heartbeat.with_excluded.with_deleted.where(created_at: ...(cutoff - 1.minute)).order(id: :desc).pick(:id) || 0
+  end
 
   def update_sailors_log(sailors_log)
     return [] if sailors_log.user.active_heartbeat_import_run?
