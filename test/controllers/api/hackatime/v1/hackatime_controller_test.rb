@@ -56,6 +56,34 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
     assert_equal ja4, Heartbeat.order(:id).last.ja4.fingerprint
   end
 
+  [ "10.67.0.1", "2001:db8::67", "2001:db8:0067::1", "::ffff:10.67.0.1" ].each do |ip|
+    test "heartbeat from #{ip} bans the user" do
+      user = create(:user)
+      api_key = create(:api_key, user: user, name: "primary")
+
+      assert_no_difference("Heartbeat.count") do
+        post_heartbeat_from(ip, api_key)
+      end
+
+      assert_response :forbidden
+      assert user.reload.red?
+    end
+  end
+
+  [ "10.167.0.1", "2001:db8::167", "2001:db8::6:7" ].each do |ip|
+    test "heartbeat from #{ip} is accepted" do
+      user = create(:user)
+      api_key = create(:api_key, user: user, name: "primary")
+
+      assert_difference("Heartbeat.count", 1) do
+        post_heartbeat_from(ip, api_key)
+      end
+
+      assert_response :accepted
+      assert_not user.reload.red?
+    end
+  end
+
   test "single heartbeat resolves <<LAST_LANGUAGE>> from existing heartbeats" do
     user = create(:user)
     api_key = create(:api_key, user: user, name: "primary")
@@ -528,6 +556,21 @@ class Api::Hackatime::V1::HackatimeControllerTest < ActionDispatch::IntegrationT
   end
 
   private
+
+  def post_heartbeat_from(ip, api_key)
+    post "/api/hackatime/v1/users/current/heartbeats",
+      params: {
+        entity: "src/main.rb",
+        project: "hackatime",
+        time: Time.current.to_f,
+        type: "file"
+      }.to_json,
+      headers: {
+        "Authorization" => "Bearer #{api_key.token}",
+        "CONTENT_TYPE" => "text/plain",
+        "CF-Connecting-IP" => ip
+      }
+  end
 
   def create_oauth_access_token(user)
     application = create(:oauth_application, owner: user,
