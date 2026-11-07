@@ -1210,7 +1210,7 @@ paths:
                     type: object
                     nullable: true
         '400':
-          description: invalid date range
+          description: invalid, incomplete or reversed date range
         '404':
           description: user not found
         '403':
@@ -1280,13 +1280,13 @@ paths:
         schema:
           type: string
           format: date
-        description: Start date (YYYY-MM-DD)
+        description: Start date (YYYY-MM-DD), defaults to 7 days ago
       - name: end_date
         in: query
         schema:
           type: string
           format: date
-        description: End date (YYYY-MM-DD)
+        description: End date (YYYY-MM-DD), defaults to today
       responses:
         '200':
           description: successful
@@ -1306,6 +1306,12 @@ paths:
                   total_seconds:
                     type: number
                     example: 153000.0
+        '400':
+          description: invalid or reversed date range
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '403':
           description: insufficient scope
         '401':
@@ -1853,6 +1859,12 @@ paths:
                 - end_time
                 - total_seconds
                 - heartbeats
+        '400':
+          description: invalid or reversed date range
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '401':
           description: unauthorized — Returned when the Authorization header is missing,
             the OAuth token lacks the read scope, or the token is invalid.
@@ -1901,19 +1913,19 @@ paths:
           description: unauthorized — Returned when the Admin API Key is missing,
             revoked, or incorrect. (Auth is bypassed in the development environment.)
           content:
-            text/plain:
+            application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
         '404':
           description: user not found
           content:
-            text/plain:
+            application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-        '422':
-          description: invalid date
+        '400':
+          description: invalid or reversed date range
           content:
-            text/plain:
+            application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
   "/api/v1/banned_users/counts":
@@ -2025,8 +2037,8 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-        '422':
-          description: invalid date
+        '400':
+          description: invalid or reversed date range
           content:
             application/json:
               schema:
@@ -2093,6 +2105,50 @@ paths:
         required: true
         schema:
           type: string
+      - name: since
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Start date/time (ISO 8601), defaults to 30 days ago and takes
+          precedence over start and start_date
+      - name: start
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Start date/time alias, takes precedence over start_date
+      - name: start_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: Start date/time alias
+      - name: until
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End date/time (ISO 8601), defaults to the current time and takes
+          precedence over until_date, end and end_date
+      - name: until_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End date/time alias, takes precedence over end and end_date
+      - name: end
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End date/time alias, takes precedence over end_date
+      - name: end_date
+        in: query
+        schema:
+          type: string
+          format: date_time
+        description: End date/time alias
       responses:
         '200':
           description: successful
@@ -2106,6 +2162,12 @@ paths:
                     items:
                       type: string
                       example: hackatime
+        '400':
+          description: invalid or reversed date range
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '403':
           description: forbidden — The target user has disabled public stats lookup
             and the requester is not that user.
@@ -2147,21 +2209,25 @@ paths:
         schema:
           type: string
           format: date_time
+        description: Start date/time (ISO 8601), defaults to 1 year ago
       - name: end
         in: query
         schema:
           type: string
           format: date_time
+        description: End date/time (ISO 8601), defaults to the current time
       - name: start_date
         in: query
         schema:
           type: string
           format: date_time
+        description: Alias for start
       - name: end_date
         in: query
         schema:
           type: string
           format: date_time
+        description: Alias for end
       responses:
         '200':
           description: successful
@@ -2211,7 +2277,7 @@ paths:
                     type: boolean
                     example: false
         '400':
-          description: bad request — Returned when project_name is blank/whitespace-only.
+          description: invalid date range or missing project name
           content:
             application/json:
               schema:
@@ -2276,21 +2342,25 @@ paths:
         schema:
           type: string
           format: date_time
+        description: Start date/time (ISO 8601), defaults to 1 year ago
       - name: end
         in: query
         schema:
           type: string
           format: date_time
+        description: End date/time (ISO 8601), defaults to the current time
       - name: start_date
         in: query
         schema:
           type: string
           format: date_time
+        description: Alias for start
       - name: end_date
         in: query
         schema:
           type: string
           format: date_time
+        description: Alias for end
       responses:
         '200':
           description: successful
@@ -2344,6 +2414,12 @@ paths:
                         archived:
                           type: boolean
                           example: false
+        '400':
+          description: invalid or reversed date range
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
         '403':
           description: forbidden — The target user has disabled public stats lookup
             and the requester is not that user.
@@ -2485,8 +2561,8 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
-        '422':
-          description: invalid date
+        '400':
+          description: invalid or reversed date range
           content:
             application/json:
               schema:

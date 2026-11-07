@@ -52,8 +52,8 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
       security [ { OAuth2: [ 'read' ] } ]
       produces 'application/json'
 
-      parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD)'
-      parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD)'
+      parameter name: :start_date, in: :query, schema: { type: :string, format: :date }, description: 'Start date (YYYY-MM-DD), defaults to 7 days ago'
+      parameter name: :end_date, in: :query, schema: { type: :string, format: :date }, description: 'End date (YYYY-MM-DD), defaults to today'
 
       response(200, 'successful') do
         before { Doorkeeper::AccessToken.by_token('dev-api-key-12345').update!(scopes: 'read') }
@@ -67,6 +67,16 @@ RSpec.describe 'Api::V1::Authenticated', type: :request do
             end_date: { type: :string, format: :date, example: '2024-03-20' },
             total_seconds: { type: :number, example: 153000.0 }
           }
+        run_test!
+      end
+
+      response(400, 'invalid or reversed date range') do
+        before { Doorkeeper::AccessToken.by_token('dev-api-key-12345').update!(scopes: 'read') }
+
+        let(:Authorization) { "Bearer dev-api-key-12345" }
+        let(:start_date) { 'not-a-date' }
+        let(:end_date) { Date.today.to_s }
+        schema '$ref' => '#/components/schemas/Error'
         run_test!
       end
 
