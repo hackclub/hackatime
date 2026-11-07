@@ -1,8 +1,3 @@
-<script module lang="ts">
-  import settingsLayout from "./layout";
-  export const layout = settingsLayout;
-</script>
-
 <script lang="ts">
   import { router } from "@inertiajs/svelte";
   import { secondsToDisplay } from "../../../utils";
