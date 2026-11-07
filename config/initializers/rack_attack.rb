@@ -1,7 +1,9 @@
 # config/initializers/rack_attack.rb
 
 class Rack::Attack
-  Rack::Attack.enabled = false
+  # cloudflare-rails, which provides req.cloudflare? and trusts Cloudflare
+  # proxies, is only bundled in production.
+  Rack::Attack.enabled = Rails.env.production?
 
   if ENV["RACK_ATTACK_BYPASS"].present?
     begin
@@ -21,18 +23,37 @@ class Rack::Attack
     TOKENS = [].freeze
   end
 
-  def self.heartbeat_request?(req)
-    req.path =~ %r{\A/api/hackatime/v1/users/[^/]+/heartbeats(?:\.bulk)?\z}
+  # Routes using AuthenticatedApiRateLimiting, which limits requests with
+  # credentials per user or admin credential, and rejected credentials per IP.
+  CREDENTIAL_LIMITED_API_PATH = %r{
+    \A/api/(
+      v1/authenticated/ | v1/my/heartbeats | hackatime/v1/ | admin/ |
+      v1/stats(\.json)?\z | v1/users/lookup_ |
+      v1/users/[^/]+/(stats|heartbeats/spans|projects|project/)
+    )
+  }x
+
+  # Matches AuthenticatedApiRateLimiting#api_credentials_presented?
+  def self.api_credentials?(req)
+    req.get_header("HTTP_AUTHORIZATION").present? || req.GET["api_key"].present?
   end
 
-  def self.oauth_user_id(req)
-    return unless req.path.start_with?("/api/v1/authenticated/")
+  def self.credential_limited_api_request?(req)
+    req.path.match?(CREDENTIAL_LIMITED_API_PATH) && api_credentials?(req)
+  end
 
-    scheme, token = req.get_header("HTTP_AUTHORIZATION").to_s.split(/\s+/, 2)
-    return unless scheme&.casecmp?("Bearer") && token.present?
+  def self.oauth_token_request?(req)
+    req.post? && req.path == "/oauth/token"
+  end
 
-    oauth_token = Doorkeeper::AccessToken.by_token(token)
-    "user:#{oauth_token.resource_owner_id}" if oauth_token&.accessible? && oauth_token.resource_owner_id
+  # Integrations exchange tokens for all their users from one server, so give
+  # each OAuth app its own allowance from that IP. Client IDs are public, so the
+  # IP stays in the key to stop others using up an app's allowance.
+  def self.oauth_client_id(req)
+    basic_auth = Rack::Auth::Basic::Request.new(req.env)
+    return basic_auth.username.presence if basic_auth.provided? && basic_auth.basic?
+
+    req.params["client_id"].presence
   end
 
   # Always allow requests from bogon ips
@@ -49,18 +70,23 @@ class Rack::Attack
     !req.cloudflare?
   end
 
-  Rack::Attack.throttle("admin abooze", limit: 300, period: 1.minute) do |req|
-    req.ip if req.path.start_with?("/api/admin/")
-  end
-
   Rack::Attack.throttle("general", limit: 300, period: 1.minute) do |req|
-    unless req.path.start_with?("/assets")
-      oauth_user_id(req) || req.ip
-    end
+    req.ip unless req.path.start_with?("/assets") || credential_limited_api_request?(req) || oauth_token_request?(req)
   end
 
   Rack::Attack.throttle("posts by ip", limit: 60, period: 5.minutes) do |req|
-    req.ip if req.post? && !heartbeat_request?(req)
+    req.ip if req.post? && !credential_limited_api_request?(req) && !oauth_token_request?(req)
+  end
+
+  Rack::Attack.throttle("oauth tokens by client", limit: 300, period: 1.minute) do |req|
+    if oauth_token_request?(req)
+      client_id = oauth_client_id(req)
+      client_id ? "client:#{client_id}:#{req.ip}" : "ip:#{req.ip}"
+    end
+  end
+
+  Rack::Attack.throttle("oauth tokens by ip", limit: 1200, period: 5.minutes) do |req|
+    req.ip if oauth_token_request?(req)
   end
 
   Rack::Attack.throttle("documentation feedback by ip", limit: 20, period: 1.hour) do |req|
@@ -72,12 +98,7 @@ class Rack::Attack
   end
 
   Rack::Attack.throttle("api requests", limit: 10000, period: 1.hour) do |req|
-    req.ip if req.path.start_with?("/api/")
-  end
-
-  # if ur stuff is going faster than this then we got a problem dude
-  Rack::Attack.throttle("heartbeat uploads", limit: 360, period: 1.minute) do |req|
-    req.ip if req.post? && heartbeat_request?(req)
+    req.ip if req.path.start_with?("/api/") && !credential_limited_api_request?(req)
   end
 
   # lets actually log things? thanks
