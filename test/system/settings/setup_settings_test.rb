@@ -19,4 +19,13 @@ class SetupSettingsTest < ApplicationSystemTestCase
 
     assert_text "WakaTime Config File"
   end
+
+  test "setup settings preserves the no-key message without creating a key" do
+    @user.api_keys.destroy_all
+
+    visit my_settings_setup_path
+
+    assert_text "No API key is available yet. Rotate your API key from Privacy & Security to generate one."
+    assert_equal 0, @user.api_keys.count
+  end
 end

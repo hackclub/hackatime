@@ -1,4 +1,6 @@
 class ApiKey < ApplicationRecord
+  DEFAULT_NAME = "Hackatime key".freeze
+
   belongs_to :user
 
   validates :token, presence: true, uniqueness: true
@@ -11,6 +13,6 @@ class ApiKey < ApplicationRecord
   # WakaTime compatibility: vscode-wakatime expects a UUID v4 token.
   def generate_token!
     self.token ||= SecureRandom.uuid_v4
-    self.name ||= "Hackatime key"
+    self.name ||= DEFAULT_NAME
   end
 end

@@ -59,4 +59,22 @@ class SetupTest < ApplicationSystemTestCase
     click_on "I'm done!"
     assert_text "Fair Play Policy"
   end
+
+  test "API key surfaces show the same canonical key when multiple exist" do
+    create(:api_key, user: @user, name: "Desktop")
+    canonical_key = create(:api_key, user: @user, name: "Hackatime key")
+    create(:api_key, user: @user, name: "Laptop")
+
+    visit api_key_path
+    assert_field with: canonical_key.token
+
+    visit setup_path
+    click_on "Yes, I have an editor installed"
+    click_on "Terminal (automatic)"
+    assert_text canonical_key.token
+
+    visit my_settings_setup_path
+    assert_text canonical_key.token
+    assert_equal 3, @user.api_keys.count
+  end
 end
