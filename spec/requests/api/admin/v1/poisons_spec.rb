@@ -1,6 +1,6 @@
 require 'swagger_helper'
 
-RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swagger.yaml' do
+RSpec.describe 'Api::Admin::V1::Poisons', type: :request, openapi_spec: 'admin/swagger.yaml' do
   error_schema = {
     type: :object,
     properties: { error: { type: :string, example: 'User not found' } }
@@ -11,7 +11,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
     properties: { error: { type: :string, example: 'date cannot be in the future' } }
   }
 
-  ban_state_schema = {
+  poison_state_schema = {
     type: :object,
     properties: {
       user_id: { type: :integer, example: 42 },
@@ -23,24 +23,24 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
     }
   }
 
-  path '/api/admin/v1/ban/{hackatime_id}' do
+  path '/api/admin/v1/poison/{hackatime_id}' do
     parameter name: :hackatime_id, in: :path, type: :string,
       description: 'Hackatime user identifier: numeric ID, Slack UID, HCA ID or username'
 
-    get('Get Ban State') do
+    get('Get Poison State') do
       tags 'Admin Resources'
-      description "Report the current heartbeat poisoning state. Requires an admin, superadmin or ultraadmin API key.\n"
+      description "Report the current heartbeat poisoning state. Requires an admin, superadmin or ultraadmin API key. This endpoint was previously `/api/admin/v1/ban/{hackatime_id}`, which still works but is deprecated.\n"
       security [ AdminToken: [] ]
       produces 'application/json'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:target) { create(:user, username: 'rswag_ban_show', timezone: 'UTC') }
+        let(:target) { create(:user, username: 'rswag_poison_show', timezone: 'UTC') }
         let(:hackatime_id) { target.id.to_s }
 
         before { target.apply_poison!((Date.current - 30).to_s, reason: 'Fraud!') }
 
-        schema(**ban_state_schema)
+        schema(**poison_state_schema)
         run_test!
       end
 
@@ -89,7 +89,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
 
       response(201, 'created') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:target) { create(:user, username: 'rswag_ban_create', timezone: 'UTC') }
+        let(:target) { create(:user, username: 'rswag_poison_create', timezone: 'UTC') }
         let(:hackatime_id) { target.id.to_s }
         let(:payload) { { date: (Date.current - 30).to_s, reason: 'Fraud!' } }
 
@@ -108,7 +108,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
 
       response(422, 'invalid date - Returned when the date is missing, unparseable, or in the future.') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:target) { create(:user, username: 'rswag_ban_future', timezone: 'UTC') }
+        let(:target) { create(:user, username: 'rswag_poison_future', timezone: 'UTC') }
         let(:hackatime_id) { target.id.to_s }
         let(:payload) { { date: (Date.current + 1).to_s } }
         schema(**date_error_schema)
@@ -124,13 +124,13 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
       end
 
       response(401, 'unauthorized - Returned when the key is missing, invalid, or below admin level.') do
-        let(:Authorization) { "Bearer viewer-admin-api-key-rswag-ban" }
+        let(:Authorization) { "Bearer viewer-admin-api-key-rswag-poison" }
         let(:hackatime_id) { '1' }
         let(:payload) { { date: (Date.current - 30).to_s } }
 
         before do
-          u = create(:user, :viewer, username: 'rswag_ban_viewer', timezone: 'UTC')
-          create(:admin_api_key, user: u, name: 'Viewer Ban Key', token: 'viewer-admin-api-key-rswag-ban')
+          u = create(:user, :viewer, username: 'rswag_poison_viewer', timezone: 'UTC')
+          create(:admin_api_key, user: u, name: 'Viewer Poison Key', token: 'viewer-admin-api-key-rswag-poison')
         end
 
         run_test!
@@ -147,7 +147,7 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:target) { create(:user, username: 'rswag_ban_delete', timezone: 'UTC') }
+        let(:target) { create(:user, username: 'rswag_poison_delete', timezone: 'UTC') }
         let(:hackatime_id) { target.id.to_s }
 
         before { target.apply_poison!((Date.current - 30).to_s, reason: 'Fraud!') }
@@ -157,7 +157,8 @@ RSpec.describe 'Api::Admin::V1::Bans', type: :request, openapi_spec: 'admin/swag
             success: { type: :boolean, example: true },
             user_id: { type: :integer, example: 42 },
             poisoned_until: { type: :string, nullable: true, example: nil },
-            already_unbanned: { type: :boolean, example: false, description: 'Present when the user was not banned' }
+            already_unpoisoned: { type: :boolean, example: false, description: 'Present when the user was not poisoned' },
+            already_unbanned: { type: :boolean, example: false, description: 'Deprecated alias of already_unpoisoned' }
           }
 
         run_test!

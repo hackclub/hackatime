@@ -300,7 +300,9 @@ Rails.application.routes.draw do
         post "user/search_fuzzy", to: "admin#search_users_fuzzy"
         post "user/convict", to: "admin#user_convict"
 
-        resource :ban, only: [ :show, :create, :destroy ], path: "ban/:hackatime_id"
+        resource :poison, only: [ :show, :create, :destroy ], path: "poison/:hackatime_id"
+        # Deprecated: the old name for the poison endpoint, kept for existing clients.
+        resource :ban, only: [ :show, :create, :destroy ], path: "ban/:hackatime_id", controller: :poisons
 
         # Admin API Keys management
         resources :admin_api_keys, only: [ :index, :show, :create, :destroy ]

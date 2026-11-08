@@ -1,6 +1,6 @@
 require "test_helper"
 
-class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
+class Api::Admin::V1::PoisonsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @superadmin = create(:user, admin_level: :superadmin)
     @key = create(:admin_api_key, user: @superadmin, name: "Telescreen")
@@ -20,8 +20,21 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
     { "Authorization" => ActionController::HttpAuthentication::Token.encode_credentials(key.token) }
   end
 
-  test "poisons heartbeats on or before the posted end date" do
+  test "the deprecated ban path still poisons and unpoisons" do
     post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
+    assert_response :created
+    assert @user.reload.poisoned?
+
+    get "/api/admin/v1/ban/#{@user.id}", headers: auth_headers, as: :json
+    assert_equal true, response.parsed_body["poisoned"]
+
+    delete "/api/admin/v1/ban/#{@user.id}", headers: auth_headers, as: :json
+    assert_response :success
+    assert_not @user.reload.poisoned?
+  end
+
+  test "poisons heartbeats on or before the posted end date" do
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
 
     assert_response :created
     assert_equal true, response.parsed_body["success"]
@@ -33,9 +46,9 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "the end date is inclusive of the named day" do
-    on_the_day = build_heartbeat(Time.utc(2026, 3, 1, 23, 30), "ban-day-night")
+    on_the_day = build_heartbeat(Time.utc(2026, 3, 1, 23, 30), "poison-day-night")
 
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
 
     assert_response :created
     assert_not_includes Heartbeat.all, on_the_day
@@ -43,7 +56,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "accepts a bare date string as the request body" do
-    post "/api/admin/v1/ban/#{@user.id}", params: "2026-03-01",
+    post "/api/admin/v1/poison/#{@user.id}", params: "2026-03-01",
       headers: auth_headers.merge("Content-Type" => "text/plain")
 
     assert_response :created
@@ -51,40 +64,40 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "accepts the hackatime id in its other forms" do
-    @user.update!(slack_uid: "U12345", username: "banme")
+    @user.update!(slack_uid: "U12345", username: "poisonme")
 
-    post "/api/admin/v1/ban/U12345", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
+    post "/api/admin/v1/poison/U12345", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
     assert_response :created
     assert @user.reload.poisoned?
 
-    delete "/api/admin/v1/ban/banme", headers: auth_headers, as: :json
+    delete "/api/admin/v1/poison/poisonme", headers: auth_headers, as: :json
     assert_response :success
     assert_not @user.reload.poisoned?
   end
 
-  test "a second ban overwrites the previous end date" do
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-05" }, headers: auth_headers, as: :json
+  test "a second poison overwrites the previous end date" do
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "2026-03-05" }, headers: auth_headers, as: :json
 
     assert_response :created
     assert_equal Time.utc(2026, 3, 6), @user.reload.active_poison.ends_at.utc
     assert_not_includes Heartbeat.all, @after_cutoff
   end
 
-  test "unbanning restores the hidden heartbeats" do
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
+  test "removing the poison restores the hidden heartbeats" do
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
     assert_not_includes Heartbeat.all, @before_cutoff
 
-    delete "/api/admin/v1/ban/#{@user.id}", headers: auth_headers, as: :json
+    delete "/api/admin/v1/poison/#{@user.id}", headers: auth_headers, as: :json
 
     assert_response :success
     assert_nil response.parsed_body["poisoned_until"]
     assert_includes Heartbeat.all, @before_cutoff
   end
 
-  test "ban and unban record the acting admin and keep the rule as history" do
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
-    delete "/api/admin/v1/ban/#{@user.id}", headers: auth_headers, as: :json
+  test "poisoning and unpoisoning record the acting admin and keep the rule as history" do
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
+    delete "/api/admin/v1/poison/#{@user.id}", headers: auth_headers, as: :json
 
     rule = @user.heartbeat_exclusions.sole
     assert_equal @superadmin, rule.created_by
@@ -92,22 +105,23 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil rule.revoked_at
   end
 
-  test "unbanning a user who is not banned succeeds without changing anything" do
-    delete "/api/admin/v1/ban/#{@user.id}", headers: auth_headers, as: :json
+  test "unpoisoning a user who is not poisoned succeeds without changing anything" do
+    delete "/api/admin/v1/poison/#{@user.id}", headers: auth_headers, as: :json
 
     assert_response :success
+    assert_equal true, response.parsed_body["already_unpoisoned"]
     assert_equal true, response.parsed_body["already_unbanned"]
   end
 
   test "rejects a missing date" do
-    post "/api/admin/v1/ban/#{@user.id}", params: {}, headers: auth_headers, as: :json
+    post "/api/admin/v1/poison/#{@user.id}", params: {}, headers: auth_headers, as: :json
 
     assert_response :unprocessable_entity
     assert_not @user.reload.poisoned?
   end
 
   test "rejects a future end date" do
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: (Date.current + 1).to_s }, headers: auth_headers, as: :json
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: (Date.current + 1).to_s }, headers: auth_headers, as: :json
 
     assert_response :unprocessable_entity
     assert_equal "date cannot be in the future", response.parsed_body["error"]
@@ -115,27 +129,27 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "accepts today as an end date" do
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: Date.current.to_s }, headers: auth_headers, as: :json
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: Date.current.to_s }, headers: auth_headers, as: :json
 
     assert_response :created
     assert @user.reload.poisoned?
   end
 
   test "rejects an unparseable date rather than poisoning everything" do
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: "not-a-date" }, headers: auth_headers, as: :json
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "not-a-date" }, headers: auth_headers, as: :json
 
     assert_response :unprocessable_entity
     assert_not @user.reload.poisoned?
   end
 
   test "returns not found for an unknown user" do
-    post "/api/admin/v1/ban/nonexistent-user", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
+    post "/api/admin/v1/poison/nonexistent-user", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
 
     assert_response :not_found
   end
 
-  test "returns the audit trail in the ban response" do
-    post "/api/admin/v1/ban/#{@user.id}",
+  test "returns the audit trail in the poison response" do
+    post "/api/admin/v1/poison/#{@user.id}",
       params: { date: "2026-03-01", reason: "Telescreen: fabricated heartbeats" },
       headers: auth_headers, as: :json
 
@@ -144,8 +158,8 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil response.parsed_body["poisoned_at"]
   end
 
-  test "show reports the current ban state" do
-    get "/api/admin/v1/ban/#{@user.id}", headers: auth_headers, as: :json
+  test "show reports the current poison state" do
+    get "/api/admin/v1/poison/#{@user.id}", headers: auth_headers, as: :json
 
     assert_response :success
     assert_equal false, response.parsed_body["poisoned"]
@@ -153,7 +167,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
 
     @user.apply_poison!(@cutoff, reason: "fabricated heartbeats")
 
-    get "/api/admin/v1/ban/#{@user.id}", headers: auth_headers, as: :json
+    get "/api/admin/v1/poison/#{@user.id}", headers: auth_headers, as: :json
 
     assert_response :success
     assert_equal true, response.parsed_body["poisoned"]
@@ -165,7 +179,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   test "show accepts a plain admin key" do
     key = create(:admin_api_key, user: create(:user, admin_level: :admin), name: "Admin")
 
-    get "/api/admin/v1/ban/#{@user.id}", headers: auth_headers(key), as: :json
+    get "/api/admin/v1/poison/#{@user.id}", headers: auth_headers(key), as: :json
 
     assert_response :success
     assert_equal false, response.parsed_body["poisoned"]
@@ -173,7 +187,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
 
 
   test "ignores unpermitted parameters in the request body" do
-    post "/api/admin/v1/ban/#{@user.id}",
+    post "/api/admin/v1/poison/#{@user.id}",
       params: { date: "2026-03-01", reason: "Fraud!", poisoned_until: "2030-01-01", admin_level: "ultraadmin" },
       headers: auth_headers, as: :json
 
@@ -185,7 +199,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "rejects an oversized raw body instead of parsing it" do
-    post "/api/admin/v1/ban/#{@user.id}", params: "x" * 500,
+    post "/api/admin/v1/poison/#{@user.id}", params: "x" * 500,
       headers: auth_headers.merge("Content-Type" => "text/plain")
 
     assert_response :unprocessable_entity
@@ -193,7 +207,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "requires an api key" do
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, as: :json
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "2026-03-01" }, as: :json
 
     assert_response :unauthorized
     assert_not @user.reload.poisoned?
@@ -202,7 +216,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   test "an ultraadmin key is allowed" do
     key = create(:admin_api_key, user: create(:user, admin_level: :ultraadmin), name: "Ultra")
 
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers(key), as: :json
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers(key), as: :json
 
     assert_response :created
   end
@@ -210,7 +224,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   test "a plain admin can poison and restore heartbeats with an audit trail" do
     key = create(:admin_api_key, user: create(:user, admin_level: :admin), name: "Admin")
 
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers(key), as: :json
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers(key), as: :json
 
     assert_response :created
     assert @user.reload.poisoned?
@@ -218,7 +232,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
     assert_includes Heartbeat.all, @after_cutoff
     assert_equal key.user, @user.active_poison.created_by
 
-    delete "/api/admin/v1/ban/#{@user.id}", headers: auth_headers(key), as: :json
+    delete "/api/admin/v1/poison/#{@user.id}", headers: auth_headers(key), as: :json
 
     assert_response :success
     assert_not @user.reload.poisoned?
@@ -229,21 +243,21 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   test "a viewer key is rejected" do
     key = create(:admin_api_key, user: create(:user, admin_level: :viewer), name: "Viewer")
 
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers(key), as: :json
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers(key), as: :json
 
     assert_response :unauthorized
     assert_not @user.reload.poisoned?
   end
 
-  test "a viewer key cannot read ban state or unban either" do
+  test "a viewer key cannot read poison state or unpoison either" do
     @user.apply_poison!(@cutoff)
     key = create(:admin_api_key, user: create(:user, admin_level: :viewer), name: "Viewer")
 
-    get "/api/admin/v1/ban/#{@user.id}", headers: auth_headers(key), as: :json
+    get "/api/admin/v1/poison/#{@user.id}", headers: auth_headers(key), as: :json
 
     assert_response :unauthorized
 
-    delete "/api/admin/v1/ban/#{@user.id}", headers: auth_headers(key), as: :json
+    delete "/api/admin/v1/poison/#{@user.id}", headers: auth_headers(key), as: :json
 
     assert_response :unauthorized
     assert @user.reload.poisoned?
@@ -252,7 +266,7 @@ class Api::Admin::V1::BansControllerTest < ActionDispatch::IntegrationTest
   test "a revoked superadmin key is rejected" do
     @key.revoke!
 
-    post "/api/admin/v1/ban/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
+    post "/api/admin/v1/poison/#{@user.id}", params: { date: "2026-03-01" }, headers: auth_headers, as: :json
 
     assert_response :unauthorized
     assert_not @user.reload.poisoned?

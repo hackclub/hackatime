@@ -1,7 +1,7 @@
 module Api
   module Admin
     module V1
-      class BansController < Api::Admin::V1::ApplicationController
+      class PoisonsController < Api::Admin::V1::ApplicationController
         MAX_RAW_DATE_LENGTH = 40
 
         require_admin_api_key_scope "poisons:read", only: :show
@@ -10,10 +10,10 @@ module Api
         before_action :set_user
 
         def create
-          cutoff = ban_date
+          cutoff = cutoff_date
           return render_error("date is required") if cutoff.blank?
 
-          poison = @user.apply_poison!(cutoff, reason: ban_params[:reason], by: current_user)
+          poison = @user.apply_poison!(cutoff, reason: poison_params[:reason], by: current_user)
 
           render json: { success: true, user_id: @user.id, **poison_json(poison) }, status: :created
         rescue ArgumentError => e
@@ -31,7 +31,8 @@ module Api
 
         def destroy
           unless @user.remove_poison!(by: current_user)
-            return render json: { success: true, user_id: @user.id, poisoned_until: nil, already_unbanned: true }
+            # already_unbanned is the old name, kept for existing clients.
+            return render json: { success: true, user_id: @user.id, poisoned_until: nil, already_unpoisoned: true, already_unbanned: true }
           end
 
           render json: { success: true, user_id: @user.id, poisoned_until: nil }
@@ -48,10 +49,10 @@ module Api
           render_not_found_json("User not found") unless @user
         end
 
-        def ban_params = params.permit(:date, :end_date, :reason)
+        def poison_params = params.permit(:date, :end_date, :reason)
 
-        def ban_date
-          permitted = ban_params
+        def cutoff_date
+          permitted = poison_params
           return permitted[:date] if permitted[:date].present?
           return permitted[:end_date] if permitted[:end_date].present?
 
