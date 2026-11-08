@@ -354,8 +354,8 @@ paths:
                             - users:read
                             - users:write
                             - heartbeats:read
-                            - bans:read
-                            - bans:write
+                            - poisons:read
+                            - poisons:write
                             - leaderboard_shadowbans:read
                             - leaderboard_shadowbans:write
                             - deletion_requests:read
@@ -431,8 +431,8 @@ paths:
                           - users:read
                           - users:write
                           - heartbeats:read
-                          - bans:read
-                          - bans:write
+                          - poisons:read
+                          - poisons:write
                           - leaderboard_shadowbans:read
                           - leaderboard_shadowbans:write
                           - deletion_requests:read
@@ -493,8 +493,8 @@ paths:
                     - users:read
                     - users:write
                     - heartbeats:read
-                    - bans:read
-                    - bans:write
+                    - poisons:read
+                    - poisons:write
                     - leaderboard_shadowbans:read
                     - leaderboard_shadowbans:write
                     - deletion_requests:read
@@ -563,8 +563,8 @@ paths:
                       - users:read
                       - users:write
                       - heartbeats:read
-                      - bans:read
-                      - bans:write
+                      - poisons:read
+                      - poisons:write
                       - leaderboard_shadowbans:read
                       - leaderboard_shadowbans:write
                       - deletion_requests:read

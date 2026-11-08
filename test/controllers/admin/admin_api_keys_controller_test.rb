@@ -20,11 +20,11 @@ class Admin::AdminApiKeysControllerTest < ActionDispatch::IntegrationTest
     admin = create(:user, :admin)
     sign_in_as(admin)
 
-    post admin_admin_api_keys_path, params: { admin_api_key: { name: "Scoped", scopes: [ "", "users:read", "bans:read" ] } }
+    post admin_admin_api_keys_path, params: { admin_api_key: { name: "Scoped", scopes: [ "", "users:read", "poisons:read" ] } }
 
     key = admin.admin_api_keys.find_by!(name: "Scoped")
     assert_redirected_to admin_admin_api_key_path(key)
-    assert_equal %w[users:read bans:read], key.scopes
+    assert_equal %w[users:read poisons:read], key.scopes
     assert_nil key.expires_at
 
     post admin_admin_api_keys_path, params: { admin_api_key: { name: "Nothing", scopes: [ "" ] } }

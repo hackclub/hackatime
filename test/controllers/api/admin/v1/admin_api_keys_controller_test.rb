@@ -98,8 +98,8 @@ class Api::Admin::V1::AdminApiKeysControllerTest < ActionDispatch::IntegrationTe
     get "/api/admin/v1/check", headers: auth_headers(key)
     assert_response :success
 
-    bans_key = create(:admin_api_key, user: admin, scopes: %w[bans:read])
-    get "/api/v1/users/lookup_slack_uid/U123", headers: { "Authorization" => "Bearer #{bans_key.token}" }
+    poisons_key = create(:admin_api_key, user: admin, scopes: %w[poisons:read])
+    get "/api/v1/users/lookup_slack_uid/U123", headers: { "Authorization" => "Bearer #{poisons_key.token}" }
     assert_response :forbidden
     assert_equal "This admin API key is missing the users:read scope", response.parsed_body["error"]
   end
