@@ -16,6 +16,22 @@ class Admin::AdminApiKeysControllerTest < ActionDispatch::IntegrationTest
     assert_nil keys.fetch(unused_key.id)["last_used_at"]
   end
 
+  test "creates a key with only the chosen scopes" do
+    admin = create(:user, :admin)
+    sign_in_as(admin)
+
+    post admin_admin_api_keys_path, params: { admin_api_key: { name: "Scoped", scopes: [ "", "users:read", "bans:read" ] } }
+
+    key = admin.admin_api_keys.find_by!(name: "Scoped")
+    assert_redirected_to admin_admin_api_key_path(key)
+    assert_equal %w[users:read bans:read], key.scopes
+    assert_nil key.expires_at
+
+    post admin_admin_api_keys_path, params: { admin_api_key: { name: "Nothing", scopes: [ "" ] } }
+    assert_response :unprocessable_entity
+    assert_includes inertia.props["errors"], "Scopes can't be blank"
+  end
+
   test "ultraadmin can revoke another user's admin API key" do
     ultraadmin = create(:user, :ultraadmin)
     owner = create(:user, :admin)

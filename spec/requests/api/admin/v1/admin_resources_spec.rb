@@ -74,7 +74,9 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
                       admin_level: { type: :string, example: 'superadmin' }
                     }
                   },
+                  scopes: { type: :array, items: { type: :string, enum: AdminApiKey::SCOPES.keys }, example: %w[users:read heartbeats:read] },
                   created_at: { type: :string, format: :date_time, example: '2024-03-20T15:30:00Z' },
+                  expires_at: { type: :string, format: :date_time, nullable: true, description: 'Keys created before scopes existed expire and are revoked at this time', example: '2026-12-26T12:00:00Z' },
                   revoked_at: { type: :string, format: :date_time, nullable: true, example: '2024-04-01T12:00:00Z' },
                   active: { type: :boolean, example: true }
                 }
@@ -92,7 +94,7 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
 
     post('Create Admin API Key') do
       tags 'Admin Resources'
-      description 'Create a new admin API key.'
+      description 'Create a new admin API key. Each admin API endpoint requires one scope. A key can only create keys with scopes it has itself.'
       security [ AdminToken: [] ]
       consumes 'application/json'
       produces 'application/json'
@@ -100,13 +102,15 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
       parameter name: :payload, in: :body, schema: {
         type: :object,
         properties: {
-          name: { type: :string, example: 'Revoker admin key' }
-        }
+          name: { type: :string, example: 'Revoker admin key' },
+          scopes: { type: :array, items: { type: :string, enum: AdminApiKey::SCOPES.keys }, example: %w[users:read heartbeats:read] }
+        },
+        required: %w[name scopes]
       }
 
       response(201, 'created') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
-        let(:payload) { { name: 'New Key' } }
+        let(:payload) { { name: 'New Key', scopes: %w[users:read] } }
         schema type: :object,
           properties: {
             success: { type: :boolean, example: true },
@@ -117,10 +121,19 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
                 id: { type: :integer, example: 12 },
                 name: { type: :string, example: 'Revoker admin key' },
                 token: { type: :string, example: 'hka_3f8e9c2a7b144d6e9a2f1c8b5d3e7f013f8e9c2a7b144d6e9a2f1c8b5d3e7f01' },
+                scopes: { type: :array, items: { type: :string, enum: AdminApiKey::SCOPES.keys }, example: %w[users:read heartbeats:read] },
                 created_at: { type: :string, format: :date_time, example: '2024-03-20T15:30:00Z' }
               }
             }
           }
+        run_test!
+      end
+
+      response(403, 'forbidden (key lacks admin_api_keys:write, or requested scopes it does not have)') do
+        let(:authentication_key) { create(:admin_api_key, name: 'Narrow key', scopes: %w[admin_api_keys:write users:read]) }
+        let(:Authorization) { "Bearer #{authentication_key.token}" }
+        let(:payload) { { name: 'Wider Key', scopes: %w[users:read users:write] } }
+        schema(**error_schema)
         run_test!
       end
 
@@ -169,7 +182,9 @@ RSpec.describe 'Api::Admin::V1::Resources', type: :request, openapi_spec: 'admin
                 admin_level: { type: :string, example: 'superadmin' }
               }
             },
+            scopes: { type: :array, items: { type: :string, enum: AdminApiKey::SCOPES.keys }, example: %w[users:read heartbeats:read] },
             created_at: { type: :string, format: :date_time, example: '2024-03-20T15:30:00Z' },
+            expires_at: { type: :string, format: :date_time, nullable: true, description: 'Keys created before scopes existed expire and are revoked at this time', example: '2026-12-26T12:00:00Z' },
             revoked_at: { type: :string, format: :date_time, nullable: true, example: '2024-04-01T12:00:00Z' },
             active: { type: :boolean, example: true }
           }

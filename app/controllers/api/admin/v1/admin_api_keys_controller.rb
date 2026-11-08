@@ -2,6 +2,8 @@ module Api
   module Admin
     module V1
       class AdminApiKeysController < Api::Admin::V1::ApplicationController
+        require_admin_api_key_scope "admin_api_keys:read", only: %i[index show]
+        require_admin_api_key_scope "admin_api_keys:write", only: %i[create destroy]
         before_action :set_admin_api_key, only: [ :show ]
         before_action :set_own_admin_api_key, only: [ :destroy ]
 
@@ -18,7 +20,12 @@ module Api
         end
 
         def create
-          admin_api_key = current_user.admin_api_keys.build(name: params[:name])
+          scopes = params[:scopes].is_a?(Array) ? params[:scopes] : []
+          if current_admin_api_key && (scopes - current_admin_api_key.scopes).any?
+            return render_forbidden("An admin API key can only create keys with scopes it has itself")
+          end
+
+          admin_api_key = current_user.admin_api_keys.build(name: params[:name], scopes: scopes)
 
           if admin_api_key.save
             render json: {
@@ -28,6 +35,7 @@ module Api
                 id: admin_api_key.id,
                 name: admin_api_key.name,
                 token: admin_api_key.token,
+                scopes: admin_api_key.scopes,
                 created_at: admin_api_key.created_at
               }
             }, status: :created
@@ -73,7 +81,9 @@ module Api
               display_name: key.user.display_name,
               admin_level: key.user.admin_level
             },
+            scopes: key.scopes,
             created_at: key.created_at,
+            expires_at: key.expires_at,
             revoked_at: key.revoked_at,
             active: key.active?
           }

@@ -2,6 +2,8 @@ module Api
   module Admin
     module V1
       class LeaderboardShadowbansController < Api::Admin::V1::ApplicationController
+        require_admin_api_key_scope "leaderboard_shadowbans:read", only: %i[index search_users]
+        require_admin_api_key_scope "leaderboard_shadowbans:write", only: %i[create destroy]
         before_action :require_shadowban_admin!
 
         def index

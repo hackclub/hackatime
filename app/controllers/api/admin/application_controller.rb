@@ -7,10 +7,32 @@ module Api
 
       ADMIN_API_LEVELS = AdminApiKeyAuthentication::ADMIN_API_LEVELS
 
+      # Action name (or "*" for the whole controller) => AdminApiKey scope.
+      # Actions without a scope reject admin API keys.
+      class_attribute :admin_api_key_scopes, instance_accessor: false, default: {}.freeze
+
       before_action :authenticate_admin!
+      before_action :authorize_admin_api_key_scope!
       before_action :set_paper_trail_whodunnit
 
+      def self.require_admin_api_key_scope(scope, only: "*")
+        self.admin_api_key_scopes = admin_api_key_scopes.merge(Array(only).to_h { |action| [ action.to_s, scope ] }).freeze
+      end
+
+      def self.admin_api_key_scope_for(action)
+        admin_api_key_scopes[action.to_s] || admin_api_key_scopes["*"]
+      end
+
       private
+
+      def authorize_admin_api_key_scope!
+        return unless current_admin_api_key
+
+        scope = self.class.admin_api_key_scope_for(action_name)
+        return if scope && current_admin_api_key.scope?(scope)
+
+        render_forbidden(scope ? "This admin API key is missing the #{scope} scope" : "Admin API keys can't use this endpoint")
+      end
 
       def authenticate_admin!
         authenticate_or_request_with_http_token do |token, _|

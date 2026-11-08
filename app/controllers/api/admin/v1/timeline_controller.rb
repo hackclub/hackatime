@@ -2,6 +2,8 @@ module Api
   module Admin
     module V1
       class TimelineController < Api::Admin::V1::ApplicationController
+        require_admin_api_key_scope "heartbeats:read"
+
         MAX_TIMELINE_USERS = 20
 
         def show

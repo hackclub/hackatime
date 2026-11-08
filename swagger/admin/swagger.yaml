@@ -346,10 +346,38 @@ paths:
                             admin_level:
                               type: string
                               example: superadmin
+                        scopes:
+                          type: array
+                          items:
+                            type: string
+                            enum:
+                            - users:read
+                            - users:write
+                            - heartbeats:read
+                            - bans:read
+                            - bans:write
+                            - leaderboard_shadowbans:read
+                            - leaderboard_shadowbans:write
+                            - deletion_requests:read
+                            - deletion_requests:write
+                            - permissions:read
+                            - permissions:write
+                            - admin_api_keys:read
+                            - admin_api_keys:write
+                          example:
+                          - users:read
+                          - heartbeats:read
                         created_at:
                           type: string
                           format: date_time
                           example: '2024-03-20T15:30:00Z'
+                        expires_at:
+                          type: string
+                          format: date_time
+                          nullable: true
+                          description: Keys created before scopes existed expire and
+                            are revoked at this time
+                          example: '2026-12-26T12:00:00Z'
                         revoked_at:
                           type: string
                           format: date_time
@@ -364,7 +392,8 @@ paths:
       summary: Create Admin API Key
       tags:
       - Admin Resources
-      description: Create a new admin API key.
+      description: Create a new admin API key. Each admin API endpoint requires one
+        scope. A key can only create keys with scopes it has itself.
       security:
       - AdminToken: []
       parameters: []
@@ -394,10 +423,42 @@ paths:
                       token:
                         type: string
                         example: hka_3f8e9c2a7b144d6e9a2f1c8b5d3e7f013f8e9c2a7b144d6e9a2f1c8b5d3e7f01
+                      scopes:
+                        type: array
+                        items:
+                          type: string
+                          enum:
+                          - users:read
+                          - users:write
+                          - heartbeats:read
+                          - bans:read
+                          - bans:write
+                          - leaderboard_shadowbans:read
+                          - leaderboard_shadowbans:write
+                          - deletion_requests:read
+                          - deletion_requests:write
+                          - permissions:read
+                          - permissions:write
+                          - admin_api_keys:read
+                          - admin_api_keys:write
+                        example:
+                        - users:read
+                        - heartbeats:read
                       created_at:
                         type: string
                         format: date_time
                         example: '2024-03-20T15:30:00Z'
+        '403':
+          description: forbidden (key lacks admin_api_keys:write, or requested scopes
+            it does not have)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found
         '422':
           description: validation failed
           content:
@@ -424,6 +485,30 @@ paths:
                 name:
                   type: string
                   example: Revoker admin key
+                scopes:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                    - users:read
+                    - users:write
+                    - heartbeats:read
+                    - bans:read
+                    - bans:write
+                    - leaderboard_shadowbans:read
+                    - leaderboard_shadowbans:write
+                    - deletion_requests:read
+                    - deletion_requests:write
+                    - permissions:read
+                    - permissions:write
+                    - admin_api_keys:read
+                    - admin_api_keys:write
+                  example:
+                  - users:read
+                  - heartbeats:read
+              required:
+              - name
+              - scopes
   "/api/admin/v1/admin_api_keys/{id}":
     parameters:
     - name: id
@@ -470,10 +555,38 @@ paths:
                       admin_level:
                         type: string
                         example: superadmin
+                  scopes:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                      - users:read
+                      - users:write
+                      - heartbeats:read
+                      - bans:read
+                      - bans:write
+                      - leaderboard_shadowbans:read
+                      - leaderboard_shadowbans:write
+                      - deletion_requests:read
+                      - deletion_requests:write
+                      - permissions:read
+                      - permissions:write
+                      - admin_api_keys:read
+                      - admin_api_keys:write
+                    example:
+                    - users:read
+                    - heartbeats:read
                   created_at:
                     type: string
                     format: date_time
                     example: '2024-03-20T15:30:00Z'
+                  expires_at:
+                    type: string
+                    format: date_time
+                    nullable: true
+                    description: Keys created before scopes existed expire and are
+                      revoked at this time
+                    example: '2026-12-26T12:00:00Z'
                   revoked_at:
                     type: string
                     format: date_time
@@ -3858,7 +3971,8 @@ components:
       type: http
       scheme: bearer
       description: Admin API Key or OAuth access token with the `admin` scope, prefixed
-        with "Bearer"
+        with "Bearer". Admin API keys must also have the key scope each endpoint needs,
+        otherwise the endpoint returns 403. `/api/admin/v1/check` works with any scope.
     InternalToken:
       type: http
       scheme: bearer

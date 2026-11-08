@@ -9,6 +9,9 @@
     token_preview: string;
     token: string | null;
     created_at: string;
+    scopes: string[];
+    all_scopes: boolean;
+    expires_at: string | null;
     user: { id: number; display_name: string; avatar_url: string | null };
   };
   let { api_key, show_token }: { api_key: Key; show_token: boolean } = $props();
@@ -100,7 +103,17 @@
           <div class="text-surface-content">{api_key.created_at}</div>
         </DetailField>
         <DetailField label="status" variant="muted">
-          <div class="text-green">live</div>
+          {#if api_key.expires_at}<div class="text-yellow">
+              live until {api_key.expires_at}, then it gets revoked
+            </div>{:else}<div class="text-green">live</div>{/if}
+        </DetailField>
+        <DetailField label="scopes" variant="muted" class="md:col-span-2">
+          <div class="flex flex-wrap gap-2">
+            {#each api_key.scopes as scope}<code
+                class="bg-darkless px-2 py-1 rounded text-xs text-surface-content"
+                >{scope}</code
+              >{/each}
+          </div>
         </DetailField>
       </div>
       <div class="mt-6"></div>

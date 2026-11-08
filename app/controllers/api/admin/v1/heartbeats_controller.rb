@@ -2,6 +2,8 @@ module Api
   module Admin
     module V1
       class HeartbeatsController < Api::Admin::V1::ApplicationController
+        require_admin_api_key_scope "heartbeats:read"
+
         MAX_LIMIT = 10_000
         DEFAULT_LIMIT = 1_000
 

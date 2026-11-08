@@ -381,7 +381,7 @@ RSpec.configure do |config|
           AdminToken: {
             type: :http,
             scheme: :bearer,
-            description: 'Admin API Key or OAuth access token with the `admin` scope, prefixed with "Bearer"'
+            description: 'Admin API Key or OAuth access token with the `admin` scope, prefixed with "Bearer". Admin API keys must also have the key scope each endpoint needs, otherwise the endpoint returns 403. `/api/admin/v1/check` works with any scope.'
           },
           InternalToken: {
             type: :http,

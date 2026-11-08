@@ -9,6 +9,8 @@ module Api
           "to_unscored" => "blue"
         }.freeze
 
+        require_admin_api_key_scope "users:read", only: %i[index show]
+        require_admin_api_key_scope "users:write", only: :update
         before_action :can_write!, only: [ :update ]
 
         def index

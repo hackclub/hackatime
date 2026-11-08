@@ -104,6 +104,11 @@ Rails.application.configure do
       class: "UpdateGeolite2DatabaseJob",
       description: "Daily GeoLite2 database update from MaxMind"
     },
+    revoke_expired_admin_api_keys: {
+      cron: "*/10 * * * *",
+      class: "RevokeExpiredAdminApiKeysJob",
+      description: "Marks admin API keys revoked once they pass expires_at (they stop authenticating at expires_at regardless)."
+    },
     process_account_deletions: {
       cron: "0 2 * * *",
       class: "ProcessAccountDeletionsJob",
