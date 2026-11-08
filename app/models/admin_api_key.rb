@@ -26,7 +26,7 @@ class AdminApiKey < ApplicationRecord
   has_paper_trail skip: %i[token token_bidx], ignore: %i[last_used_at usage_tracking_enqueued_at expiry_notice_sent_at]
   blind_index :token, algorithm: :pbkdf2_sha256, cost: { iterations: 1 }
 
-  normalizes :scopes, with: ->(scopes) { scopes.compact_blank.map(&:to_s).uniq }
+  normalizes :scopes, with: ->(scopes) { scopes.compact_blank.uniq }
 
   validates :token_bidx, presence: true, uniqueness: true
   validates :token_preview, presence: true
@@ -37,7 +37,6 @@ class AdminApiKey < ApplicationRecord
   before_validation :generate_token!, on: :create
 
   scope :active, -> { where(revoked_at: nil).where("expires_at IS NULL OR expires_at > ?", Time.current) }
-  scope :expired, -> { where(revoked_at: nil, expires_at: ..Time.current) }
 
   def active? = revoked_at.nil? && (expires_at.nil? || expires_at.future?)
 

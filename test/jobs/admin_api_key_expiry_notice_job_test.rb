@@ -1,6 +1,6 @@
 require "test_helper"
 
-class AdminApiKeyExpiryNoticeJobTest < ActiveJob::TestCase
+class AdminApiKeyExpiryNoticeJobTest < ActiveSupport::TestCase
   include ActionMailer::TestHelper
 
   test "emails each admin once about all of their expiring keys" do
@@ -17,8 +17,12 @@ class AdminApiKeyExpiryNoticeJobTest < ActiveJob::TestCase
     create(:admin_api_key, user: demoted, expires_at:)
     demoted.update!(admin_level: :default)
 
-    assert_emails 1 do
+    mail_jobs = GoodJob::Job.where(job_class: "ActionMailer::MailDeliveryJob")
+    assert_difference -> { mail_jobs.count }, 1 do
       AdminApiKeyExpiryNoticeJob.perform_now
+    end
+    assert_emails 1 do
+      ActiveJob::Base.execute(mail_jobs.order(:created_at).last.serialized_params)
     end
 
     mail = ActionMailer::Base.deliveries.last
@@ -31,7 +35,7 @@ class AdminApiKeyExpiryNoticeJobTest < ActiveJob::TestCase
     assert_not_includes body, revoked.name
     assert_includes body, "http://example.com/admin/admin_api_keys/new"
 
-    assert_no_emails do
+    assert_no_difference -> { mail_jobs.count } do
       AdminApiKeyExpiryNoticeJob.perform_now
     end
   end

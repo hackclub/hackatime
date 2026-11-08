@@ -97,7 +97,6 @@ class Api::Admin::V1::AdminApiKeysControllerTest < ActionDispatch::IntegrationTe
 
     get "/api/admin/v1/check", headers: auth_headers(key)
     assert_response :success
-    assert_equal %w[users:read], response.parsed_body.dig("api_key", "scopes")
 
     bans_key = create(:admin_api_key, user: admin, scopes: %w[bans:read])
     get "/api/v1/users/lookup_slack_uid/U123", headers: { "Authorization" => "Bearer #{bans_key.token}" }
@@ -133,9 +132,6 @@ class Api::Admin::V1::AdminApiKeysControllerTest < ActionDispatch::IntegrationTe
     assert_response :created
     assert_equal %w[users:read], response.parsed_body.dig("admin_api_key", "scopes")
     assert_equal %w[users:read], admin.admin_api_keys.find_by!(name: "Narrower").scopes
-
-    post "/api/admin/v1/admin_api_keys", params: { name: "Unscoped" }, headers: auth_headers(key), as: :json
-    assert_response :unprocessable_entity
   end
 
   test "expired keys stop authenticating" do

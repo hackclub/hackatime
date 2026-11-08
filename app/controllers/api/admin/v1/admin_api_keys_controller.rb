@@ -20,7 +20,7 @@ module Api
         end
 
         def create
-          scopes = params[:scopes].is_a?(Array) ? params[:scopes] : []
+          scopes = Array(params[:scopes])
           if current_admin_api_key && (scopes - current_admin_api_key.scopes).any?
             return render_forbidden("An admin API key can only create keys with scopes it has itself")
           end

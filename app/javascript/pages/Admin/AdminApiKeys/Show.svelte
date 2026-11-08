@@ -9,6 +9,7 @@
     token_preview: string;
     token: string | null;
     created_at: string;
+    active: boolean;
     scopes: string[];
     all_scopes: boolean;
     expires_at: string | null;
@@ -103,7 +104,9 @@
           <div class="text-surface-content">{api_key.created_at}</div>
         </DetailField>
         <DetailField label="status" variant="muted">
-          {#if api_key.expires_at}<div class="text-yellow">
+          {#if !api_key.active}<div class="text-red">
+              dead
+            </div>{:else if api_key.expires_at}<div class="text-yellow">
               live until {api_key.expires_at}, then it gets revoked
             </div>{:else}<div class="text-green">live</div>{/if}
         </DetailField>

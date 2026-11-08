@@ -107,7 +107,7 @@ Rails.application.configure do
     revoke_expired_admin_api_keys: {
       cron: "*/10 * * * *",
       class: "RevokeExpiredAdminApiKeysJob",
-      description: "Marks admin API keys revoked once they pass expires_at (they stop authenticating at expires_at regardless)."
+      description: "Revokes admin API keys past expires_at"
     },
     process_account_deletions: {
       cron: "0 2 * * *",
