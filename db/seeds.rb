@@ -29,6 +29,7 @@ if Rails.env.development? || Rails.env.test?
   AdminApiKey.find_or_create_by(name: 'Development Admin Key') do |key|
     key.user = test_user
     key.token = admin_api_token
+    key.scopes = AdminApiKey::SCOPES.keys
   end
 
   # Create a sign-in token that doesn't expire

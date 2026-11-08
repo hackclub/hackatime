@@ -24,6 +24,7 @@ FactoryBot.define do
   factory :admin_api_key do
     association :user, :admin
     name { generate(:admin_api_key_name) }
+    scopes { AdminApiKey::SCOPES.keys }
   end
 
   factory :sign_in_token do

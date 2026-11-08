@@ -9,6 +9,10 @@
     token_preview: string;
     token: string | null;
     created_at: string;
+    active: boolean;
+    scopes: string[];
+    all_scopes: boolean;
+    expires_at: string | null;
     user: { id: number; display_name: string; avatar_url: string | null };
   };
   let { api_key, show_token }: { api_key: Key; show_token: boolean } = $props();
@@ -29,35 +33,6 @@
     >
   </div>
   <div class="grid grid-cols-1 gap-8">
-    <div class="bg-dark rounded-lg p-6">
-      <h2 class="text-xl font-semibold text-surface-content mb-4">
-        okay now what lmao
-      </h2>
-      <div class="space-y-4">
-        <DetailField label="what was it again?" variant="mutedMedium">
-          <code
-            class="block bg-darkless px-3 py-2 rounded text-surface-content text-sm"
-          >
-            {api_key.token_preview}
-          </code>{#if !show_token}<p class="text-md text-muted mt-1">
-              you cant see the full thing again, we showed it when you created
-              it ya doofus
-            </p>{/if}
-        </DetailField>
-        <DetailField label="how to use it?" variant="heading">
-          <p class="text-md text-muted mb-2">
-            most likely you are not crazy enough to build your own api client
-            but you can use rowan's fraud check tool to use the admin api.
-          </p>
-          <p class="text-md text-muted">
-            if you are building your own client, just use the token as a bearer
-            token in the auth header of your requests, check the actual source
-            code for more details. or you could just be normal and use the fraud
-            check tool i already made for you.
-          </p>
-        </DetailField>
-      </div>
-    </div>
     <div class="bg-dark rounded-lg p-6">
       <h2 class="text-xl font-semibold text-surface-content mb-4">deets</h2>
       {#if show_token}<div
@@ -100,7 +75,28 @@
           <div class="text-surface-content">{api_key.created_at}</div>
         </DetailField>
         <DetailField label="status" variant="muted">
-          <div class="text-green">live</div>
+          {#if !api_key.active}<div class="text-red">
+              dead
+            </div>{:else if api_key.expires_at}<div class="text-yellow">
+              live until {api_key.expires_at}, then it gets revoked
+            </div>{:else}<div class="text-green">live</div>{/if}
+        </DetailField>
+        <DetailField label="scopes" variant="muted" class="md:col-span-2">
+          <div class="flex flex-wrap gap-2">
+            {#each api_key.scopes as scope}<code
+                class="bg-darkless px-2 py-1 rounded text-xs text-surface-content"
+                >{scope}</code
+              >{/each}
+          </div>
+        </DetailField>
+        <DetailField
+          label="token preview"
+          variant="muted"
+          class="md:col-span-2"
+        >
+          <code class="text-sm text-surface-content"
+            >{api_key.token_preview}</code
+          >
         </DetailField>
       </div>
       <div class="mt-6"></div>

@@ -1,0 +1,17 @@
+<h1 class="text-xl font-bold text-gray-900 tracking-tight mt-4 mb-0">
+  Your admin API <%= "key".pluralize(@keys.size) %> will be revoked
+</h1>
+<p class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  Hi <%= @user.display_name %>, Hackatime admin API keys now have scopes, so each key only gets access to the endpoints it needs.
+  Your existing <%= "key".pluralize(@keys.size) %> still <%= @keys.size == 1 ? "has" : "have" %> every scope for now, but will be revoked automatically:
+</p>
+<ul class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  <% @keys.each do |key| %>
+    <li><strong><%= key.name %></strong> (<code><%= key.token_preview %>...</code>) on <%= key.expires_at.in_time_zone(@zone).strftime("%-d %B %Y at %H:%M %Z") %></li>
+  <% end %>
+</ul>
+<p class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  Before then, create a new key with only the scopes you need and switch your tools over to it.
+</p>
+
+<%= render "shared/mailer/button", url: new_admin_admin_api_key_url, label: "Create a scoped key" %>

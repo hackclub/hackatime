@@ -4,6 +4,8 @@ module Api
       class BansController < Api::Admin::V1::ApplicationController
         MAX_RAW_DATE_LENGTH = 40
 
+        require_admin_api_key_scope "bans:read", only: :show
+        require_admin_api_key_scope "bans:write", only: %i[create destroy]
         before_action :require_poison_permission
         before_action :set_user
 

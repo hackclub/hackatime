@@ -4,6 +4,8 @@ module Api
       class PermissionsController < Api::Admin::V1::ApplicationController
         include AdminLevelChangeMessages
 
+        require_admin_api_key_scope "permissions:read", only: :index
+        require_admin_api_key_scope "permissions:write", only: :update
         before_action :require_superadmin
 
         def index

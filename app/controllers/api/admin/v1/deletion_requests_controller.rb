@@ -2,6 +2,8 @@ module Api
   module Admin
     module V1
       class DeletionRequestsController < Api::Admin::V1::ApplicationController
+        require_admin_api_key_scope "deletion_requests:read", only: %i[index show]
+        require_admin_api_key_scope "deletion_requests:write", only: %i[approve reject]
         before_action :require_superadmin
         before_action :set_deletion_request, only: [ :show, :approve, :reject ]
 

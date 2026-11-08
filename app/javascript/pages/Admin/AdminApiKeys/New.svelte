@@ -3,7 +3,15 @@
   import Button from "../../../components/Button.svelte";
   import TextInput from "../../../components/TextInput.svelte";
   import { adminAdminApiKeys } from "../../../api";
-  let { errors }: { errors: string[] } = $props();
+  let {
+    errors,
+    available_scopes,
+    selected_scopes,
+  }: {
+    errors: string[];
+    available_scopes: { scope: string; description: string }[];
+    selected_scopes: string[];
+  } = $props();
 </script>
 
 <svelte:head><title>New admin API key · Admin | Hackatime</title></svelte:head>
@@ -47,6 +55,37 @@
           class="w-full px-3 py-2 bg-darkless rounded text-surface-content focus:border-primary focus:ring-1 focus:ring-primary"
         />
       </div>
+      <fieldset>
+        <legend class="block text-md font-medium text-surface-content mb-1">
+          Scopes
+        </legend>
+        <p class="text-sm text-muted mb-3">
+          only tick what you actually need. the key still cant do anything your
+          admin level cant
+        </p>
+        <input type="hidden" name="admin_api_key[scopes][]" value="" />
+        <div class="space-y-2">
+          {#each available_scopes as { scope, description }}
+            <label
+              for={`scope_${scope}`}
+              class="flex items-start gap-3 rounded-lg bg-darkless p-3 cursor-pointer"
+            >
+              <input
+                id={`scope_${scope}`}
+                type="checkbox"
+                name="admin_api_key[scopes][]"
+                value={scope}
+                checked={selected_scopes.includes(scope)}
+                class="mt-1 h-4 w-4 rounded border-surface-300 bg-darker text-primary"
+              />
+              <span>
+                <code class="text-sm text-surface-content">{scope}</code>
+                <span class="mt-1 block text-xs text-muted">{description}</span>
+              </span>
+            </label>
+          {/each}
+        </div>
+      </fieldset>
       <div class="bg-yellow/30 border border-yellow/50 rounded-lg p-4">
         <h3 class="text-yellow font-medium mb-2">
           keep in mind this gives admin access, so dont go sharing it with your

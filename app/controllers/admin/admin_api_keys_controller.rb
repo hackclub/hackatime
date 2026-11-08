@@ -50,11 +50,16 @@ class Admin::AdminApiKeysController < Admin::BaseController
   def inertia_layout_props = super.merge(full_width: true)
 
   def render_new(status: :ok)
-    render inertia: "Admin/AdminApiKeys/New", props: { errors: @admin_api_key.errors.full_messages }, status: status
+    render inertia: "Admin/AdminApiKeys/New", props: {
+      errors: @admin_api_key.errors.full_messages,
+      available_scopes: AdminApiKey::SCOPES.map { |scope, description| { scope:, description: } },
+      selected_scopes: @admin_api_key.scopes
+    }, status: status
   end
 
   def serialize_key(key, created_at:, token: nil)
     { id: key.id, name: key.name, token_preview: "#{key.token_preview}...", token: token, created_at: created_at,
+      active: key.active?, scopes: key.scopes, all_scopes: (AdminApiKey::SCOPES.keys - key.scopes).empty?, expires_at: key.expires_at&.in_time_zone&.strftime("%b %d, %Y at %I:%M %p %Z"),
       last_used_at: key.last_used_at&.in_time_zone&.strftime("%b %d, %Y at %I:%M %p %Z"),
       user: { id: key.user.id, display_name: key.user.display_name, avatar_url: key.user.avatar_url } }
   end
@@ -71,6 +76,6 @@ class Admin::AdminApiKeysController < Admin::BaseController
   end
 
   def admin_api_key_params
-    params.require(:admin_api_key).permit(:name)
+    params.require(:admin_api_key).permit(:name, scopes: [])
   end
 end

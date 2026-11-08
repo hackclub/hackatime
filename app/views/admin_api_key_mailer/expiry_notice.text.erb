@@ -1,0 +1,14 @@
+Hackatime: Your admin API <%= "key".pluralize(@keys.size) %> will be revoked
+=========================================================
+
+Hi <%= @user.display_name %>,
+
+Hackatime admin API keys now have scopes, so each key only gets access to the endpoints it needs. Your existing <%= "key".pluralize(@keys.size) %> still <%= @keys.size == 1 ? "has" : "have" %> every scope for now, but will be revoked automatically:
+
+<% @keys.each do |key| -%>
+- <%= key.name %> (<%= key.token_preview %>...) on <%= key.expires_at.in_time_zone(@zone).strftime("%-d %B %Y at %H:%M %Z") %>
+<% end -%>
+
+Before then, create a new key with only the scopes you need and switch your tools over to it:
+
+<%= new_admin_admin_api_key_url %>

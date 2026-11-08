@@ -103,12 +103,13 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  def authenticate_admin_api_key!(message: "Unauthorized")
+  def authenticate_admin_api_key!(scope:, message: "Unauthorized")
     authorization = request.headers["Authorization"]
     if authorization&.match?(/\ABearer +\S+\z/i)
       scheme, header_token = authorization_credentials
-      if bearer_scheme?(scheme)
-        return if auth_admin_api_key(header_token)
+      if bearer_scheme?(scheme) && auth_admin_api_key(header_token)
+        return if @admin_api_key.scope?(scope)
+        return render_forbidden("This admin API key is missing the #{scope} scope")
       end
     end
 

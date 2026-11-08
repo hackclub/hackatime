@@ -4,6 +4,10 @@ module Api
       class AdminController < Api::Admin::V1::ApplicationController
         include Api::Admin::V1::UserUtilities
 
+        skip_before_action :authorize_admin_api_key_scope!, only: :check
+        require_admin_api_key_scope "users:read", only: %i[banned_users active_users audit_logs_counts]
+        require_admin_api_key_scope "heartbeats:read", only: %i[visualization_quantized alt_candidates heartbeats_by_user_agent_segment]
+
         def check
           u = current_user
           body = {
@@ -18,7 +22,7 @@ module Api
 
           if (k = current_admin_api_key)
             body[:auth] = { type: "api_key" }
-            body[:api_key] = { id: k.id, name: k.name, created_at: k.created_at }
+            body[:api_key] = { id: k.id, name: k.name, scopes: k.scopes, created_at: k.created_at, expires_at: k.expires_at }
           elsif (t = current_oauth_token)
             a = t.application
             body[:auth] = {

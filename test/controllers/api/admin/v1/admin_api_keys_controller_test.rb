@@ -79,6 +79,73 @@ class Api::Admin::V1::AdminApiKeysControllerTest < ActionDispatch::IntegrationTe
     assert_predicate key.reload, :active?
   end
 
+  test "keys can only call endpoints their scopes allow" do
+    admin = create(:user, :superadmin)
+    target = create(:user)
+    key = create(:admin_api_key, user: admin, scopes: %w[users:read])
+
+    get "/api/admin/v1/user/info", params: { id: target.id }, headers: auth_headers(key)
+    assert_response :success
+
+    get "/api/admin/v1/user/heartbeats", params: { id: target.id }, headers: auth_headers(key)
+    assert_response :forbidden
+    assert_equal "This admin API key is missing the heartbeats:read scope", response.parsed_body["error"]
+
+    post "/api/admin/v1/user/convict", params: { id: target.id, trust_level: "red", reason: "x" }, headers: auth_headers(key)
+    assert_response :forbidden
+    assert_predicate target.reload, :blue?
+
+    get "/api/admin/v1/check", headers: auth_headers(key)
+    assert_response :success
+
+    bans_key = create(:admin_api_key, user: admin, scopes: %w[bans:read])
+    get "/api/v1/users/lookup_slack_uid/U123", headers: { "Authorization" => "Bearer #{bans_key.token}" }
+    assert_response :forbidden
+    assert_equal "This admin API key is missing the users:read scope", response.parsed_body["error"]
+  end
+
+  test "every admin API action declares the scope a key needs" do
+    routes = Rails.application.routes.routes.filter_map do |route|
+      next unless route.path.spec.to_s.start_with?("/api/admin/v1/")
+      [ route.defaults[:controller], route.defaults[:action] ]
+    end.uniq
+    assert_operator routes.size, :>, 30
+
+    unscoped = routes.reject do |controller, action|
+      next true if [ controller, action ] == %w[api/admin/v1/admin check]
+      scope = "#{controller}_controller".camelize.constantize.admin_api_key_scope_for(action)
+      scope.in?(AdminApiKey::SCOPES.keys)
+    end
+    assert_empty unscoped
+  end
+
+  test "keys can't create keys with scopes they lack" do
+    admin = create(:user, :admin)
+    key = create(:admin_api_key, user: admin, scopes: %w[admin_api_keys:write users:read])
+
+    assert_no_difference -> { AdminApiKey.count } do
+      post "/api/admin/v1/admin_api_keys", params: { name: "Escalated", scopes: %w[users:read users:write] }, headers: auth_headers(key), as: :json
+    end
+    assert_response :forbidden
+
+    post "/api/admin/v1/admin_api_keys", params: { name: "Narrower", scopes: %w[users:read] }, headers: auth_headers(key), as: :json
+    assert_response :created
+    assert_equal %w[users:read], response.parsed_body.dig("admin_api_key", "scopes")
+    assert_equal %w[users:read], admin.admin_api_keys.find_by!(name: "Narrower").scopes
+  end
+
+  test "expired keys stop authenticating" do
+    key = create(:admin_api_key, user: create(:user, :admin), expires_at: 1.day.from_now)
+
+    get "/api/admin/v1/check", headers: auth_headers(key)
+    assert_response :success
+
+    travel 1.day + 1.second do
+      get "/api/admin/v1/check", headers: auth_headers(key)
+      assert_response :unauthorized
+    end
+  end
+
   private
 
   def auth_headers(key)

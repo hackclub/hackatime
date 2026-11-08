@@ -23,6 +23,9 @@ module Api
         }.freeze
 
         included do
+          require_admin_api_key_scope "users:read", only: %i[get_user_by_email search_users_fuzzy user_info user_info_batch user_projects trust_logs]
+          require_admin_api_key_scope "heartbeats:read", only: %i[get_users_by_ip get_users_by_machine user_stats user_heartbeats user_heartbeat_values]
+          require_admin_api_key_scope "users:write", only: :user_convict
           before_action :can_write!, only: [ :user_convict ]
         end
 
