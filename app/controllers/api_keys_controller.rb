@@ -4,7 +4,7 @@ class ApiKeysController < InertiaController
   before_action :authenticate_user!
 
   def show
-    api_key = current_user.api_keys.first || current_user.api_keys.create!(name: "Hackatime key")
+    api_key = current_user.hackatime_api_key(create_if_missing: true)
 
     render inertia: "ApiKey/Show", props: {
       api_key: api_key.token

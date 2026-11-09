@@ -9,7 +9,7 @@ module Api
         private
 
         def api_key
-          @api_key ||= current_user.api_keys.first || current_user.api_keys.create!
+          @api_key ||= current_user.hackatime_api_key(create_if_missing: true)
         end
       end
     end
