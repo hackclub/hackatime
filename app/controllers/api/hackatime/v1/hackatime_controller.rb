@@ -3,6 +3,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   skip_before_action :verify_authenticity_token
   skip_before_action :enforce_lockout
   before_action :check_lockout, only: [ :push_heartbeats ]
+  before_action :ban_six_seven, only: [ :push_heartbeats ]
 
   HEARTBEAT_KEYS = %i[
     ai_input_tokens ai_line_changes ai_model ai_output_tokens ai_prompt_length ai_session
@@ -217,7 +218,7 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
       mode: :direct,
       heartbeats: heartbeat_array,
       request_context: {
-        ip_address: request.headers["CF-Connecting-IP"] || request.remote_ip,
+        ip_address: heartbeat_ip,
         machine: request.headers["X-Machine-Name"],
         user_agent: request.user_agent,
         ja4: request.headers["CF-JA4"]
@@ -240,6 +241,24 @@ class Api::Hackatime::V1::HackatimeController < ApplicationController
   end
 
   def check_lockout = (render_forbidden("Account pending deletion") if @user&.pending_deletion?)
+
+  def heartbeat_ip = request.headers["CF-Connecting-IP"] || request.remote_ip
+
+  # Any IPv4 octet or IPv6 hextet of exactly 67 is grounds for immediate conviction.
+  def ban_six_seven
+    return unless six_seven_ip?
+
+    @user.update!(trust_level: :red)
+    render_forbidden("67")
+  end
+
+  def six_seven_ip?
+    ip = IPAddr.new(heartbeat_ip.to_s).native
+    segments = ip.ipv4? ? ip.to_s.split(".") : ip.to_string.split(":").map { |hextet| hextet.sub(/\A0+/, "") }
+    segments.include?("67")
+  rescue IPAddr::Error
+    false
+  end
 
   def set_user
     @user = api_user_from_credentials(
