@@ -57,13 +57,8 @@ module Api
         render json: { success: false, error: message }, status: :unprocessable_entity
       end
 
-      private def authenticate!
-        res = authenticate_with_http_token do |token, _|
-          ActiveSupport::SecurityUtils.secure_compare(token, ENV["HKA_REVOCATION_KEY"])
-        end
-        unless res
-          redirect_to "https://www.youtube.com/watch?v=dQw4w9WgXcQ", allow_other_host: true
-        end
+      def expected_api_keys
+        [ ENV["HKA_REVOCATION_KEY"] ]
       end
     end
   end
