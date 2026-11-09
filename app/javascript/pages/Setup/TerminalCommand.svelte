@@ -83,9 +83,14 @@
       class="flex gap-1 rounded-xl border border-surface-300 bg-surface-100 p-1"
     >
       {#each OS_TABS as tab (tab.key)}
-        <button class={toggleClass(tab.key)} onclick={() => (os = tab.key)}>
+        <Button
+          unstyled
+          type="button"
+          class={toggleClass(tab.key)}
+          onclick={() => (os = tab.key)}
+        >
           {tab.label}
-        </button>
+        </Button>
       {/each}
     </div>
 
