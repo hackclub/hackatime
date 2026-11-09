@@ -22,6 +22,7 @@
     repoUrlError,
     repoUrlDraft = $bindable(""),
     onCancelEdit,
+    highlightQuery = "",
   }: {
     project: ProjectCard;
     showArchived: boolean;
@@ -33,6 +34,7 @@
     repoUrlError?: string;
     repoUrlDraft?: string;
     onCancelEdit: () => void;
+    highlightQuery?: string;
   } = $props();
 
   const key = $derived(project.url_safe ? project.project_key : null);
@@ -52,6 +54,43 @@
       ? `${showPath}${intervalQueryString ? `?${intervalQueryString}` : ""}`
       : null,
   );
+  const highlightedNameParts = $derived.by(() => {
+    const query = highlightQuery.trim();
+    if (!query) return [{ text: project.name, highlighted: false }];
+
+    const parts: { text: string; highlighted: boolean }[] = [];
+    const normalizedName = project.name.toLocaleLowerCase();
+    const normalizedQuery = query.toLocaleLowerCase();
+    let cursor = 0;
+    let matchStart = normalizedName.indexOf(normalizedQuery);
+
+    while (matchStart >= 0) {
+      if (matchStart > cursor) {
+        parts.push({
+          text: project.name.slice(cursor, matchStart),
+          highlighted: false,
+        });
+      }
+      const matchEnd = matchStart + query.length;
+      parts.push({
+        text: project.name.slice(matchStart, matchEnd),
+        highlighted: true,
+      });
+      cursor = matchEnd;
+      matchStart = normalizedName.indexOf(normalizedQuery, cursor);
+    }
+
+    if (cursor < project.name.length) {
+      parts.push({
+        text: project.name.slice(cursor),
+        highlighted: false,
+      });
+    }
+
+    return parts.length > 0
+      ? parts
+      : [{ text: project.name, highlighted: false }];
+  });
 
   const actionClass =
     "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-surface-200/60 bg-surface-content/5 text-surface-content/70 shadow-sm transition-colors duration-200 ease-out hover:bg-surface-content/10 hover:text-surface-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 cursor-pointer";
@@ -77,7 +116,15 @@
         class="min-w-0 flex-1 truncate text-xl font-bold tracking-tight text-surface-content"
         title={project.name}
       >
-        {project.name}
+        {#each highlightedNameParts as part}
+          {#if part.highlighted}
+            <mark class="rounded-sm bg-yellow px-0.5 text-black"
+              >{part.text}</mark
+            >
+          {:else}
+            {part.text}
+          {/if}
+        {/each}
       </h3>
       <p class="shrink-0 text-lg font-semibold tabular-nums text-primary/80">
         {project.duration_label}

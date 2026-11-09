@@ -51,6 +51,32 @@ class ProjectsTest < ApplicationSystemTestCase
     assert_no_text "recent-project"
   end
 
+  test "finds projects with the browser find shortcut" do
+    create_project_heartbeats(@user, "alpha-project", started_at: 2.days.ago.noon)
+    create_project_heartbeats(@user, "beta-project", started_at: 2.days.ago.change(hour: 14))
+    DashboardRollupRefreshService.new(user: @user).call
+
+    visit my_projects_path
+    assert_text "alpha-project"
+    assert_text "beta-project"
+    assert_selector "#project-filter[placeholder='Search projects']"
+
+    page.driver.browser.action.key_down(:control).send_keys("f").key_up(:control).perform
+
+    assert_selector "[role='search'][aria-label='Find projects']"
+    fill_in "Find projects", with: "alpha"
+    assert_text "1/1"
+    assert_text "alpha-project"
+    assert_selector "mark.bg-yellow", text: "alpha"
+    assert_no_text "beta-project"
+
+    find("#project-search").send_keys(:escape)
+
+    assert_no_selector "[role='search'][aria-label='Find projects']"
+    assert_text "alpha-project"
+    assert_text "beta-project"
+  end
+
   test "opens projects whose names contain reserved URL characters" do
     project_name = "folder/café ?# 100%25"
     create_project_heartbeats(@user, project_name, started_at: 2.days.ago.noon)
