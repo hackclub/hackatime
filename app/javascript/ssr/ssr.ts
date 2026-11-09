@@ -1,4 +1,3 @@
-import "@fontsource-variable/spline-sans";
 import { createInertiaApp, type ResolvedComponent } from "@inertiajs/svelte";
 import { compileSheet } from "beasties/compiler";
 import { createProcessor } from "beasties/runtime";
