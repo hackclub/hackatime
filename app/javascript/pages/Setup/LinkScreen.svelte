@@ -3,7 +3,6 @@
   import ScreenHeader from "./components/ScreenHeader.svelte";
 
   interface Props {
-    emoji: string;
     title: string;
     subtitle: string;
     lead: string;
@@ -16,7 +15,6 @@
   }
 
   let {
-    emoji,
     title,
     subtitle,
     lead,
@@ -30,7 +28,7 @@
 </script>
 
 <div class="space-y-8 sm:space-y-10">
-  <ScreenHeader {emoji} {title} {subtitle} />
+  <ScreenHeader {title} {subtitle} />
 
   <div class="text-center">
     <p class="text-base font-semibold sm:text-lg">{lead}</p>
