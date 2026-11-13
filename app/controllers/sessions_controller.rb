@@ -3,14 +3,20 @@ class SessionsController < ApplicationController
     session[:return_data] = build_return_data(params[:continue]) if params[:continue].present?
     Rails.logger.info("Sessions return data: #{session[:return_data]}")
     redirect_uri = url_for(action: :hca_create, only_path: false)
+    oauth_nonce = SecureRandom.hex(24)
+    session[:hca_oauth_state_nonce] = oauth_nonce
 
-    redirect_to User.hca_authorize_url(redirect_uri),
+    redirect_to User.hca_authorize_url(redirect_uri, state: oauth_nonce),
       host: "https://auth.hackclub.com",
       allow_other_host: "https://auth.hackclub.com"
   end
 
   def hca_create
     return if handle_oauth_error("HCA", redirect_path: root_path, alert_label: "Hack Club Auth")
+
+    unless valid_oauth_state?(provider: "HCA", session_key: :hca_oauth_state_nonce, received_nonce: params[:state])
+      return redirect_to(root_path, alert: "This sign-in attempt is no longer valid. Please try signing in again.")
+    end
 
     redirect_uri = url_for(action: :hca_create, only_path: false)
     @user = User.from_hca_token(params[:code], redirect_uri, client_ip)
@@ -32,6 +38,12 @@ class SessionsController < ApplicationController
     else
       redirect_to root_path, alert: "Failed to authenticate with Hack Club Auth!"
     end
+  rescue OauthAuthentication::HCAIdentityConflictError => e
+    report_error(e, message: "HCA sign-in refused: #{e.message}")
+    redirect_to root_path, alert: "This Hack Club account's email or Slack is already on a Hackatime account that uses a different Hack Club account. Sign in with that one, or ask us for help."
+  rescue HTTP::Error, JSON::ParserError => e
+    report_error(e, message: "HCA sign-in failed")
+    redirect_to root_path, alert: "Hack Club Auth sign-in failed. Please try again."
   end
 
   def slack_new

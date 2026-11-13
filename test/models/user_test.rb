@@ -245,6 +245,64 @@ class UserTest < ActiveSupport::TestCase
     assert_nil user.reload.slack_uid
   end
 
+  test "HCA authentication links an unlinked account by email regardless of case" do
+    user = create(:user)
+    create(:email_address, user: user, email: "mixed-case@example.com")
+    stub_hca_identity(id: "hca-mixed", primary_email: "Mixed-Case@Example.com")
+
+    assert_no_difference "User.count" do
+      assert_equal user, User.from_hca_token("code", "https://example.com/auth/hca/callback")
+    end
+    assert_equal "hca-mixed", user.reload.hca_id
+  end
+
+  test "HCA authentication refuses an email that belongs to another identity's account" do
+    user = create(:user, hca_id: "hca-original")
+    create(:email_address, user: user, email: "shared@example.com")
+    stub_hca_identity(id: "hca-other", primary_email: "shared@example.com")
+
+    assert_no_difference "User.count" do
+      assert_raises(OauthAuthentication::HCAIdentityConflictError) do
+        User.from_hca_token("code", "https://example.com/auth/hca/callback")
+      end
+    end
+    assert_equal "hca-original", user.reload.hca_id
+  end
+
+  test "HCA authentication refuses a Slack ID that belongs to another identity's account" do
+    user = create(:user, hca_id: "hca-original", slack_uid: "U_SHARED")
+    stub_hca_identity(id: "hca-other", slack_id: "U_SHARED", primary_email: "fresh@example.com")
+
+    assert_no_difference [ "User.count", "EmailAddress.count" ] do
+      assert_raises(OauthAuthentication::HCAIdentityConflictError) do
+        User.from_hca_token("code", "https://example.com/auth/hca/callback")
+      end
+    end
+    assert_equal "hca-original", user.reload.hca_id
+  end
+
+  test "HCA authentication prefers an unlinked email match over a Slack ID on another identity's account" do
+    create(:user, hca_id: "hca-original", slack_uid: "U_SHARED")
+    unlinked = create(:user)
+    create(:email_address, user: unlinked, email: "unlinked@example.com")
+    stub_hca_identity(id: "hca-other", slack_id: "U_SHARED", primary_email: "unlinked@example.com")
+
+    assert_equal unlinked, User.from_hca_token("code", "https://example.com/auth/hca/callback")
+    assert_equal "hca-other", unlinked.reload.hca_id
+    assert_nil unlinked.slack_uid
+  end
+
+  test "HCA authentication does not reuse the previous sign-in when an identity has no ID" do
+    previous = create(:user, hca_id: "hca-previous")
+    stub_hca_identity(id: "hca-previous")
+    assert_equal previous, User.from_hca_token("code", "https://example.com/auth/hca/callback")
+
+    stub_hca_identity(id: nil)
+
+    assert_nil User.from_hca_token("code", "https://example.com/auth/hca/callback")
+    assert_equal "hca-previous", previous.reload.hca_id
+  end
+
   test "creating a user with an email address queues a welcome email" do
     email = "welcome-#{SecureRandom.hex(4)}@example.com"
 
@@ -388,6 +446,14 @@ class UserTest < ActiveSupport::TestCase
   end
 
   private
+
+  def stub_hca_identity(identity)
+    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
+      .with(headers: { "Authorization" => "Bearer hca-token" })
+      .to_return(body: { identity: identity, scopes: %w[email slack_id] }.to_json)
+  end
 
   def with_memory_cache_store
     original_cache = Rails.cache
