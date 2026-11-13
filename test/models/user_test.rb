@@ -557,7 +557,7 @@ class UserHCASignInConcurrencyTest < ActiveSupport::TestCase
 
   test "an account another identity claims during sign-in is not linked to a second identity" do
     email = "overlap-#{@suffix}@example.com"
-    @users << (user = create(:user))
+    @users << (user = create(:user, :unlinked))
     create(:email_address, user: user, email: email)
     stub_hca_identity(id: "hca-second-#{@suffix}", primary_email: email)
 

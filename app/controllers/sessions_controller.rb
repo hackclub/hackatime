@@ -15,10 +15,10 @@ class SessionsController < ApplicationController
   end
 
   def hca_create
-    return if handle_oauth_error("HCA", redirect_path: root_path, alert_label: "Hack Club Auth")
+    return if handle_oauth_error("HCA", redirect_path: hca_failure_path, alert_label: "Hack Club Auth")
 
     unless valid_oauth_state?(provider: "HCA", session_key: :hca_oauth_state_nonce, received_nonce: params[:state])
-      return redirect_to(root_path, alert: "This sign-in attempt is no longer valid. Please try signing in again.")
+      return redirect_to(hca_failure_path, alert: "This sign-in attempt is no longer valid. Please try signing in again.")
     end
 
     redirect_uri = url_for(action: :hca_create, only_path: false)
@@ -48,7 +48,7 @@ class SessionsController < ApplicationController
     redirect_to root_path, alert: "This Hack Club account's email or Slack is already on a Hackatime account that uses a different Hack Club account. Sign in with that one, or ask us for help."
   rescue HTTP::Error, JSON::ParserError => e
     report_error(e, message: "HCA sign-in failed")
-    redirect_to root_path, alert: "Hack Club Auth sign-in failed. Please try again."
+    redirect_to hca_failure_path, alert: "Hack Club Auth sign-in failed. Please try again."
   end
 
   def slack_new
@@ -299,20 +299,28 @@ class SessionsController < ApplicationController
   # A signed-in account with no HCA identity gains one instead of signing in again.
   def linking_hca_identity? = current_user.present? && current_user.hca_id.nil?
 
+  # A failed link goes back to where the account was heading, so a retry from
+  # the link page (InertiaController#require_hca_link) still ends up there.
+  def hca_failure_path
+    return root_path unless linking_hca_identity?
+
+    session.dig(:return_data, "url") || root_path
+  end
+
   def link_hca_identity(redirect_uri)
     if session[:impersonater_user_id].present?
       return redirect_to(root_path, alert: "You can't link a Hack Club account while impersonating someone.")
     end
 
     access_token, hca_data = User.hca_identity_from_code(params[:code], redirect_uri)
-    return redirect_to(root_path, alert: "Failed to authenticate with Hack Club Auth!") if hca_data.nil?
+    return redirect_to(hca_failure_path, alert: "Failed to authenticate with Hack Club Auth!") if hca_data.nil?
 
     current_user.link_hca_identity!(access_token, hca_data, ip_address: client_ip)
     redirect_to session[:return_data]&.delete("url") || root_path,
       notice: "Hack Club account linked! Use it to sign in from now on."
   rescue OauthAuthentication::HCAIdentityConflictError => e
     report_error(e, message: "HCA link refused: #{e.message}")
-    redirect_to root_path, alert: "That Hack Club account already has its own Hackatime account. Sign out and sign in with Hack Club to use it, or ask in #hackatime-help on Slack if you need this one instead."
+    redirect_to hca_failure_path, alert: "That Hack Club account already has its own Hackatime account. Sign out and sign in with Hack Club to use it, or ask in #hackatime-help on Slack if you need this one instead."
   end
 
   def parse_slack_state(raw_state)

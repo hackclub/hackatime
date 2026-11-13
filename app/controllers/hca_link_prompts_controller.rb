@@ -34,6 +34,6 @@ class HCALinkPromptsController < InertiaController
   def require_unlinked_user
     return redirect_to(signin_path(continue: continue_url)) unless current_user
 
-    redirect_to(continue_url || root_path) if current_user.hca_id.present?
+    redirect_to(continue_url || root_path) if current_user.hca_id.present? # codeql[rb/url-redirection]
   end
 end

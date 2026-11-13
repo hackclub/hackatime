@@ -32,6 +32,9 @@ class HCALinkPromptsControllerTest < ActionDispatch::IntegrationTest
 
       get hca_link_prompt_path(continue: "/my/settings")
       assert_redirected_to "/my/settings"
+
+      get hca_link_prompt_path(continue: "https://evil.example.com/phish")
+      assert_redirected_to root_path
     end
   end
 
@@ -101,18 +104,23 @@ class HCALinkPromptsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "a refused link shows its reason on the link page" do
+  test "a failed link returns to the link page with its reason and the same destination" do
     travel_to WEEK_TWO do
       holder = create(:user, hca_id: "hca-held")
       create(:heartbeat, user: holder)
       sign_in_as(create(:user, :unlinked))
       stub_hca_identity(id: "hca-held")
-      get hca_auth_path
+
+      get hca_auth_path(continue: "/my/settings")
+      get "/auth/hca/callback", params: { error: "access_denied" }
+      assert_redirected_to "/my/settings"
+
+      get hca_auth_path(continue: "/my/settings")
       get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
-      assert_redirected_to root_path
+      assert_redirected_to "/my/settings"
 
       follow_redirect!
-      assert_redirected_to hca_link_prompt_path(continue: "/")
+      assert_redirected_to hca_link_prompt_path(continue: "/my/settings")
       follow_redirect!
 
       messages = inertia.props.dig("layout", "nav", "flash").pluck("message")
