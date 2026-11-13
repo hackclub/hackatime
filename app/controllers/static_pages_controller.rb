@@ -74,6 +74,7 @@ class StaticPagesController < InertiaController
       trust_level_red: current_user&.trust_level == "red",
       show_wakatime_setup_notice: !!@show_wakatime_setup_notice,
       github_uid_blank: current_user&.github_uid.blank?,
+      hca_unlinked: current_user&.hca_id.nil?,
       dashboard_stats: dashboard_stats || InertiaRails.defer { dashboard_stats_payload }
     }
   end

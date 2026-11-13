@@ -5,17 +5,72 @@ module OauthAuthentication
   # The identity's Slack ID or email is on an account linked to another HCA identity.
   class HCAIdentityConflictError < StandardError; end
 
+  # Slack sign-in matched no account. Accounts are only created through HCA.
+  class SlackAccountNotFoundError < StandardError; end
+
+  # Attaches an HCA identity to this account. An identity that another account
+  # holds moves here only when that account is unused, and the unused account
+  # is then deleted. Raises HCAIdentityConflictError otherwise.
+  def link_hca_identity!(access_token, hca_data, ip_address: nil)
+    identity = hca_data["identity"]
+    new_hca_id = identity["id"]
+    slack_id = identity["slack_id"].presence
+    attrs = { hca_scopes: hca_data["scopes"], hca_id: new_hca_id, hca_access_token: access_token }
+    attrs[:country_code] = self.class.country_code_from_ip(ip_address) if country_code.blank?
+
+    with_lock do
+      # Another identity may have claimed this account since the caller looked it up.
+      unless hca_id.nil? || hca_id == new_hca_id
+        raise HCAIdentityConflictError, "HCA identity #{new_hca_id} matches User ##{id}, linked to another identity"
+      end
+
+      holder = self.class.lock.where.not(id:).find_by(hca_id: new_hca_id)
+      if holder
+        unless holder.unused?
+          raise HCAIdentityConflictError, "HCA identity #{new_hca_id} belongs to User ##{holder.id}, which is in use"
+        end
+
+        AnonymizeUserService.call(holder)
+      end
+
+      update!(attrs)
+    end
+
+    if slack_uid.blank? && slack_id
+      begin
+        update!(slack_uid: slack_id)
+      rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid => e
+        raise if e.is_a?(ActiveRecord::RecordInvalid) && !e.record.errors.of_kind?(:slack_uid, :taken)
+
+        reload
+        report_message("HCA identity's Slack ID belongs to another account", level: :warn, extra: { user_id: id })
+      end
+    end
+    SlackProfileSyncJob.perform_later(id) if slack_uid.present?
+    self
+  end
+
+  # Nobody has tracked time, built on or been given privileges through this
+  # account, so nothing is lost when its identity moves to another account.
+  def unused?
+    admin_level_default? &&
+      !Heartbeat.with_excluded.with_deleted.exists?(user_id: id) &&
+      heartbeat_import_runs.none? &&
+      oauth_applications.none?
+  end
+
   class_methods do
     include ErrorReporting
 
-    def hca_authorize_url(redirect_uri, state: nil, prompt: nil, scope: "email slack_id verification_status")
+    def hca_authorize_url(redirect_uri, state: nil, prompt: nil, login_hint: nil, scope: "email slack_id verification_status")
       URI.parse("#{HCAService.host}/oauth/authorize?#{{
         redirect_uri:,
         client_id: ENV["HCA_CLIENT_ID"],
         response_type: "code",
         scope:,
         state:,
-        prompt:
+        prompt:,
+        login_hint:
       }.compact.to_query}")
     end
 
@@ -83,27 +138,7 @@ module OauthAuthentication
       end
 
       if user
-        attrs = { hca_scopes: hca_data["scopes"], hca_id:, hca_access_token: access_token }
-        attrs[:country_code] = country_code_from_ip(ip_address) if user.country_code.blank?
-        user.with_lock do
-          # Another identity may have claimed this account since the lookup above.
-          unless user.hca_id.nil? || user.hca_id == hca_id
-            raise HCAIdentityConflictError, "HCA identity #{hca_id} matches User ##{user.id}, linked to another identity"
-          end
-
-          user.update!(attrs)
-        end
-
-        if user.slack_uid.blank? && slack_id
-          begin
-            user.update!(slack_uid: slack_id)
-          rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid => e
-            raise if e.is_a?(ActiveRecord::RecordInvalid) && !e.record.errors.of_kind?(:slack_uid, :taken)
-
-            user.reload
-            report_message("HCA identity's Slack ID belongs to another account", level: :warn, extra: { user_id: user.id })
-          end
-        end
+        user.link_hca_identity!(access_token, hca_data, ip_address:)
       else
         country_code = country_code_from_ip(ip_address)
         begin
@@ -119,8 +154,8 @@ module OauthAuthentication
           user = find_by(hca_id:)
           raise if user.nil?
         end
+        SlackProfileSyncJob.perform_later(user.id) if user.slack_uid.present?
       end
-      SlackProfileSyncJob.perform_later(user.id) if user.slack_uid.present?
       user
     end
 
@@ -140,9 +175,10 @@ module OauthAuthentication
       slack_user = user_data["user"] || {}
       email = (slack_user["profile"] || {})["email"]&.downcase
       email_address = EmailAddress.find_or_initialize_by(email: email)
-      user = email_address.user || User.find_or_initialize_by(slack_uid: data.dig("authed_user", "id")).tap do |u|
+      user = email_address.user || User.find_by(slack_uid: data.dig("authed_user", "id"))&.tap do |u|
         u.email_addresses << email_address unless u.email_addresses.include?(email_address)
       end
+      raise SlackAccountNotFoundError if user.nil?
 
       user.email_addresses.source_slack.where.not(email: email).update_all(source: :signing_in)
       email_address.source = :slack
@@ -156,6 +192,8 @@ module OauthAuthentication
       user.country_code = country_code_from_ip(ip_address) if user.country_code.blank?
       user.save!
       user
+    rescue SlackAccountNotFoundError
+      raise
     rescue => e
       report_error(e, message: "Error creating user from Slack data: #{e.message}")
       nil

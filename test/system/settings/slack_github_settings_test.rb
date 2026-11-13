@@ -13,9 +13,11 @@ class SlackGithubSettingsTest < ApplicationSystemTestCase
     assert_settings_page(
       path: my_settings_slack_github_path,
       marker_text: "Slack Status Sync",
-      card_count: 3
+      card_count: 4
     )
 
+    assert_text "Hack Club Account"
+    assert_link "Link Hack Club account"
     assert_text "Slack Channel Notifications"
     assert_text "Connected GitHub Account"
   end

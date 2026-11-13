@@ -6,7 +6,10 @@ class SessionsController < ApplicationController
     oauth_nonce = SecureRandom.hex(24)
     session[:hca_oauth_state_nonce] = oauth_nonce
 
-    redirect_to User.hca_authorize_url(redirect_uri, state: oauth_nonce),
+    # Linking an account: offer its email to HCA so the user lands on the matching identity.
+    login_hint = current_user.email_addresses.order(:id).pick(:email) if linking_hca_identity?
+
+    redirect_to User.hca_authorize_url(redirect_uri, state: oauth_nonce, login_hint:),
       host: "https://auth.hackclub.com",
       allow_other_host: "https://auth.hackclub.com"
   end
@@ -19,6 +22,8 @@ class SessionsController < ApplicationController
     end
 
     redirect_uri = url_for(action: :hca_create, only_path: false)
+    return link_hca_identity(redirect_uri) if linking_hca_identity?
+
     @user = User.from_hca_token(params[:code], redirect_uri, client_ip)
 
     if @user&.persisted?
@@ -94,6 +99,8 @@ class SessionsController < ApplicationController
       report_message("Failed to create/update user from Slack data")
       redirect_to root_path, alert: "Failed to sign in with Slack"
     end
+  rescue OauthAuthentication::SlackAccountNotFoundError
+    redirect_to root_path, alert: "No Hackatime account uses that Slack account. Sign in with Hack Club to create one."
   end
 
   def close_window = render(inertia: "Auth/CloseWindow", layout: "inertia")
@@ -142,15 +149,15 @@ class SessionsController < ApplicationController
     continue_param = params[:continue]
 
     if Rails.env.production?
-      HandleEmailSigninJob.perform_later(email, continue_param, client_ip)
-    else
-      token = HandleEmailSigninJob.perform_now(email, continue_param, client_ip)
+      HandleEmailSigninJob.perform_later(email, continue_param)
+    elsif (token = HandleEmailSigninJob.perform_now(email, continue_param))
       public_url = ENV["PUBLIC_URL"].presence || root_url
       session[:dev_magic_link] = URI.join(public_url, auth_token_path(token)).to_s
     end
 
+    # The same answer whether or not the email has an account, so it can't be used to look emails up.
     redirect_path = params[:redirect_to] == "signin" ? signin_path(sign_in_email: true) : root_path(sign_in_email: true)
-    redirect_to redirect_path, notice: "Check your email for a sign-in link!"
+    redirect_to redirect_path, notice: "If that email has a Hackatime account, we've sent it a sign-in link!"
   end
 
   def add_email
@@ -282,6 +289,25 @@ class SessionsController < ApplicationController
   private
 
   def client_ip = request.headers["CF-Connecting-IP"].presence || request.remote_ip
+
+  # A signed-in account with no HCA identity gains one instead of signing in again.
+  def linking_hca_identity? = current_user.present? && current_user.hca_id.nil?
+
+  def link_hca_identity(redirect_uri)
+    if session[:impersonater_user_id].present?
+      return redirect_to(root_path, alert: "You can't link a Hack Club account while impersonating someone.")
+    end
+
+    access_token, hca_data = User.hca_identity_from_code(params[:code], redirect_uri)
+    return redirect_to(root_path, alert: "Failed to authenticate with Hack Club Auth!") if hca_data.nil?
+
+    current_user.link_hca_identity!(access_token, hca_data, ip_address: client_ip)
+    redirect_to session[:return_data]&.delete("url") || root_path,
+      notice: "Hack Club account linked! Use it to sign in from now on."
+  rescue OauthAuthentication::HCAIdentityConflictError => e
+    report_error(e, message: "HCA link refused: #{e.message}")
+    redirect_to root_path, alert: "That Hack Club account already has its own Hackatime account, so we couldn't link it to this one. Ask in #hackatime-help on Slack and we'll sort it out."
+  end
 
   def parse_slack_state(raw_state)
     JSON.parse(raw_state)
