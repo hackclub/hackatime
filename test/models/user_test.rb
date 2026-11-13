@@ -346,7 +346,8 @@ class UserTest < ActiveSupport::TestCase
     assert_nil unused.hca_id
     assert_nil unused.slack_uid
     assert_equal "deleted_user_#{unused.id}", unused.username
-    assert unused.email_addresses.all?(&:source_preserved_for_deletion?)
+    assert_equal [ "moving@example.com" ], user.email_addresses.pluck(:email)
+    assert_empty unused.email_addresses
   end
 
   test "linking refuses an identity whose account is in use" do
@@ -355,7 +356,8 @@ class UserTest < ActiveSupport::TestCase
       "has deleted coding time" => ->(holder) { create(:heartbeat, user: holder).soft_delete },
       "owns an OAuth app" => ->(holder) { create(:oauth_application, owner: holder) },
       "is importing coding time" => ->(holder) { create(:heartbeat_import_run, user: holder, source_kind: :dev_upload, state: :queued, source_filename: "dev.json") },
-      "is an admin" => ->(holder) { holder.update!(admin_level: :admin) }
+      "is an admin" => ->(holder) { holder.update!(admin_level: :admin) },
+      "has a trust verdict" => ->(holder) { holder.update!(trust_level: :red) }
     }
 
     in_use.each_with_index do |(reason, use), index|

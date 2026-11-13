@@ -30,6 +30,9 @@ module OauthAuthentication
           raise HCAIdentityConflictError, "HCA identity #{new_hca_id} belongs to User ##{holder.id}, which is in use"
         end
 
+        # The emails follow the identity. Left behind, email and Slack sign-in
+        # would keep finding the deleted account.
+        holder.email_addresses.update_all(user_id: id)
         AnonymizeUserService.call(holder)
       end
 
@@ -50,10 +53,12 @@ module OauthAuthentication
     self
   end
 
-  # Nobody has tracked time, built on or been given privileges through this
-  # account, so nothing is lost when its identity moves to another account.
+  # Nobody has tracked time, built on, been given privileges through or been
+  # judged on this account, so nothing is lost when its identity moves to
+  # another account.
   def unused?
     admin_level_default? &&
+      blue? &&
       !Heartbeat.with_excluded.with_deleted.exists?(user_id: id) &&
       heartbeat_import_runs.none? &&
       oauth_applications.none?

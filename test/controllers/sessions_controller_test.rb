@@ -173,6 +173,25 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "hca-held", holder.reload.hca_id
   end
 
+  test "an identity moved off an unused account takes its email and Slack sign-in with it" do
+    user = create(:user)
+    create(:user, :with_email, email: "moving@example.com", hca_id: "hca-moving", slack_uid: "U_MOVING")
+    sign_in_as(user)
+    stub_hca_identity(id: "hca-moving", slack_id: "U_MOVING", primary_email: "moving@example.com")
+    get hca_auth_path
+    get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
+    assert_equal "hca-moving", user.reload.hca_id
+    reset!
+
+    post email_auth_path, params: { email: "moving@example.com" }
+    assert_equal user, SignInToken.last.user
+
+    stub_slack_identity(id: "U_MOVING", email: "moving@example.com")
+    get slack_auth_path
+    get "/auth/slack/callback", params: { code: "oauth-code", state: { token: session[:slack_oauth_state_nonce] }.to_json }
+    assert_equal user.id, session[:user_id]
+  end
+
   test "hca_create does not link an identity while impersonating" do
     admin = create(:user, :admin, hca_id: "hca-admin")
     target = create(:user)
