@@ -272,6 +272,15 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_nil session[:dev_magic_link]
   end
 
+  test "email auth sends a sign-in link for an email with no source" do
+    email = "no-source-#{SecureRandom.hex(4)}@example.com"
+    create(:email_address, user: create(:user), email: email, source: nil)
+
+    assert_difference "SignInToken.count", 1 do
+      post email_auth_path, params: { email: email }
+    end
+  end
+
   test "email auth uses the public URL for the development sign-in link" do
     original_public_url = ENV["PUBLIC_URL"]
     ENV["PUBLIC_URL"] = "https://hackatime.example.test/"
