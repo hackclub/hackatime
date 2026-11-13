@@ -1,13 +1,11 @@
 class HandleEmailSigninJob < ApplicationJob
   queue_as :latency_critical
 
-  def perform(email, continue_param = nil, ip_address = nil)
-    email_address = ActiveRecord::Base.transaction do
-      EmailAddress.find_by(email: email) || begin
-        user = User.create!(country_code: User.country_code_from_ip(ip_address))
-        user.email_addresses.create!(email: email, source: :signing_in)
-      end
-    end
+  # Accounts are only created through Hack Club Auth, so an unknown email gets
+  # nothing. Jobs queued before that change still pass an IP address.
+  def perform(email, continue_param = nil, _ip_address = nil)
+    email_address = EmailAddress.find_by(email: email)
+    return if email_address.nil?
 
     token = email_address.user.create_email_signin_token(continue_param: continue_param).token
     LoopsMailer.sign_in_email(email_address.email, token).deliver_now

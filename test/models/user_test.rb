@@ -11,8 +11,10 @@ module HCAIdentityStub
       .to_return(body: { access_token: "hca-token" }.to_json)
     stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
       .with(headers: { "Authorization" => "Bearer hca-token" })
-      .to_return(body: { identity: identity, scopes: %w[email slack_id] }.to_json)
+      .to_return(body: hca_me_response(identity).to_json)
   end
+
+  def hca_me_response(identity) = { "identity" => identity.stringify_keys, "scopes" => %w[email slack_id] }
 end
 
 class UserTest < ActiveSupport::TestCase
@@ -314,6 +316,71 @@ class UserTest < ActiveSupport::TestCase
 
     assert_nil User.from_hca_token("code", "https://example.com/auth/hca/callback")
     assert_equal "hca-previous", previous.reload.hca_id
+  end
+
+  test "linking an HCA identity attaches it and its Slack ID to an unlinked account" do
+    user = create(:user)
+
+    user.link_hca_identity!("hca-token", hca_me_response(id: "hca-new", slack_id: "U_LINKED"))
+
+    user.reload
+    assert_equal "hca-new", user.hca_id
+    assert_equal "hca-token", user.hca_access_token
+    assert_equal "U_LINKED", user.slack_uid
+  end
+
+  test "linking moves an identity off an unused account and deletes that account" do
+    user = create(:user)
+    create(:heartbeat, user: user)
+    unused = create(:user, hca_id: "hca-moving", slack_uid: "U_MOVING")
+    create(:email_address, user: unused, email: "moving@example.com")
+
+    assert_no_difference "User.count" do
+      user.link_hca_identity!("hca-token", hca_me_response(id: "hca-moving", slack_id: "U_MOVING"))
+    end
+
+    user.reload
+    assert_equal "hca-moving", user.hca_id
+    assert_equal "U_MOVING", user.slack_uid
+    unused.reload
+    assert_nil unused.hca_id
+    assert_nil unused.slack_uid
+    assert_equal "deleted_user_#{unused.id}", unused.username
+    assert_equal [ "moving@example.com" ], user.email_addresses.pluck(:email)
+    assert_empty unused.email_addresses
+  end
+
+  test "linking refuses an identity whose account is in use" do
+    in_use = {
+      "has coding time" => ->(holder) { create(:heartbeat, user: holder) },
+      "has deleted coding time" => ->(holder) { create(:heartbeat, user: holder).soft_delete },
+      "owns an OAuth app" => ->(holder) { create(:oauth_application, owner: holder) },
+      "is importing coding time" => ->(holder) { create(:heartbeat_import_run, user: holder, source_kind: :dev_upload, state: :queued, source_filename: "dev.json") },
+      "is an admin" => ->(holder) { holder.update!(admin_level: :admin) },
+      "has a trust verdict" => ->(holder) { holder.update!(trust_level: :red) }
+    }
+
+    in_use.each_with_index do |(reason, use), index|
+      user = create(:user)
+      holder = create(:user, hca_id: "hca-held-#{index}")
+      use.call(holder)
+
+      assert_raises(OauthAuthentication::HCAIdentityConflictError, reason) do
+        user.link_hca_identity!("hca-token", hca_me_response(id: "hca-held-#{index}"))
+      end
+      assert_nil user.reload.hca_id, reason
+      assert_equal "hca-held-#{index}", holder.reload.hca_id, reason
+      assert_nil holder.username, reason
+    end
+  end
+
+  test "linking refuses an account that already has another identity" do
+    user = create(:user, hca_id: "hca-original")
+
+    assert_raises(OauthAuthentication::HCAIdentityConflictError) do
+      user.link_hca_identity!("hca-token", hca_me_response(id: "hca-other"))
+    end
+    assert_equal "hca-original", user.reload.hca_id
   end
 
   test "creating a user with an email address queues a welcome email" do

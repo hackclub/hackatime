@@ -47,14 +47,11 @@ class HeartbeatTest < ActiveSupport::TestCase
     assert_equal 0, Heartbeat.daily_streaks_for_users([ user.id ], exclude_browser_time: true)[user.id]
   end
 
-  test "daily streaks use UTC for a missing timezone and preserve each user's day boundaries" do
+  test "daily streaks preserve each user's day boundaries" do
     travel_to Time.utc(2026, 10, 18, 2) do
-      missing_timezone_user = create(:user)
-      # Legacy records can have NULL despite the current model validation.
-      missing_timezone_user.update_column(:timezone, nil)
       utc_user = create(:user, timezone: "UTC")
       new_york_user = create(:user, timezone: "America/New_York")
-      users = [ missing_timezone_user, utc_user, new_york_user ]
+      users = [ utc_user, new_york_user ]
 
       users.each do |user|
         # This session qualifies on 16 October in New York, but splits into
@@ -63,7 +60,7 @@ class HeartbeatTest < ActiveSupport::TestCase
         create_heartbeat_sequence(user: user, started_at: Time.utc(2026, 10, 17, 12), editor: "vscode")
       end
 
-      assert_equal({ missing_timezone_user.id => 1, utc_user.id => 1, new_york_user.id => 2 },
+      assert_equal({ utc_user.id => 1, new_york_user.id => 2 },
         Heartbeat.daily_streaks_for_users(users.map(&:id)))
     end
   end

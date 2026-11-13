@@ -8,6 +8,7 @@
   } from "../../types/index";
   import BanNotice from "./signedIn/BanNotice.svelte";
   import GitHubLinkBanner from "./signedIn/GitHubLinkBanner.svelte";
+  import HackClubLinkBanner from "./signedIn/HackClubLinkBanner.svelte";
   import SetupNotice from "./signedIn/SetupNotice.svelte";
   import TodaySentence from "./signedIn/TodaySentence.svelte";
   import TodaySentenceSkeleton from "./signedIn/TodaySentenceSkeleton.svelte";
@@ -21,12 +22,14 @@
     trust_level_red,
     show_wakatime_setup_notice,
     github_uid_blank,
+    hca_unlinked,
     dashboard_stats,
   }: {
     flavor_text: string;
     trust_level_red: boolean;
     show_wakatime_setup_notice: boolean;
     github_uid_blank: boolean;
+    hca_unlinked: boolean;
     dashboard_stats?: {
       filterable_dashboard_data: FilterableDashboardData;
       activity_graph: ActivityGraphData;
@@ -63,6 +66,8 @@
   </div>
 
   {#if trust_level_red}<BanNotice />{/if}
+
+  {#if hca_unlinked}<HackClubLinkBanner />{/if}
 
   {#if show_wakatime_setup_notice}
     <SetupNotice />

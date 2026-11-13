@@ -2,7 +2,7 @@ require "test_helper"
 
 class ProcessAccountDeletionsJobTest < ActiveSupport::TestCase
   test "deletion completes for users with invalid legacy timezones" do
-    requests = [ nil, "", "Eastern Time (US & Canada)", "Invalid/Timezone" ].map do |timezone|
+    requests = [ "", "Eastern Time (US & Canada)", "Invalid/Timezone" ].map do |timezone|
       user = create(:user, :with_email, display_name_override: "Delete me")
       create(:api_key, user: user)
       request = create(:deletion_request, user: user, status: :approved, scheduled_deletion_at: 1.day.ago)

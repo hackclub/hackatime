@@ -21,6 +21,7 @@ class Settings::SlackGithubController < Settings::BaseController
 
     {
       user: { uses_slack_status: @user.uses_slack_status },
+      hack_club: { linked: @user.hca_id.present? },
       slack: {
         can_enable_status: can_enable_slack_status,
         notification_channels: channel_ids.map { |channel_id|
