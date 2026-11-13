@@ -179,17 +179,25 @@ module OauthAuthentication
 
       slack_user = user_data["user"] || {}
       email = (slack_user["profile"] || {})["email"]&.downcase
+      slack_uid = data.dig("authed_user", "id")
       email_address = EmailAddress.find_or_initialize_by(email: email)
-      user = email_address.user || User.find_by(slack_uid: data.dig("authed_user", "id"))&.tap do |u|
-        u.email_addresses << email_address unless u.email_addresses.include?(email_address)
+      if email_address.source_preserved_for_deletion?
+        # An email kept from a deleted account does not reopen it. Only the
+        # Slack ID identifies an account, and the email stays as it is.
+        user = User.find_by(slack_uid:)
+        raise SlackAccountNotFoundError if user.nil?
+      else
+        user = email_address.user || User.find_by(slack_uid:)&.tap do |u|
+          u.email_addresses << email_address unless u.email_addresses.include?(email_address)
+        end
+        raise SlackAccountNotFoundError if user.nil?
+
+        user.email_addresses.source_slack.where.not(email: email).update_all(source: :signing_in)
+        email_address.source = :slack
+        email_address.save! if email_address.persisted?
       end
-      raise SlackAccountNotFoundError if user.nil?
 
-      user.email_addresses.source_slack.where.not(email: email).update_all(source: :signing_in)
-      email_address.source = :slack
-      email_address.save! if email_address.persisted?
-
-      user.slack_uid = data.dig("authed_user", "id")
+      user.slack_uid = slack_uid
       user.apply_slack_profile_attributes(slack_user)
       user.parse_and_set_timezone(slack_user["tz"])
       user.slack_access_token = data["authed_user"]["access_token"]

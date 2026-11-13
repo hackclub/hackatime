@@ -167,7 +167,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
 
     assert_redirected_to root_path
-    assert_match(/already has its own Hackatime account/, flash[:alert])
+    assert_match(/already has its own Hackatime account.*Sign out and sign in with Hack Club/, flash[:alert])
     assert_equal user.id, session[:user_id]
     assert_nil user.reload.hca_id
     assert_equal "hca-held", holder.reload.hca_id
@@ -259,6 +259,26 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_equal unknown_response, [ response.location, flash[:notice] ]
+  end
+
+  test "email auth does not send a sign-in link for a deleted account" do
+    email = "deleted-#{SecureRandom.hex(4)}@example.com"
+    AnonymizeUserService.call(create(:user, :with_email, email: email))
+
+    assert_no_difference "SignInToken.count" do
+      post email_auth_path, params: { email: email }
+    end
+
+    assert_nil session[:dev_magic_link]
+  end
+
+  test "email auth sends a sign-in link for an email with no source" do
+    email = "no-source-#{SecureRandom.hex(4)}@example.com"
+    create(:email_address, user: create(:user), email: email, source: nil)
+
+    assert_difference "SignInToken.count", 1 do
+      post email_auth_path, params: { email: email }
+    end
   end
 
   test "email auth uses the public URL for the development sign-in link" do
@@ -380,6 +400,34 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
     assert_match(/Sign in with Hack Club/, flash[:alert])
     assert_nil session[:user_id]
+  end
+
+  test "slack_create does not sign in to a deleted account" do
+    user = create(:user, :with_email, email: "deleted-slack@example.com")
+    AnonymizeUserService.call(user)
+    stub_slack_identity(id: "U_RETURNING", email: "deleted-slack@example.com")
+    get slack_auth_path
+
+    get "/auth/slack/callback", params: { code: "oauth-code", state: { token: session[:slack_oauth_state_nonce] }.to_json }
+
+    assert_redirected_to root_path
+    assert_match(/Sign in with Hack Club/, flash[:alert])
+    assert_nil session[:user_id]
+    assert_nil user.reload.slack_uid
+    assert user.email_addresses.first!.source_preserved_for_deletion?
+  end
+
+  test "slack_create still signs in a deleted account that came back through Hack Club Auth" do
+    user = create(:user, :with_email, email: "returned-slack@example.com")
+    AnonymizeUserService.call(user)
+    user.update!(hca_id: "hca-returned", slack_uid: "U_RETURNED")
+    stub_slack_identity(id: "U_RETURNED", email: "returned-slack@example.com")
+    get slack_auth_path
+
+    get "/auth/slack/callback", params: { code: "oauth-code", state: { token: session[:slack_oauth_state_nonce] }.to_json }
+
+    assert_equal user.id, session[:user_id]
+    assert user.email_addresses.first!.source_preserved_for_deletion?
   end
 
   test "slack_create still signs in an existing Slack account" do
