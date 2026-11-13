@@ -71,7 +71,7 @@ class WakatimeUserAgentParser
   AI_MODEL_PRODUCTS_WITH_EDITOR_NAME_COLLISIONS = %w[claude codex gemini].freeze
   BARE_EDITOR_PRODUCTS = %w[
     audit bearnard chrome-extension codex codex-agent codex-cli codex_agent codexagent
-    custom-bash-sync customclient figma-desktop fusion360-hackatime-custom git rblx
+    custom-bash-sync customclient dsh figma-desktop fusion360-hackatime-custom git rblx
     strudel strudel-extension synthetic-audio test-agent ue4 unrealengine vscode
   ].freeze
   STANDALONE_AI_MODEL_PRODUCTS = %w[
@@ -406,6 +406,7 @@ class WakatimeUserAgentParser
   def self.normalize_editor(editor)
     case editor
     when "claude", "claudecode" then "claude-code"
+    when "dsh" then "deepseek-harness"
     when "godotengine", /\Agodot\d+(?:[._-]\d+)+\z/ then "godot"
     when "github-copilot-cli" then "copilot-cli"
     when "idea", "intellijideacommunityedition", "intellijideaultimateedition" then "intellijidea"
