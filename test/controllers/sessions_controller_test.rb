@@ -167,7 +167,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
 
     assert_redirected_to root_path
-    assert_match(/already has its own Hackatime account/, flash[:alert])
+    assert_match(/already has its own Hackatime account.*Sign out and sign in with Hack Club/, flash[:alert])
     assert_equal user.id, session[:user_id]
     assert_nil user.reload.hca_id
     assert_equal "hca-held", holder.reload.hca_id

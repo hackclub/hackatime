@@ -306,7 +306,7 @@ class SessionsController < ApplicationController
       notice: "Hack Club account linked! Use it to sign in from now on."
   rescue OauthAuthentication::HCAIdentityConflictError => e
     report_error(e, message: "HCA link refused: #{e.message}")
-    redirect_to root_path, alert: "That Hack Club account already has its own Hackatime account, so we couldn't link it to this one. Ask in #hackatime-help on Slack and we'll sort it out."
+    redirect_to root_path, alert: "That Hack Club account already has its own Hackatime account. Sign out and sign in with Hack Club to use it, or ask in #hackatime-help on Slack if you need this one instead."
   end
 
   def parse_slack_state(raw_state)
