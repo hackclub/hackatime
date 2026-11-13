@@ -2,6 +2,9 @@ module OauthAuthentication
   extend ActiveSupport::Concern
   include ErrorReporting
 
+  # The identity's Slack ID or email is on an account linked to another HCA identity.
+  class HCAIdentityConflictError < StandardError; end
+
   class_methods do
     include ErrorReporting
 
@@ -17,16 +20,24 @@ module OauthAuthentication
     end
 
     def hca_id_from_token(code, redirect_uri)
-      response = HTTP.post("#{HCAService.host}/oauth/token", form: {
+      _access_token, hca_data = hca_identity_from_code(code, redirect_uri)
+      hca_data&.dig("identity", "id")
+    end
+
+    # Exchanges an authorization code for the identity it belongs to. Returns
+    # [access_token, me_response], or nil when the reply holds no identity.
+    # Raises HTTP::Error when HCA is unreachable or answers with an error status.
+    def hca_identity_from_code(code, redirect_uri)
+      response = HTTP.use(:raise_error).post("#{HCAService.host}/oauth/token", form: {
         client_id: ENV["HCA_CLIENT_ID"], client_secret: ENV["HCA_CLIENT_SECRET"],
         redirect_uri:, code:, grant_type: "authorization_code"
       })
       token_data = JSON.parse(response.body.to_s)
       access_token = token_data["access_token"] if token_data.is_a?(Hash)
-      return if access_token.nil?
+      return if access_token.blank?
 
       hca_data = HCAService.me(access_token)
-      hca_data.dig("identity", "id") if hca_data.is_a?(Hash)
+      [ access_token, hca_data ] if hca_data.is_a?(Hash) && hca_data.dig("identity", "id").present?
     end
 
     def slack_authorize_url(redirect_uri, state: nil, close_window: false, continue_param: nil)
@@ -49,47 +60,68 @@ module OauthAuthentication
     end
 
     def from_hca_token(code, redirect_uri, ip_address = nil)
-      response = HTTP.post("#{HCAService.host}/oauth/token", form: {
-        client_id: ENV["HCA_CLIENT_ID"], client_secret: ENV["HCA_CLIENT_SECRET"],
-        redirect_uri: redirect_uri, code: code, grant_type: "authorization_code"
-      })
-      access_token = JSON.parse(response.body.to_s)["access_token"]
-      return nil if access_token.nil?
+      access_token, hca_data = hca_identity_from_code(code, redirect_uri)
+      return nil if hca_data.nil?
 
-      hca_data = ::HCAService.me(access_token)
       identity = hca_data["identity"]
-      @user = User.find_by_hca_id(identity["id"]) if identity["id"].present?
-      @user ||= User.find_by_slack_uid(identity["slack_id"]) if identity["slack_id"].present?
-      @user ||= EmailAddress.find_by(email: identity["primary_email"])&.user if identity["primary_email"].present?
+      hca_id = identity["id"]
+      slack_id = identity["slack_id"].presence
+      email = identity["primary_email"].presence&.downcase
 
-      if @user
-        attrs = { hca_scopes: hca_data["scopes"], hca_id: identity["id"], hca_access_token: access_token }
-        attrs[:country_code] = country_code_from_ip(ip_address) if @user.country_code.blank?
-        @user.update!(attrs)
+      user = find_by(hca_id:)
+      if user.nil?
+        # A Slack ID or email only identifies an account that no identity has claimed yet.
+        owners = [
+          (find_by(slack_uid: slack_id) if slack_id),
+          (EmailAddress.find_by(email:)&.user if email)
+        ].compact
+        user = owners.find { |owner| owner.hca_id.nil? }
+        if user.nil? && owners.any?
+          raise HCAIdentityConflictError,
+            "HCA identity #{hca_id} matches User ##{owners.map(&:id).uniq.join(', #')}, linked to another identity"
+        end
+      end
 
-        if @user.slack_uid.blank? && identity["slack_id"].present?
+      if user
+        attrs = { hca_scopes: hca_data["scopes"], hca_id:, hca_access_token: access_token }
+        attrs[:country_code] = country_code_from_ip(ip_address) if user.country_code.blank?
+        user.with_lock do
+          # Another identity may have claimed this account since the lookup above.
+          unless user.hca_id.nil? || user.hca_id == hca_id
+            raise HCAIdentityConflictError, "HCA identity #{hca_id} matches User ##{user.id}, linked to another identity"
+          end
+
+          user.update!(attrs)
+        end
+
+        if user.slack_uid.blank? && slack_id
           begin
-            @user.update!(slack_uid: identity["slack_id"])
-          rescue ActiveRecord::RecordNotUnique
-            @user.reload
-          rescue ActiveRecord::RecordInvalid => e
-            raise unless e.record.errors.of_kind?(:slack_uid, :taken)
+            user.update!(slack_uid: slack_id)
+          rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid => e
+            raise if e.is_a?(ActiveRecord::RecordInvalid) && !e.record.errors.of_kind?(:slack_uid, :taken)
 
-            @user.reload
+            user.reload
+            report_message("HCA identity's Slack ID belongs to another account", level: :warn, extra: { user_id: user.id })
           end
         end
       else
-        ActiveRecord::Base.transaction do
-          @user = User.create!(
-            hca_id: identity["id"], slack_uid: identity["slack_id"],
-            hca_scopes: hca_data["scopes"], hca_access_token: access_token,
-            country_code: country_code_from_ip(ip_address)
-          )
-          EmailAddress.create!(email: identity["primary_email"], user: @user) if identity["primary_email"].present?
+        country_code = country_code_from_ip(ip_address)
+        begin
+          transaction do
+            user = create!(
+              hca_id:, slack_uid: slack_id, hca_scopes: hca_data["scopes"],
+              hca_access_token: access_token, country_code:
+            )
+            EmailAddress.create!(email:, user:) if email
+          end
+        rescue ActiveRecord::RecordNotUnique
+          # The same identity finished signing up in another request.
+          user = find_by(hca_id:)
+          raise if user.nil?
         end
       end
-      SlackProfileSyncJob.perform_later(@user.id) if @user.slack_uid.present?
-      @user
+      SlackProfileSyncJob.perform_later(user.id) if user.slack_uid.present?
+      user
     end
 
     def from_slack_token(code, redirect_uri, ip_address = nil)

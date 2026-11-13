@@ -48,6 +48,92 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to %r{/oauth/authorize}
   end
 
+  # -- HCA: state nonce and callback failures --
+
+  test "hca_new stores oauth nonce and passes it in redirect state" do
+    get hca_auth_path
+
+    assert_response :redirect
+    assert_not_nil session[:hca_oauth_state_nonce]
+
+    redirect_query = Rack::Utils.parse_nested_query(URI.parse(response.redirect_url).query)
+    assert_equal session[:hca_oauth_state_nonce], redirect_query["state"]
+  end
+
+  test "hca_create signs in with the state from hca_new and the state is single use" do
+    user = create(:user, hca_id: "hca-existing")
+    stub_hca_identity(id: "hca-existing")
+    get hca_auth_path(continue: "/projects")
+    nonce = session[:hca_oauth_state_nonce]
+
+    get "/auth/hca/callback", params: { code: "oauth-code", state: nonce }
+
+    assert_redirected_to "/projects"
+    assert_equal user.id, session[:user_id]
+    assert_nil session[:hca_oauth_state_nonce]
+
+    delete signout_path
+    get "/auth/hca/callback", params: { code: "oauth-code", state: nonce }
+
+    assert_redirected_to root_path
+    assert_nil session[:user_id]
+  end
+
+  test "hca_create rejects oauth callback with missing or mismatched state nonce" do
+    create(:user, hca_id: "hca-existing")
+    stub_hca_identity(id: "hca-existing")
+
+    get "/auth/hca/callback", params: { code: "oauth-code" }
+
+    assert_redirected_to root_path
+    assert_nil session[:user_id]
+
+    get hca_auth_path
+    expected_nonce = session[:hca_oauth_state_nonce]
+    get "/auth/hca/callback", params: { code: "oauth-code", state: "wrong-#{expected_nonce}" }
+
+    assert_redirected_to root_path
+    assert_nil session[:user_id]
+    assert_equal expected_nonce, session[:hca_oauth_state_nonce]
+    assert_not_requested :post, "#{HCAService.host}/oauth/token"
+  end
+
+  test "hca_create explains an identity conflict without signing in" do
+    user = create(:user, hca_id: "hca-original")
+    create(:email_address, user: user, email: "shared@example.com")
+    stub_hca_identity(id: "hca-other", primary_email: "shared@example.com")
+    get hca_auth_path
+
+    get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
+
+    assert_redirected_to root_path
+    assert_match(/different Hack Club account/, flash[:alert])
+    assert_nil session[:user_id]
+    assert_equal "hca-original", user.reload.hca_id
+  end
+
+  test "hca_create asks the user to retry when Hack Club Auth is unreachable" do
+    stub_request(:post, "#{HCAService.host}/oauth/token").to_timeout
+
+    assert_hca_callback_asks_to_retry
+  end
+
+  test "hca_create asks the user to retry when the token endpoint is rate limited" do
+    stub_request(:post, "#{HCAService.host}/oauth/token")
+      .to_return(status: 429, body: "Retry later\n", headers: { "Content-Type" => "text/plain" })
+
+    assert_hca_callback_asks_to_retry
+  end
+
+  test "hca_create asks the user to retry when the identity cannot be read" do
+    stub_request(:post, "#{HCAService.host}/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "#{HCAService.host}/api/v1/me")
+      .to_return(status: 503, body: "<html>Service Unavailable</html>")
+
+    assert_hca_callback_asks_to_retry
+  end
+
   # -- Signin: preserves continue param --
 
   test "signin renders with continue param in inertia props" do
@@ -488,5 +574,27 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
     assert_equal admin.id, session[:user_id]
     assert_nil session[:impersonater_user_id]
+  end
+
+  private
+
+  def assert_hca_callback_asks_to_retry
+    get hca_auth_path
+
+    assert_no_difference "User.count" do
+      get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
+    end
+
+    assert_redirected_to root_path
+    assert_match(/try again/i, flash[:alert])
+    assert_nil session[:user_id]
+  end
+
+  def stub_hca_identity(identity)
+    stub_request(:post, "#{HCAService.host}/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "#{HCAService.host}/api/v1/me")
+      .with(headers: { "Authorization" => "Bearer hca-token" })
+      .to_return(body: { identity: identity, scopes: %w[email slack_id] }.to_json)
   end
 end

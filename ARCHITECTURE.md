@@ -56,9 +56,11 @@ example, request host), or for external links. API-only controllers may inherit
 [`ApplicationController#current_user`](app/controllers/application_controller.rb)
 is exactly `User.find_by(id: session[:user_id])`. HCA, Slack, and single-use
 email-link sign-in converge on a `User`; successful login resets the session
-before assigning that ID. Slack and GitHub callback state is consumed and
-compared with `secure_compare`; HCA currently does not use an OAuth state
-nonce. Continuation URLs must be local paths (not `//...`). See
+before assigning that ID. HCA, Slack and GitHub callback state is consumed
+and compared with `secure_compare`. HCA sign-in resolves a `User` by
+`hca_id` first; an identity's Slack ID or email only matches an account
+with no `hca_id`, and a match on an account linked to another identity is
+refused. Continuation URLs must be local paths (not `//...`). See
 [`SessionsController`](app/controllers/sessions_controller.rb).
 
 [`EmailAddress`](app/models/email_address.rb) owns normalized, globally
