@@ -85,7 +85,14 @@ module OauthAuthentication
       if user
         attrs = { hca_scopes: hca_data["scopes"], hca_id:, hca_access_token: access_token }
         attrs[:country_code] = country_code_from_ip(ip_address) if user.country_code.blank?
-        user.update!(attrs)
+        user.with_lock do
+          # Another identity may have claimed this account since the lookup above.
+          unless user.hca_id.nil? || user.hca_id == hca_id
+            raise HCAIdentityConflictError, "HCA identity #{hca_id} matches User ##{user.id}, linked to another identity"
+          end
+
+          user.update!(attrs)
+        end
 
         if user.slack_uid.blank? && slack_id
           begin
@@ -99,12 +106,18 @@ module OauthAuthentication
         end
       else
         country_code = country_code_from_ip(ip_address)
-        transaction do
-          user = create!(
-            hca_id:, slack_uid: slack_id, hca_scopes: hca_data["scopes"],
-            hca_access_token: access_token, country_code:
-          )
-          EmailAddress.create!(email:, user:) if email
+        begin
+          transaction do
+            user = create!(
+              hca_id:, slack_uid: slack_id, hca_scopes: hca_data["scopes"],
+              hca_access_token: access_token, country_code:
+            )
+            EmailAddress.create!(email:, user:) if email
+          end
+        rescue ActiveRecord::RecordNotUnique
+          # The same identity finished signing up in another request.
+          user = find_by(hca_id:)
+          raise if user.nil?
         end
       end
       SlackProfileSyncJob.perform_later(user.id) if user.slack_uid.present?

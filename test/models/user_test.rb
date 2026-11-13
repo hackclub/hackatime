@@ -3,9 +3,22 @@ require "webmock/minitest"
 
 WebMock.disable_net_connect!(allow_localhost: true)
 
+module HCAIdentityStub
+  private
+
+  def stub_hca_identity(identity)
+    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
+      .with(headers: { "Authorization" => "Bearer hca-token" })
+      .to_return(body: { identity: identity, scopes: %w[email slack_id] }.to_json)
+  end
+end
+
 class UserTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
   include ActionMailer::TestHelper
+  include HCAIdentityStub
 
   setup do
     clear_enqueued_jobs
@@ -447,19 +460,95 @@ class UserTest < ActiveSupport::TestCase
 
   private
 
-  def stub_hca_identity(identity)
-    stub_request(:post, "https://hca.dinosaurbbq.org/oauth/token")
-      .to_return(body: { access_token: "hca-token" }.to_json)
-    stub_request(:get, "https://hca.dinosaurbbq.org/api/v1/me")
-      .with(headers: { "Authorization" => "Bearer hca-token" })
-      .to_return(body: { identity: identity, scopes: %w[email slack_id] }.to_json)
-  end
-
   def with_memory_cache_store
     original_cache = Rails.cache
     Rails.cache = ActiveSupport::Cache.lookup_store(:memory_store)
     yield
   ensure
     Rails.cache = original_cache
+  end
+end
+
+class UserHCASignInConcurrencyTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+  include HCAIdentityStub
+
+  self.use_transactional_tests = false
+
+  setup do
+    @original_queue_adapter = ActiveJob::Base.queue_adapter
+    ActiveJob::Base.queue_adapter = :test
+    @suffix = SecureRandom.hex(4)
+    @users = []
+  end
+
+  teardown do
+    User.where(id: @users.map(&:id)).find_each(&:destroy!)
+    clear_enqueued_jobs
+    ActiveJob::Base.queue_adapter = @original_queue_adapter
+  end
+
+  test "an account another identity claims during sign-in is not linked to a second identity" do
+    email = "overlap-#{@suffix}@example.com"
+    @users << (user = create(:user))
+    create(:email_address, user: user, email: email)
+    stub_hca_identity(id: "hca-second-#{@suffix}", primary_email: email)
+
+    assert_raises(OauthAuthentication::HCAIdentityConflictError) do
+      sign_in_behind_uncommitted_write { User.find(user.id).update!(hca_id: "hca-first-#{@suffix}") }
+    end
+    assert_equal "hca-first-#{@suffix}", user.reload.hca_id
+  end
+
+  test "an identity that signs up twice at once gets one account" do
+    hca_id = "hca-twice-#{@suffix}"
+    stub_hca_identity(id: hca_id)
+
+    first = nil
+    signed_in = sign_in_behind_uncommitted_write { @users << (first = create(:user, hca_id: hca_id)) }
+
+    assert_equal first, signed_in
+    assert_equal 1, User.where(hca_id: hca_id).count
+  end
+
+  private
+
+  # Signs in while another connection holds an uncommitted write, which commits
+  # only once the sign-in is waiting on it.
+  def sign_in_behind_uncommitted_write(&write)
+    written = Queue.new
+    commit = Queue.new
+    writer = Thread.new do
+      ActiveRecord::Base.connection_pool.with_connection do
+        User.transaction do
+          write.call
+          written << true
+          commit.pop
+        end
+      end
+    end
+    Timeout.timeout(10) { written.pop }
+
+    signer = Thread.new do
+      ActiveRecord::Base.connection_pool.with_connection do
+        User.from_hca_token("code", "https://example.com/auth/hca/callback").tap { |user| @users << user if user }
+      end
+    end
+    signer.report_on_exception = false
+    Timeout.timeout(10) { sleep 0.01 until waiting_on_lock? || !signer.alive? }
+    commit << true
+    Timeout.timeout(10) { writer.value }
+    Timeout.timeout(10) { signer.value }
+  ensure
+    commit << true
+    [ writer, signer ].each { |thread| thread&.join(10) }
+  end
+
+  def waiting_on_lock?
+    User.uncached do
+      User.connection.select_value(<<~SQL).positive?
+        SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'
+      SQL
+    end
   end
 end
