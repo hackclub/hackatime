@@ -17,7 +17,8 @@ class SlackGithubSettingsTest < ApplicationSystemTestCase
     )
 
     assert_text "Hack Club Account"
-    assert_link "Link Hack Club account"
+    assert_text "Your Hack Club account is linked"
+    assert_no_link "Link Hack Club account"
     assert_text "Slack Channel Notifications"
     assert_text "Connected GitHub Account"
   end

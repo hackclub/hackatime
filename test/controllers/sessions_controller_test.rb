@@ -137,8 +137,8 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   # -- HCA: linking an identity to a signed-in account --
 
   test "hca_create links the identity to the signed-in account instead of signing in as its email match" do
-    user = create(:user, :with_email, email: "legacy@example.com")
-    email_match = create(:user, :with_email, email: "identity@example.com")
+    user = create(:user, :unlinked, :with_email, email: "legacy@example.com")
+    email_match = create(:user, :unlinked, :with_email, email: "identity@example.com")
     sign_in_as(user)
     stub_hca_identity(id: "hca-linking", primary_email: "identity@example.com")
 
@@ -157,7 +157,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "hca_create does not link an identity whose account is in use" do
-    user = create(:user)
+    user = create(:user, :unlinked)
     holder = create(:user, hca_id: "hca-held")
     create(:heartbeat, user: holder)
     sign_in_as(user)
@@ -174,7 +174,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "an identity moved off an unused account takes its email and Slack sign-in with it" do
-    user = create(:user)
+    user = create(:user, :unlinked)
     create(:user, :with_email, email: "moving@example.com", hca_id: "hca-moving", slack_uid: "U_MOVING")
     sign_in_as(user)
     stub_hca_identity(id: "hca-moving", slack_id: "U_MOVING", primary_email: "moving@example.com")
@@ -194,7 +194,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
   test "hca_create does not link an identity while impersonating" do
     admin = create(:user, :admin, hca_id: "hca-admin")
-    target = create(:user)
+    target = create(:user, :unlinked)
     sign_in_as(admin)
     get impersonate_user_path(target.id)
     stub_hca_identity(id: "hca-admin")
@@ -337,6 +337,16 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal user.id, session[:user_id]
   end
 
+  test "email token asks an unlinked account to link before going on to the continue param" do
+    user = create(:user, :unlinked)
+    sign_in_token = create(:sign_in_token, user: user, auth_type: :email, continue_param: "/my/settings")
+
+    get auth_token_path(token: sign_in_token.token)
+
+    assert_redirected_to hca_link_prompt_path(continue: "/my/settings")
+    assert_equal user.id, session[:user_id]
+  end
+
   test "email token rejects external continue URL" do
     user = create(:user)
     sign_in_token = create(:sign_in_token, user: user,
@@ -442,6 +452,17 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
     assert_equal user.id, session[:user_id]
     assert_equal [ "existing-slack@example.com" ], user.email_addresses.pluck(:email)
+  end
+
+  test "slack_create asks an unlinked account to link before going on to the continue param" do
+    user = create(:user, :unlinked, slack_uid: "U_UNLINKED")
+    stub_slack_identity(id: "U_UNLINKED", email: "unlinked-slack@example.com")
+    get slack_auth_path(continue: "/my/settings")
+
+    get "/auth/slack/callback", params: { code: "oauth-code", state: { token: session[:slack_oauth_state_nonce], continue: "/my/settings" }.to_json }
+
+    assert_redirected_to hca_link_prompt_path(continue: "/my/settings")
+    assert_equal user.id, session[:user_id]
   end
 
   test "github_new stores oauth nonce and passes it in redirect state" do

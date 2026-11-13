@@ -3,7 +3,25 @@
 class InertiaController < ApplicationController
   inertia_share layout: -> { inertia_layout_props }
 
+  before_action :require_hca_link
+
   private
+
+  # Unlinked accounts are sent to the link page: after a Slack or email
+  # sign-in, and from every page in the last week of HCATransition.
+  def require_hca_link
+    return unless hca_link_required?
+
+    flash.keep
+    redirect_to hca_link_prompt_path(continue: (request.fullpath if request.get? || request.head?))
+  end
+
+  def hca_link_required?
+    return false if current_user.nil? || current_user.hca_id.present?
+    return false if session[:impersonater_user_id].present?
+
+    session[:hca_link_prompt].present? || HCATransition.required_for_every_session?
+  end
 
   def inertia_layout_props
     {

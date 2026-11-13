@@ -1,6 +1,9 @@
 class DeletionRequestsController < InertiaController
   layout "inertia", only: [ :show ]
 
+  # enforce_lockout sends an account that is pending deletion here from every
+  # other page, the link page included.
+  skip_before_action :require_hca_link
   before_action :require_login
   before_action :check_can_request, only: [ :create ]
 
