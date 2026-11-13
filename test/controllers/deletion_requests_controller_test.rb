@@ -10,6 +10,8 @@ class DeletionRequestsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create immediately creates a request when HCA is not linked" do
+    @user.update!(hca_id: nil)
+
     assert_difference "DeletionRequest.count", 1 do
       post create_deletion_path, params: deletion_params
     end

@@ -81,6 +81,7 @@ class SessionsController < ApplicationController
     if @user&.persisted?
       reset_session
       session[:user_id] = @user.id
+      session[:hca_link_prompt] = true if @user.hca_id.nil?
       notice = "Successfully signed in with Slack! Welcome!"
 
       continue_url = safe_return_url(slack_state&.dig("continue").presence)
@@ -90,6 +91,8 @@ class SessionsController < ApplicationController
       elsif @user.previously_new_record?
         session[:return_data] = build_return_data(continue_url)
         redirect_to setup_path, notice: notice
+      elsif @user.hca_id.nil?
+        redirect_to hca_link_prompt_path(continue: continue_url), notice: notice
       elsif continue_url.present?
         redirect_to continue_url, notice: notice # codeql[rb/url-redirection]
       else
@@ -252,7 +255,10 @@ class SessionsController < ApplicationController
       session[:user_id] = valid_token.user_id
       continue_url = safe_return_url(valid_token.continue_param)
       session[:return_data] = (valid_token.return_data || {}).merge(build_return_data(continue_url))
-      if continue_url.present?
+      if valid_token.user.hca_id.nil?
+        session[:hca_link_prompt] = true
+        redirect_to hca_link_prompt_path(continue: continue_url), notice: "Successfully signed in!"
+      elsif continue_url.present?
         redirect_to continue_url, notice: "Successfully signed in!" # codeql[rb/url-redirection]
       else
         redirect_to root_path, notice: "Successfully signed in!"

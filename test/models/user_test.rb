@@ -261,7 +261,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "HCA authentication links an unlinked account by email regardless of case" do
-    user = create(:user)
+    user = create(:user, :unlinked)
     create(:email_address, user: user, email: "mixed-case@example.com")
     stub_hca_identity(id: "hca-mixed", primary_email: "Mixed-Case@Example.com")
 
@@ -298,7 +298,7 @@ class UserTest < ActiveSupport::TestCase
 
   test "HCA authentication prefers an unlinked email match over a Slack ID on another identity's account" do
     create(:user, hca_id: "hca-original", slack_uid: "U_SHARED")
-    unlinked = create(:user)
+    unlinked = create(:user, :unlinked)
     create(:email_address, user: unlinked, email: "unlinked@example.com")
     stub_hca_identity(id: "hca-other", slack_id: "U_SHARED", primary_email: "unlinked@example.com")
 
@@ -319,7 +319,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "linking an HCA identity attaches it and its Slack ID to an unlinked account" do
-    user = create(:user)
+    user = create(:user, :unlinked)
 
     user.link_hca_identity!("hca-token", hca_me_response(id: "hca-new", slack_id: "U_LINKED"))
 
@@ -330,7 +330,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "linking moves an identity off an unused account and deletes that account" do
-    user = create(:user)
+    user = create(:user, :unlinked)
     create(:heartbeat, user: user)
     unused = create(:user, hca_id: "hca-moving", slack_uid: "U_MOVING")
     create(:email_address, user: unused, email: "moving@example.com")
@@ -361,7 +361,7 @@ class UserTest < ActiveSupport::TestCase
     }
 
     in_use.each_with_index do |(reason, use), index|
-      user = create(:user)
+      user = create(:user, :unlinked)
       holder = create(:user, hca_id: "hca-held-#{index}")
       use.call(holder)
 

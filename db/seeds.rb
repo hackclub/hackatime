@@ -15,6 +15,10 @@ if Rails.env.development? || Rails.env.test?
     user.timezone = 'America/New_York'
   end
 
+  # Unlinked accounts are sent to the Hack Club link page (see HCATransition),
+  # which a development sign-in can't get past.
+  test_user.update!(hca_id: 'ident!dev-test-user') if test_user.hca_id.nil?
+
   # Add email address with slack as the source
   email = test_user.email_addresses.find_or_create_by(email: 'test@example.com')
   email.update(source: :slack) if email.source.nil?
