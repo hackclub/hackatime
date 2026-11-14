@@ -67,16 +67,13 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "neon", metadata[:value]
   end
 
-  test "updating admin level does not validate existing duplicate usernames" do
-    first_user = create(:user, username: "duplicate_name")
-    create(:user, username: "other_name")
-      .update_column(:username, "DUPLICATE_NAME")
+  test "database rejects usernames that differ only by case" do
+    create(:user, username: "duplicate_name")
+    other = create(:user, username: "other_name")
 
-    assert_nothing_raised do
-      first_user.update!(admin_level: :ultraadmin)
+    assert_raises(ActiveRecord::RecordNotUnique) do
+      other.update_column(:username, "DUPLICATE_NAME")
     end
-
-    assert_equal "ultraadmin", first_user.reload.admin_level
   end
 
   test "impersonation follows the admin hierarchy" do
