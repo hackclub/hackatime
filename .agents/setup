@@ -86,6 +86,15 @@ else
   printf '%s\n' "$container_fingerprint" > "$cache_dir/containers"
 fi
 
+# The entrypoint generates js_from_routes helpers, which corrupts them if
+# another generator runs at the same time, then execs the container command.
+echo "==> Waiting for the web container entrypoint to finish"
+for _ in $(seq 1 600); do
+  [ "$(sudo docker compose exec -T web cat /proc/1/comm 2>/dev/null)" = sleep ] && break
+  sleep 1
+done
+[ "$(sudo docker compose exec -T web cat /proc/1/comm)" = sleep ]
+
 echo "==> Trusting the mounted repository inside the web container"
 sudo docker compose exec -T web sh -c '
   repo_root=$(pwd)

@@ -16,4 +16,13 @@ fi
 
 sudo docker info >/dev/null
 sudo docker compose up -d
+
+# The portal generates js_from_routes helpers on boot, which corrupts them if
+# the web entrypoint is still generating them.
+for _ in $(seq 1 600); do
+  [ "$(sudo docker compose exec -T web cat /proc/1/comm 2>/dev/null)" = sleep ] && break
+  sleep 1
+done
+[ "$(sudo docker compose exec -T web cat /proc/1/comm)" = sleep ]
+
 amp orb services ensure
