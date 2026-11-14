@@ -127,6 +127,7 @@ Rails.application.routes.draw do
   # Auth routes
   get "/auth/hca", to: "sessions#hca_new", as: :hca_auth, export: true
   get "/auth/hca/callback", to: "sessions#hca_create"
+  resource :hca_link_prompt, only: [ :show, :destroy ], path: "auth/hca/link", export: true
   get "/auth/slack", to: "sessions#slack_new", as: :slack_auth, export: true
   get "/auth/slack/callback", to: "sessions#slack_create"
   get "/auth/github", to: "sessions#github_new", as: :github_auth, export: true
