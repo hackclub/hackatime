@@ -1,0 +1,78 @@
+---
+title: Acode
+sidebar: { icon: "/images/editor-icons/acode-32.webp" }
+---
+import pluginStoreLight from "./images/acode-plugin-store-light.png";
+import pluginStoreDark from "./images/acode-plugin-store-dark.png";
+import extensionPageLight from "./images/acode-extension-page-light.png";
+import extensionPageDark from "./images/acode-extension-page-dark.png";
+import pluginsMenuLight from "./images/acode-plugins-light.png";
+import pluginsMenuDark from "./images/acode-plugins-dark.png";
+import installedPluginsMenuLight from "./images/acode-installed-plugins-light.png";
+import installedPluginsMenuDark from "./images/acode-installed-plugins-dark.png";
+import pluginSettingsLight from "./images/acode-settings-light.png";
+import pluginSettingsDark from "./images/acode-settings-dark.png";
+import infoPanelLight from "./images/acode-extension-info-light.png";
+import infoPanelDark from "./images/acode-extension-info-dark.png";
+
+![Acode](../../public/images/editor-icons/acode-128.png)
+
+Follow these steps to start tracking your coding time in Acode with Hackatime.
+
+## Step 1: Log into Hackatime
+
+Make sure you have a [Hackatime account](https://hackatime.hackclub.com) and are logged in.
+
+## Step 2: Install the Wakatime extension
+
+Open the plugin store by pressing **Explore Plugins** in the welcome menu or under **Settings** -> **Plugins** -> **All**.
+
+<img src={pluginStoreLight.src} width={760} alt="Acode plugin store" data-docs-theme="light" />
+<img src={pluginStoreDark.src} width={760} alt="Acode plugin store" data-docs-theme="dark" />
+
+Search for `Wakatime` and install the extension by Overskul.
+
+<img src={extensionPageLight.src} width={760} alt="Acode Plugins page showing the Wakatime extension and a blue install button" data-docs-theme="light" />
+<img src={extensionPageDark.src} width={760} alt="Acode Plugins page showing the Wakatime extension and a blue install button" data-docs-theme="dark" />
+
+## Step 3: Configure the extension
+
+Exit out of the plugin store and open the left sidebar by pressing on the **Hamburger menu icon**. Then click on the **Jigsaw piece icon** to open the plugin menu.
+
+<img src={pluginsMenuLight.src} width={760} alt="Acode plugins menu opened from the sidebar" data-docs-theme="light" />
+<img src={pluginsMenuDark.src} width={760} alt="Acode plugins menu opened from the sidebar" data-docs-theme="dark" />
+
+Expand the installed tab and press on the three-dots of the Wakatime extension. Select **Settings** in the pop-up menu.
+
+<img src={installedPluginsMenuLight.src} width={760} alt="Acode plugins menu opened, installed section extended and pop-up of Wakatime plugin open" data-docs-theme="light" />
+<img src={installedPluginsMenuDark.src} width={760} alt="Acode plugins menu opened, installed section extended and pop-up of Wakatime plugin open" data-docs-theme="dark" />
+
+Under **Wakatime API Key** enter your API key, which you can get from the [API Key page](https://hackatime.hackclub.com/api-key).
+
+Under **WakaTime API Endpoint** enter the hackatime API URL `https://hackatime.hackclub.com/api/hackatime/v1`.
+
+<img src={pluginSettingsLight.src} width={760} alt="Wakatime plugin settings open" data-docs-theme="light" />
+<img src={pluginSettingsDark.src} width={760} alt="Wakatime plugin settings open" data-docs-theme="dark" />
+
+## Step 4: Open a project
+
+You can open a folder either from the welcome menu or from the file menu in the left sidebar. Make sure your files are saved into that folder, otherwise they will not be tracked.
+
+## What gets tracked
+
+Acode sends a heartbeat when you edit a file. Your project name, branch, language, current line number and total lines are sent with each heartbeat.
+
+## Troubleshooting
+
+The extension has an information panel, which can be opened from the left sidebar and provides useful information, like the data related to the last heartbeat including time since and project name.
+
+<img src={infoPanelLight.src} width={760} alt="Wakatime plugin info panel open" data-docs-theme="light" />
+<img src={infoPanelDark.src} width={760} alt="Wakatime plugin info panel open" data-docs-theme="dark" />
+
+- **Last heartbeats project says ?** Make sure you've opened a folder and the file you're editing is saved in that folder.
+- **Plugin not working?** Try restarting Acode after installation.
+- **Still stuck?** Ask for help in [Hack Club Slack](https://hackclub.slack.com) (#hackatime-help channel).
+
+## Next steps
+
+Once configured, your coding time will automatically appear on your [Hackatime dashboard](https://hackatime.hackclub.com). Happy coding!
