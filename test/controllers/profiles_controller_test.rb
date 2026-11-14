@@ -33,6 +33,17 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "finds a profile regardless of username case" do
+    suffix = SecureRandom.hex(3).upcase
+    create(:user, username: "CaseX#{suffix}") # "_" must not act as a wildcard
+    user = create(:user, username: "Case_#{suffix}")
+
+    get profile_path("case_#{suffix.downcase}")
+
+    assert_response :success
+    assert_equal user.username, inertia.props.dig("profile", "username")
+  end
+
   test "returns inertia not found for unknown profile" do
     get profile_path("missing_#{SecureRandom.hex(4)}")
 

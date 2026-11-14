@@ -99,7 +99,11 @@ class ProfilesController < InertiaController
     }, status: :not_found
   end
 
-  def find_user = @user = User.find_by(username: params[:username])
+  def find_user
+    username = params[:username]
+    @user = User.find_by(username: username) ||
+      User.where("username ILIKE ?", User.sanitize_sql_like(username)).order(:id).first
+  end
 
   def profile_props
     { page_title: profile_page_title, profile_visible: @profile_visible,
