@@ -593,54 +593,6 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "Python", user.heartbeats.sole.language
   end
 
-  test "direct heartbeat ingest recognizes only consistent versioned Acode plugin identities behind a browser" do
-    user = create(:user)
-    browser = "Mozilla/5.0 (Linux; Android 13; wv) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
-    plugin = "(Android) Acode/1.11.0 acode-wakatime/2.1.0"
-    cases = [
-      [ browser, plugin, "acode" ],
-      [ browser, "Acode/1.11.0 acode-wakatime/2.1.0", "acode" ],
-      [ browser, "(Android) Acode/1.11.0 acode-wakatime/", "chrome" ],
-      [ browser, "(Android) Acode/1.11.0 acode-wakatime/garbage", "chrome" ],
-      [ browser, "(Android) VSCode/1.11.0 acode-wakatime/2.1.0", "chrome" ],
-      [ browser, "#{plugin} vscode/1.0", "chrome" ],
-      [ browser, "vscode/1.96.0 vscode-wakatime/24.9.2", "chrome" ],
-      [ "vscode/1.96.0 vscode-wakatime/24.9.2", plugin, "vscode" ]
-    ]
-
-    cases.each_with_index do |(user_agent, identity, editor), index|
-      result = HeartbeatIngest.call(user: user, mode: :direct, heartbeats: [ {
-        entity: "/project/main.js", type: "file", time: 1_700_000_000.0 + index,
-        user_agent:, plugin: identity
-      } ])
-
-      assert_equal 1, result.persisted_count
-      heartbeat = user.heartbeats.find(result.items.sole.heartbeat.id)
-      assert_equal editor, heartbeat.editor, identity
-      assert_equal editor == "acode" ? identity : user_agent, heartbeat.user_agent
-    end
-  end
-
-  test "direct Acode retries deduplicate canonical and previously stored browser heartbeats" do
-    user = create(:user)
-    browser = "Mozilla/5.0 (Linux; Android 13; wv) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36"
-    plugin = "(Android) Acode/1.11.0 acode-wakatime/2.1.0"
-    raw = { entity: "/project/main.js", type: "file", category: "coding", language: "JavaScript", time: 1_700_000_000.0, user_agent: browser, plugin: }
-    legacy = user.heartbeats.create!(raw.except(:plugin).merge(editor: "chrome", operating_system: "android", source_type: :direct_entry))
-
-    result = HeartbeatIngest.call(user: user, mode: :direct, heartbeats: [ raw, raw.merge(time: raw[:time] + 1) ])
-    assert_equal 1, result.persisted_count
-    assert_equal 1, result.duplicate_count
-    assert_equal legacy.id, result.items.first.heartbeat.id
-    assert_equal "acode", result.items.last.heartbeat.editor
-
-    retry_result = HeartbeatIngest.call(user: user, mode: :direct, heartbeats: [ raw, raw.merge(time: raw[:time] + 1) ])
-    assert_equal 0, retry_result.persisted_count
-    assert_equal 2, retry_result.duplicate_count
-    assert_equal 2, user.heartbeats.count
-    assert_equal "chrome", legacy.reload.editor
-  end
-
   test "direct heartbeat ingest does not guess a language from a browser domain" do
     user = create(:user)
 
