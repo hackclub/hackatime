@@ -11,6 +11,8 @@ class HeartbeatIngest
   EPOCH_SANE_MAX = 2_000_000_000
   # Seconds between 1601-01-01 (the Windows FILETIME / WebKit epoch) and 1970-01-01.
   WINDOWS_EPOCH_OFFSET = 11_644_473_600
+  ACODE_VERSION = /\d+(?:\.\d+)+(?:[-+][\w.-]+)?/
+  ACODE_PLUGIN = /\A(?:\(Android\) )?Acode\/#{ACODE_VERSION} acode-wakatime\/#{ACODE_VERSION}\z/i
 
   Result = Data.define(:total_count, :persisted_count, :duplicate_count, :failed_count, :errors, :items)
   Item = Data.define(:heartbeat, :status, :error)
@@ -45,8 +47,11 @@ class HeartbeatIngest
     placeholder_state = { contexts: {}, last_project: nil }
 
     @heartbeats.each_with_index do |heartbeat, index|
-      attrs = normalize_direct_heartbeat(heartbeat, placeholder_state:)
-      model_attributes = validated_model_attributes(attrs)
+      model_attributes = validated_model_attributes(normalize_direct_heartbeat(heartbeat, placeholder_state:))
+      if (acode = acode_heartbeat(heartbeat, category: model_attributes["category"]))
+        legacy_fields_hash = Heartbeat.generate_fields_hash(model_attributes)
+        model_attributes = validated_model_attributes(normalize_direct_heartbeat(acode, placeholder_state:))
+      end
       attrs = model_attributes.symbolize_keys
       update_placeholder_state!(attrs, placeholder_state)
       entries << {
@@ -54,6 +59,7 @@ class HeartbeatIngest
         heartbeat:,
         attrs:,
         model_attributes:,
+        legacy_fields_hash:,
         fields_hash: Heartbeat.generate_fields_hash(model_attributes)
       }
     rescue => e
@@ -124,13 +130,28 @@ class HeartbeatIngest
     ).slice(*Heartbeat.column_names.map(&:to_sym))
   end
 
+  # acode sends its webview ua as user_agent
+  def acode_heartbeat(heartbeat, category:)
+    heartbeat = heartbeat.to_h.with_indifferent_access
+    return unless heartbeat[:plugin].to_s.match?(ACODE_PLUGIN)
+    return unless Heartbeatable::BROWSER_EDITORS.include?(WakatimeUserAgentParser.parse(heartbeat[:user_agent], category:)[:editor])
+
+    heartbeat.merge(user_agent: heartbeat[:plugin])
+  end
+
   # Hidden heartbeats still own their fields_hash, so resubmissions must match them.
   def heartbeats_for_dedup = @user.heartbeats.with_excluded
 
   def persist_direct_heartbeats(entries)
     entries_by_hash = entries.group_by { |entry| entry[:fields_hash] }
     hashes = entries_by_hash.keys
-    persisted_by_hash = heartbeats_for_dedup.where(fields_hash: hashes).index_by(&:fields_hash)
+    legacy_hashes = entries.filter_map { |entry| entry[:legacy_fields_hash] }
+    persisted_by_hash = heartbeats_for_dedup.where(fields_hash: hashes + legacy_hashes).index_by(&:fields_hash)
+    entries.each do |entry|
+      if (legacy = persisted_by_hash[entry[:legacy_fields_hash]])
+        persisted_by_hash[entry[:fields_hash]] ||= legacy
+      end
+    end
     missing_entries = entries_by_hash.filter_map do |fields_hash, matching_entries|
       matching_entries.first unless persisted_by_hash.key?(fields_hash)
     end
