@@ -70,7 +70,14 @@ class UsersController < InertiaController
   end
 
   def ensure_current_user_for_setup
-    redirect_to signin_path(continue: request.fullpath), alert: "Please sign in to set up your editor." if current_user.nil?
+    return if current_user
+
+    # link to /setup?immediate_hca
+    if params.key?(:immediate_hca)
+      redirect_to hca_auth_path(continue: request.fullpath)
+    else
+      redirect_to signin_path(continue: request.fullpath), alert: "Please sign in to set up your editor."
+    end
   end
 
   def set_setup_meta

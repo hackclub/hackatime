@@ -48,6 +48,167 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to %r{/oauth/authorize}
   end
 
+  # -- HCA: state nonce and callback failures --
+
+  test "hca_new stores oauth nonce and passes it in redirect state" do
+    get hca_auth_path
+
+    assert_response :redirect
+    assert_not_nil session[:hca_oauth_state_nonce]
+
+    redirect_query = Rack::Utils.parse_nested_query(URI.parse(response.redirect_url).query)
+    assert_equal session[:hca_oauth_state_nonce], redirect_query["state"]
+  end
+
+  test "hca_create signs in with the state from hca_new and the state is single use" do
+    user = create(:user, hca_id: "hca-existing")
+    stub_hca_identity(id: "hca-existing")
+    get hca_auth_path(continue: "/projects")
+    nonce = session[:hca_oauth_state_nonce]
+
+    get "/auth/hca/callback", params: { code: "oauth-code", state: nonce }
+
+    assert_redirected_to "/projects"
+    assert_equal user.id, session[:user_id]
+    assert_nil session[:hca_oauth_state_nonce]
+
+    delete signout_path
+    get "/auth/hca/callback", params: { code: "oauth-code", state: nonce }
+
+    assert_redirected_to root_path
+    assert_nil session[:user_id]
+  end
+
+  test "hca_create rejects oauth callback with missing or mismatched state nonce" do
+    create(:user, hca_id: "hca-existing")
+    stub_hca_identity(id: "hca-existing")
+
+    get "/auth/hca/callback", params: { code: "oauth-code" }
+
+    assert_redirected_to root_path
+    assert_nil session[:user_id]
+
+    get hca_auth_path
+    expected_nonce = session[:hca_oauth_state_nonce]
+    get "/auth/hca/callback", params: { code: "oauth-code", state: "wrong-#{expected_nonce}" }
+
+    assert_redirected_to root_path
+    assert_nil session[:user_id]
+    assert_equal expected_nonce, session[:hca_oauth_state_nonce]
+    assert_not_requested :post, "#{HCAService.host}/oauth/token"
+  end
+
+  test "hca_create explains an identity conflict without signing in" do
+    user = create(:user, hca_id: "hca-original")
+    create(:email_address, user: user, email: "shared@example.com")
+    stub_hca_identity(id: "hca-other", primary_email: "shared@example.com")
+    get hca_auth_path
+
+    get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
+
+    assert_redirected_to root_path
+    assert_match(/different Hack Club account/, flash[:alert])
+    assert_nil session[:user_id]
+    assert_equal "hca-original", user.reload.hca_id
+  end
+
+  test "hca_create asks the user to retry when Hack Club Auth is unreachable" do
+    stub_request(:post, "#{HCAService.host}/oauth/token").to_timeout
+
+    assert_hca_callback_asks_to_retry
+  end
+
+  test "hca_create asks the user to retry when the token endpoint is rate limited" do
+    stub_request(:post, "#{HCAService.host}/oauth/token")
+      .to_return(status: 429, body: "Retry later\n", headers: { "Content-Type" => "text/plain" })
+
+    assert_hca_callback_asks_to_retry
+  end
+
+  test "hca_create asks the user to retry when the identity cannot be read" do
+    stub_request(:post, "#{HCAService.host}/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "#{HCAService.host}/api/v1/me")
+      .to_return(status: 503, body: "<html>Service Unavailable</html>")
+
+    assert_hca_callback_asks_to_retry
+  end
+
+  # -- HCA: linking an identity to a signed-in account --
+
+  test "hca_create links the identity to the signed-in account instead of signing in as its email match" do
+    user = create(:user, :unlinked, :with_email, email: "legacy@example.com")
+    email_match = create(:user, :unlinked, :with_email, email: "identity@example.com")
+    sign_in_as(user)
+    stub_hca_identity(id: "hca-linking", primary_email: "identity@example.com")
+
+    get hca_auth_path(continue: "/my/settings")
+    assert_equal "legacy@example.com", Rack::Utils.parse_query(URI.parse(response.location).query)["login_hint"]
+
+    assert_no_difference "User.count" do
+      get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
+    end
+
+    assert_redirected_to "/my/settings"
+    assert_match(/linked/i, flash[:notice])
+    assert_equal user.id, session[:user_id]
+    assert_equal "hca-linking", user.reload.hca_id
+    assert_nil email_match.reload.hca_id
+  end
+
+  test "hca_create does not link an identity whose account is in use" do
+    user = create(:user, :unlinked)
+    holder = create(:user, hca_id: "hca-held")
+    create(:heartbeat, user: holder)
+    sign_in_as(user)
+    stub_hca_identity(id: "hca-held")
+    get hca_auth_path
+
+    get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
+
+    assert_redirected_to root_path
+    assert_match(/already has its own Hackatime account.*Sign out and sign in with Hack Club/, flash[:alert])
+    assert_equal user.id, session[:user_id]
+    assert_nil user.reload.hca_id
+    assert_equal "hca-held", holder.reload.hca_id
+  end
+
+  test "an identity moved off an unused account takes its email and Slack sign-in with it" do
+    user = create(:user, :unlinked)
+    create(:user, :with_email, email: "moving@example.com", hca_id: "hca-moving", slack_uid: "U_MOVING")
+    sign_in_as(user)
+    stub_hca_identity(id: "hca-moving", slack_id: "U_MOVING", primary_email: "moving@example.com")
+    get hca_auth_path
+    get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
+    assert_equal "hca-moving", user.reload.hca_id
+    reset!
+
+    post email_auth_path, params: { email: "moving@example.com" }
+    assert_equal user, SignInToken.last.user
+
+    stub_slack_identity(id: "U_MOVING", email: "moving@example.com")
+    get slack_auth_path
+    get "/auth/slack/callback", params: { code: "oauth-code", state: { token: session[:slack_oauth_state_nonce] }.to_json }
+    assert_equal user.id, session[:user_id]
+  end
+
+  test "hca_create does not link an identity while impersonating" do
+    admin = create(:user, :admin, hca_id: "hca-admin")
+    target = create(:user, :unlinked)
+    sign_in_as(admin)
+    get impersonate_user_path(target.id)
+    stub_hca_identity(id: "hca-admin")
+    get hca_auth_path
+
+    get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
+
+    assert_redirected_to root_path
+    assert_match(/impersonating/, flash[:alert])
+    assert_equal target.id, session[:user_id]
+    assert_nil target.reload.hca_id
+    assert_equal "hca-admin", admin.reload.hca_id
+  end
+
   # -- Signin: preserves continue param --
 
   test "signin renders with continue param in inertia props" do
@@ -83,6 +244,41 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     token = SignInToken.last
     assert_not_nil token
     assert_equal oauth_path, token.continue_param
+  end
+
+  test "email auth does not create an account for an unknown email and answers the same way" do
+    assert_no_difference [ "User.count", "EmailAddress.count", "SignInToken.count" ] do
+      post email_auth_path, params: { email: "nobody-#{SecureRandom.hex(4)}@example.com" }
+    end
+    unknown_response = [ response.location, flash[:notice] ]
+
+    email = "known-#{SecureRandom.hex(4)}@example.com"
+    create(:user, :with_email, email: email)
+    assert_difference "SignInToken.count", 1 do
+      post email_auth_path, params: { email: email }
+    end
+
+    assert_equal unknown_response, [ response.location, flash[:notice] ]
+  end
+
+  test "email auth does not send a sign-in link for a deleted account" do
+    email = "deleted-#{SecureRandom.hex(4)}@example.com"
+    AnonymizeUserService.call(create(:user, :with_email, email: email))
+
+    assert_no_difference "SignInToken.count" do
+      post email_auth_path, params: { email: email }
+    end
+
+    assert_nil session[:dev_magic_link]
+  end
+
+  test "email auth sends a sign-in link for an email with no source" do
+    email = "no-source-#{SecureRandom.hex(4)}@example.com"
+    create(:email_address, user: create(:user), email: email, source: nil)
+
+    assert_difference "SignInToken.count", 1 do
+      post email_auth_path, params: { email: email }
+    end
   end
 
   test "email auth uses the public URL for the development sign-in link" do
@@ -141,6 +337,16 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal user.id, session[:user_id]
   end
 
+  test "email token asks an unlinked account to link before going on to the continue param" do
+    user = create(:user, :unlinked)
+    sign_in_token = create(:sign_in_token, user: user, auth_type: :email, continue_param: "/my/settings")
+
+    get auth_token_path(token: sign_in_token.token)
+
+    assert_redirected_to hca_link_prompt_path(continue: "/my/settings")
+    assert_equal user.id, session[:user_id]
+  end
+
   test "email token rejects external continue URL" do
     user = create(:user)
     sign_in_token = create(:sign_in_token, user: user,
@@ -191,6 +397,72 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert_redirected_to root_path
     assert_equal expected_nonce, session[:slack_oauth_state_nonce]
+  end
+
+  test "slack_create does not create an account for an unknown Slack user" do
+    stub_slack_identity(id: "U_UNKNOWN", email: "unknown-slack@example.com")
+    get slack_auth_path
+
+    assert_no_difference [ "User.count", "EmailAddress.count" ] do
+      get "/auth/slack/callback", params: { code: "oauth-code", state: { token: session[:slack_oauth_state_nonce] }.to_json }
+    end
+
+    assert_redirected_to root_path
+    assert_match(/Sign in with Hack Club/, flash[:alert])
+    assert_nil session[:user_id]
+  end
+
+  test "slack_create does not sign in to a deleted account" do
+    user = create(:user, :with_email, email: "deleted-slack@example.com")
+    AnonymizeUserService.call(user)
+    stub_slack_identity(id: "U_RETURNING", email: "deleted-slack@example.com")
+    get slack_auth_path
+
+    get "/auth/slack/callback", params: { code: "oauth-code", state: { token: session[:slack_oauth_state_nonce] }.to_json }
+
+    assert_redirected_to root_path
+    assert_match(/Sign in with Hack Club/, flash[:alert])
+    assert_nil session[:user_id]
+    assert_nil user.reload.slack_uid
+    assert user.email_addresses.first!.source_preserved_for_deletion?
+  end
+
+  test "slack_create still signs in a deleted account that came back through Hack Club Auth" do
+    user = create(:user, :with_email, email: "returned-slack@example.com")
+    AnonymizeUserService.call(user)
+    user.update!(hca_id: "hca-returned", slack_uid: "U_RETURNED")
+    stub_slack_identity(id: "U_RETURNED", email: "returned-slack@example.com")
+    get slack_auth_path
+
+    get "/auth/slack/callback", params: { code: "oauth-code", state: { token: session[:slack_oauth_state_nonce] }.to_json }
+
+    assert_equal user.id, session[:user_id]
+    assert user.email_addresses.first!.source_preserved_for_deletion?
+  end
+
+  test "slack_create still signs in an existing Slack account" do
+    user = create(:user, slack_uid: "U_EXISTING")
+    stub_slack_identity(id: "U_EXISTING", email: "existing-slack@example.com")
+    get slack_auth_path
+
+    assert_no_difference "User.count" do
+      get "/auth/slack/callback", params: { code: "oauth-code", state: { token: session[:slack_oauth_state_nonce] }.to_json }
+    end
+
+    assert_redirected_to root_path
+    assert_equal user.id, session[:user_id]
+    assert_equal [ "existing-slack@example.com" ], user.email_addresses.pluck(:email)
+  end
+
+  test "slack_create asks an unlinked account to link before going on to the continue param" do
+    user = create(:user, :unlinked, slack_uid: "U_UNLINKED")
+    stub_slack_identity(id: "U_UNLINKED", email: "unlinked-slack@example.com")
+    get slack_auth_path(continue: "/my/settings")
+
+    get "/auth/slack/callback", params: { code: "oauth-code", state: { token: session[:slack_oauth_state_nonce], continue: "/my/settings" }.to_json }
+
+    assert_redirected_to hca_link_prompt_path(continue: "/my/settings")
+    assert_equal user.id, session[:user_id]
   end
 
   test "github_new stores oauth nonce and passes it in redirect state" do
@@ -488,5 +760,34 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
     assert_equal admin.id, session[:user_id]
     assert_nil session[:impersonater_user_id]
+  end
+
+  private
+
+  def assert_hca_callback_asks_to_retry
+    get hca_auth_path
+
+    assert_no_difference "User.count" do
+      get "/auth/hca/callback", params: { code: "oauth-code", state: session[:hca_oauth_state_nonce] }
+    end
+
+    assert_redirected_to root_path
+    assert_match(/try again/i, flash[:alert])
+    assert_nil session[:user_id]
+  end
+
+  def stub_slack_identity(id:, email:)
+    stub_request(:post, "https://slack.com/api/oauth.v2.access")
+      .to_return(body: { ok: true, authed_user: { id: id, access_token: "slack-token", scope: "users:read" } }.to_json)
+    stub_request(:get, "https://slack.com/api/users.info?user=#{id}")
+      .to_return(body: { ok: true, user: { id: id, tz: "Europe/London", profile: { email: email } } }.to_json)
+  end
+
+  def stub_hca_identity(identity)
+    stub_request(:post, "#{HCAService.host}/oauth/token")
+      .to_return(body: { access_token: "hca-token" }.to_json)
+    stub_request(:get, "#{HCAService.host}/api/v1/me")
+      .with(headers: { "Authorization" => "Bearer hca-token" })
+      .to_return(body: { identity: identity, scopes: %w[email slack_id] }.to_json)
   end
 end

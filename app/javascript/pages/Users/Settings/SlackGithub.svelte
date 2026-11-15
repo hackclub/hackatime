@@ -14,6 +14,7 @@
 
   type Props = {
     user: { uses_slack_status: boolean };
+    hack_club: { linked: boolean };
     slack: {
       can_enable_status: boolean;
       notification_channels: Array<{
@@ -29,7 +30,11 @@
     };
   };
 
-  let { user, slack, github }: Props = $props();
+  let { user, hack_club, slack, github }: Props = $props();
+
+  const linkHackClubPath = sessions.hcaNew.path({
+    query: { continue: settingsSlackGithub.show.path() },
+  });
 
   let unlinkGithubModalOpen = $state(false);
 </script>
@@ -37,6 +42,32 @@
 <svelte:head>
   <title>Slack & GitHub · Settings | Hackatime</title>
 </svelte:head>
+
+{#snippet linkHackClubFooter()}
+  <Button href={linkHackClubPath} native class="rounded-md"
+    >Link Hack Club account</Button
+  >
+{/snippet}
+
+<SectionCard
+  id="user_hack_club_account"
+  title="Hack Club Account"
+  description="Hackatime is moving to Hack Club sign-in only. Slack and email sign-in will be switched off."
+  footer={hack_club.linked ? undefined : linkHackClubFooter}
+>
+  {#if hack_club.linked}
+    <div
+      class="rounded-md border border-surface-200 bg-darker px-3 py-3 text-sm text-surface-content"
+    >
+      Your Hack Club account is linked. Use it to sign in.
+    </div>
+  {:else}
+    <p class="text-sm text-muted">
+      This account has no Hack Club account linked. Link one to keep access to
+      your coding time.
+    </p>
+  {/if}
+</SectionCard>
 
 <SectionCard
   id="user_slack_status"
