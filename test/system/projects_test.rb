@@ -64,6 +64,36 @@ class ProjectsTest < ApplicationSystemTestCase
     assert_selector "h1", text: project_name, exact_text: true
   end
 
+  test "sizes branch bars in proportion to time spent" do
+    project_name = "branchy-project"
+    @user.project_repo_mappings.create!(project_name: project_name)
+    branches = [ "main" ] * 41 + [ "feature-a" ] * 2 + [ "feature-b" ]
+    started_at = 2.days.ago.noon
+    branches.each_with_index do |branch, index|
+      create(
+        :heartbeat,
+        user: @user,
+        project: project_name,
+        branch: branch,
+        category: "coding",
+        time: (started_at + index.minutes).to_i,
+        source_type: :test_entry
+      )
+    end
+
+    visit my_project_path(project_name)
+
+    branches_card = find("h3", text: "Branches").find(:xpath, "..")
+    widths = %w[main feature-a feature-b].to_h do |branch|
+      row = branches_card.find("div[title='#{branch}']").find(:xpath, "..")
+      [ branch, row.find("div.bg-primary")[:style][/width:\s*([\d.]+)%/, 1].to_f ]
+    end
+
+    assert_equal 100, widths["main"]
+    assert_operator widths["feature-a"], :>, widths["feature-b"]
+    assert_operator widths["feature-a"], :<, 15
+  end
+
   private
 
   def create_project_heartbeats(user, project_name, started_at:)

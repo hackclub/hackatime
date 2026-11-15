@@ -32,16 +32,17 @@
           >
             {label}
           </div>
-          <div class="flex-1 relative">
+          <div class="flex-1">
             <div
-              class="bg-primary rounded-md h-6 flex items-center justify-end px-3"
-              style={`width:${Math.max(barWidth(seconds), 15)}%`}
-            >
-              <span class="text-xs font-mono text-on-primary whitespace-nowrap">
-                {secondsToDisplay(seconds)}
-              </span>
-            </div>
+              class="bg-primary rounded-md h-6"
+              style={`width:${barWidth(seconds)}%`}
+            ></div>
           </div>
+          <span
+            class="w-20 shrink-0 text-xs font-mono text-muted whitespace-nowrap"
+          >
+            {secondsToDisplay(seconds)}
+          </span>
         </div>
       {/each}
     </div>
