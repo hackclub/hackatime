@@ -67,6 +67,7 @@ pg-dump*
 /public/llms.txt
 /public/llms-full.txt
 /public/agent-readability.json
+/public/blume-nav
 /public/blume-search.json
 /public/docs
 /public/docs.md
