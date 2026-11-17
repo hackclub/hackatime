@@ -22,7 +22,7 @@
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.5",
     "@tsconfig/svelte": "^5.0.9",
-    "beasties": "^0.5.4",
+    "beasties": "^0.5.5",
     "bits-ui": "^2.21.0",
     "blume": "^2.2.7",
     "canvas-confetti": "^1.9.4",
