@@ -107,7 +107,7 @@ if cache_matches assets "$assets_fingerprint" && [ -f public/vite-dev/.vite/mani
   echo "==> Vite client assets are current"
 else
   echo "==> Building Vite client assets"
-  sudo docker compose exec -T web env JS_FROM_ROUTES_FORCE=true bin/rake js_from_routes:generate
+  sudo docker compose exec -T web bin/rake js_from_routes:generate
   sudo docker compose exec -T web bin/vite build
   printf '%s\n' "$assets_fingerprint" > "$cache_dir/assets"
 fi

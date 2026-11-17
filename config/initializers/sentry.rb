@@ -20,8 +20,7 @@ if Rails.env.production?
     # Relative to sampled traces; privacy requests never start a profile.
     config.profiles_sample_rate = 1.0
 
-    # Enable sending logs to Sentry
-    config.enable_logs = true
+    # Logs are on by default in sentry-ruby 7.
     # Patch Ruby logger to forward logs
     config.enabled_patches = [ :logger ]
     # Send every warning and error log, but only a quarter of lower severity logs.

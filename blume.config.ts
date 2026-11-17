@@ -1,4 +1,5 @@
 import { defineConfig } from "blume";
+import { script } from "blume/analytics";
 
 interface ThemeMetadata {
   value: string;
@@ -149,7 +150,6 @@ export default defineConfig({
     radius: "lg",
   },
   deployment: {
-    output: "static",
     site: "https://hackatime.hackclub.com",
   },
   redirects: [
@@ -159,10 +159,9 @@ export default defineConfig({
       status: 301,
     },
   ],
-  analytics: {
-    scripts: [
-      {
-        content: `window.addEventListener("blume:track", (event) => {
+  analytics: [
+    script({
+      content: `window.addEventListener("blume:track", (event) => {
           if (event.detail?.event !== "feedback") return;
 
           let visitorToken = localStorage.getItem("hackatime-docs-visitor");
@@ -184,9 +183,8 @@ export default defineConfig({
             }),
           }).catch(() => {});
         });`,
-      },
-    ],
-  },
+    }),
+  ],
   seo: {
     og: {
       enabled: true,

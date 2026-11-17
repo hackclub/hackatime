@@ -8,7 +8,7 @@
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=4.0.6
+ARG RUBY_VERSION=4.0.9
 
 FROM docker.io/oven/bun:1.4-slim AS bun
 
@@ -137,7 +137,7 @@ FROM application-source AS route-helpers
 
 RUN --network=none \
     --mount=type=bind,from=ruby-dependencies,source=/usr/local/bundle,target=/usr/local/bundle \
-    export SECRET_KEY_BASE_DUMMY=1 JS_FROM_ROUTES_FORCE=true && \
+    export SECRET_KEY_BASE_DUMMY=1 && \
     AWS_EC2_METADATA_DISABLED=true \
       S3_BUCKET=dummy S3_ACCESS_KEY_ID=dummy S3_SECRET_ACCESS_KEY=dummy S3_ENDPOINT=http://127.0.0.1 \
       ./bin/rake js_from_routes:generate

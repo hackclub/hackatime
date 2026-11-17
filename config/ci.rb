@@ -6,7 +6,7 @@ CI.run do
   step "Security: Brakeman code analysis", "bin/brakeman --quiet --no-pager --exit-on-warn --exit-on-error"
 
   step "Setup: Test DB", "env RAILS_ENV=test bin/rails db:create db:schema:load"
-  step "Setup: js_from_routes", "env JS_FROM_ROUTES_FORCE=true bin/rake js_from_routes:generate"
+  step "Setup: js_from_routes", "bin/rake js_from_routes:generate"
   step "Setup: Vite assets", "env RAILS_ENV=test bin/vite build && env RAILS_ENV=test VITE_CACHE_DIR=node_modules/.vite-test-ssr bin/vite build --ssr"
   step "Tests: Rails", "env RAILS_ENV=test bin/rails test"
   step "Tests: System", "bin/test-system"
