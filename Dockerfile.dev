@@ -25,22 +25,7 @@ RUN curl -fsSL https://bun.sh/install | bash && \
 # Set working directory
 WORKDIR /app
 
-# Install npm dependencies for Vite.
-COPY package.json bun.lock bunfig.toml ./
-COPY patches patches
-RUN bun install && \
-    bun x playwright install --with-deps --only-shell chromium && \
-    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives
-
-# Make Spline Sans available to librsvg/libvips via fontconfig. Pango does not
-# rasterize the bundled WOFF2 reliably, so dev installs a converted TTF.
-RUN cp /app/node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wght-normal.woff2 /tmp/spline-sans-latin-wght-normal.woff2 && \
-    woff2_decompress /tmp/spline-sans-latin-wght-normal.woff2 && \
-    install -Dm644 /tmp/spline-sans-latin-wght-normal.ttf \
-      /usr/local/share/fonts/spline-sans/spline-sans-latin-wght-normal.ttf && \
-    fc-cache -f /usr/local/share/fonts/spline-sans
-
-# Install application dependencies
+# Keep native gem installation cached when JavaScript dependencies change.
 COPY Gemfile Gemfile.lock ./
 RUN bundle install
 
@@ -54,6 +39,22 @@ RUN gem pristine --extensions json erb bigdecimal rdoc
 # rdoc, so both copies can be required and emit "already initialized constant"
 # warnings. Removing the default-path copy leaves only the bundled rdoc.
 RUN gem uninstall -i "$(ruby -e 'print Gem.default_dir')" -I -x rdoc --all || true
+
+# Keep downloaded packages out of the image, as in the production build.
+COPY package.json bun.lock bunfig.toml ./
+COPY patches patches
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile && \
+    bun x playwright install --with-deps --only-shell chromium && \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives
+
+# Make Spline Sans available to librsvg/libvips via fontconfig. Pango does not
+# rasterize the bundled WOFF2 reliably, so dev installs a converted TTF.
+RUN cp /app/node_modules/@fontsource-variable/spline-sans/files/spline-sans-latin-wght-normal.woff2 /tmp/spline-sans-latin-wght-normal.woff2 && \
+    woff2_decompress /tmp/spline-sans-latin-wght-normal.woff2 && \
+    install -Dm644 /tmp/spline-sans-latin-wght-normal.ttf \
+      /usr/local/share/fonts/spline-sans/spline-sans-latin-wght-normal.ttf && \
+    fc-cache -f /usr/local/share/fonts/spline-sans
 
 # Add a script to be executed every time the container starts
 COPY entrypoint.dev.sh /usr/bin/
