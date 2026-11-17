@@ -2,6 +2,22 @@ module Heartbeatable
   extend ActiveSupport::Concern
 
   BROWSER_EDITORS = %w[arc brave chrome chromium edge firefox floorp librewolf microsoft-edge opera opera-gx safari vivaldi waterfox zen].freeze
+  # durations_by_day returns one column per day, which keeps the rows in the
+  # window's user_id order so Postgres aggregates them without sorting
+  # millions of gaps again.
+  DURATION_MAX_DAYS = 7
+  AI_DAY_COLUMNS = <<~SQL.squish.freeze
+    COALESCE(SUM(duration) FILTER (WHERE ai AND day = 0), 0), COALESCE(SUM(duration) FILTER (WHERE ai AND day = 1), 0),
+    COALESCE(SUM(duration) FILTER (WHERE ai AND day = 2), 0), COALESCE(SUM(duration) FILTER (WHERE ai AND day = 3), 0),
+    COALESCE(SUM(duration) FILTER (WHERE ai AND day = 4), 0), COALESCE(SUM(duration) FILTER (WHERE ai AND day = 5), 0),
+    COALESCE(SUM(duration) FILTER (WHERE ai AND day = 6), 0)
+  SQL
+  STREAK_DAY_SECONDS = 15.minutes.to_i
+  STREAK_DAY_CONDITION = <<~SQL.squish.freeze
+    heartbeats.user_id = walk.user_id
+    AND heartbeats.time >= EXTRACT(EPOCH FROM walk.day::timestamp AT TIME ZONE walk.timezone)
+    AND heartbeats.time < EXTRACT(EPOCH FROM (walk.day + 1)::timestamp AT TIME ZONE walk.timezone)
+  SQL
 
   included do
     # Filter heartbeats to only include those with category equal to "coding"
@@ -37,17 +53,14 @@ module Heartbeatable
         FLOOR((time - #{connection.quote(range.begin.to_f)}) / 86400)::integer AS day,
         LEAST(COALESCE(time - LAG(time) OVER (PARTITION BY user_id ORDER BY time, #{quoted_table_name}.id), 0), #{heartbeat_timeout_duration.to_i}) AS duration
       SQL
-      # One column per day keeps the rows in the window's user_id order, so
-      # Postgres aggregates them without sorting millions of gaps again.
-      ai_days = (0...((range.end - range.begin) / 1.day).ceil).map do |day|
-        "COALESCE(SUM(duration) FILTER (WHERE ai AND day = #{day}), 0)"
-      end
+      days = ((range.end - range.begin) / 1.day).ceil
+      raise ArgumentError, "range spans more than #{DURATION_MAX_DAYS} days" if days > DURATION_MAX_DAYS
 
       connection.select_rows(<<~SQL.squish, "Heartbeat Durations").to_h do |user_id, other, *ai|
-        SELECT user_id, COALESCE(SUM(duration) FILTER (WHERE NOT ai), 0), #{ai_days.join(", ")}
+        SELECT user_id, COALESCE(SUM(duration) FILTER (WHERE NOT ai), 0), #{AI_DAY_COLUMNS}
         FROM (#{gaps.to_sql}) AS gaps GROUP BY user_id
       SQL
-        [ user_id.to_i, [ other.to_f, ai.map(&:to_f) ] ]
+        [ user_id.to_i, [ other.to_f, ai.first(days).map(&:to_f) ] ]
       end
     end
 
@@ -131,98 +144,32 @@ module Heartbeatable
       "#{(seconds % 3600) / 60} min" # 0 min if minutes is 0
     end
 
-    def streak_cache_keys(user_ids, exclude_browser_time:)
-      prefix = exclude_browser_time ? "user_streak_without_browser_v3" : "user_streak_v3"
-      versions = HeartbeatExclusion.cache_versions(user_ids)
-      user_ids.index_with { |id| "#{prefix}_#{id}_#{versions.fetch(id)}" }
-    end
-
-    def daily_streaks_for_users(user_ids, start_date: 31.days.ago, exclude_browser_time: false)
+    # Consecutive local days with at least STREAK_DAY_SECONDS of activity,
+    # ending today if today already counts and yesterday otherwise. Walks back
+    # one day at a time (back 0 is today) and stops reading a day once it
+    # reaches the threshold, so a long streak reads a few heartbeats per day
+    # rather than every heartbeat in the streak.
+    def daily_streaks_for_users(user_ids, exclude_browser_time: false)
       return {} if user_ids.empty?
-      start_date = [ start_date, 31.days.ago ].max
-      cache_keys = streak_cache_keys(user_ids, exclude_browser_time:)
-      streak_cache = Rails.cache.read_multi(*cache_keys.values)
 
-      uncached_users = user_ids.select { |id| streak_cache[cache_keys[id]].nil? }
-      return user_ids.index_with { |id| streak_cache[cache_keys[id]] || 0 } if uncached_users.empty?
+      days = where.not(category: "browsing").with_valid_timestamps
+      days = days.excluding_browser_time if exclude_browser_time
+      active_day = streak_day_sql(days)
 
-      day_group_sql = "DATE_TRUNC('day', to_timestamp(time) AT TIME ZONE COALESCE(users.timezone, 'UTC'))"
-      duration_start_sql = "LAG(time) OVER (PARTITION BY user_id, #{day_group_sql} ORDER BY time, #{quoted_table_name}.id) as duration_start"
-      raw_durations = joins(:user)
-        .where(user_id: uncached_users)
-        .where.not(category: "browsing")
-        .with_valid_timestamps
-        .where(time: start_date..Time.current)
-        .select(
-          Arel.sql("#{quoted_table_name}.time as duration_end"),
-          :user_id,
-          "users.timezone as user_timezone",
-          Arel.sql("#{day_group_sql} as day_group"),
-          Arel.sql(duration_start_sql)
+      sql = sanitize_sql_array([ <<~SQL.squish, { now: Time.current.to_f, user_ids: } ])
+        WITH RECURSIVE walk AS (
+          SELECT id AS user_id, timezone, (to_timestamp(:now) AT TIME ZONE timezone)::date AS day, 0 AS back
+          FROM users WHERE id IN (:user_ids)
+          UNION ALL
+          SELECT user_id, timezone, day - 1, back + 1 FROM walk
+          WHERE CASE WHEN back = 0 THEN TRUE ELSE #{active_day} END
         )
-      raw_durations = raw_durations.excluding_browser_time if exclude_browser_time
-      capped_durations = with_capped_duration(raw_durations)
+        SELECT user_id, MAX(back) - 1 + MAX(CASE WHEN back = 0 AND #{active_day} THEN 1 ELSE 0 END)
+        FROM walk GROUP BY user_id
+      SQL
+      streaks = connection.select_rows(sql, "Heartbeat Streaks").to_h { |id, streak| [ id.to_i, streak.to_i ] }
 
-      # Then aggregate the results
-      daily_durations = connection.select_all(
-        "SELECT user_id, user_timezone, day_group, COALESCE(SUM(duration), 0)::integer as duration
-         FROM (#{capped_durations.to_sql}) AS durations
-         GROUP BY user_id, user_timezone, day_group"
-      ).group_by { |row| row["user_id"] }
-       .transform_values do |rows|
-         timezone = rows.first["user_timezone"]
-
-         if timezone.blank?
-           Rails.logger.warn "nil tz, going to utc."
-           timezone = "UTC"
-         else
-           begin
-             TZInfo::Timezone.get(timezone)
-           rescue TZInfo::InvalidTimezoneIdentifier, ArgumentError
-             Rails.logger.warn "Invalid timezone for streak calculation: #{timezone}. Defaulting to UTC."
-             timezone = "UTC"
-           end
-         end
-
-         current_date = Time.current.in_time_zone(timezone).to_date
-         {
-           current_date: current_date,
-           days: rows.map do |row|
-             [ row["day_group"].to_date, row["duration"].to_i ]
-           end.sort_by { |date, _| date }.reverse
-         }
-       end
-
-      result = user_ids.index_with { |id| streak_cache[cache_keys[id]] || 0 }
-
-      # Then calculate streaks for each user
-      daily_durations.each do |user_id, data|
-        current_date = data[:current_date]
-        days = data[:days]
-
-        eligible_days = days.filter_map do |date, duration|
-          date if date <= current_date && duration >= 15 * 60
-        end
-
-        streak = 0
-        expected_date = eligible_days.first == current_date ? current_date : current_date - 1.day
-
-        eligible_days.each do |date|
-          if date == expected_date
-            streak += 1
-            expected_date -= 1.day
-          elsif date < expected_date
-            break
-          end
-        end
-
-        result[user_id] = streak
-
-        # Cache the streak for 1 hour
-        Rails.cache.write(cache_keys.fetch(user_id), streak, expires_in: 1.hour)
-      end
-
-      result
+      user_ids.index_with { |id| streaks.fetch(id, 0) }
     end
 
     def daily_durations(user_timezone:, start_date: 365.days.ago, end_date: Time.current)
@@ -361,6 +308,22 @@ module Heartbeatable
     end
 
     private
+
+    # True when the walk row's user reached STREAK_DAY_SECONDS on its local
+    # day, to the nearest second. EXISTS stops the index scan at the first
+    # heartbeat over the line.
+    def streak_day_sql(days)
+      gaps = days.where(STREAK_DAY_CONDITION).select(<<~SQL.squish)
+        #{quoted_table_name}.time, #{quoted_table_name}.id,
+        LEAST(COALESCE(#{quoted_table_name}.time - LAG(#{quoted_table_name}.time) OVER (ORDER BY #{quoted_table_name}.time, #{quoted_table_name}.id), 0), #{heartbeat_timeout_duration.to_i}) AS gap
+      SQL
+
+      <<~SQL.squish
+        EXISTS (SELECT 1 FROM (
+          SELECT SUM(gap) OVER (ORDER BY time, id ROWS UNBOUNDED PRECEDING) AS active FROM (#{gaps.to_sql}) AS gaps
+        ) AS running WHERE ROUND(active) >= #{STREAK_DAY_SECONDS})
+      SQL
+    end
 
     def with_capped_duration(heartbeat_intervals)
       timeout = heartbeat_timeout_duration.to_i

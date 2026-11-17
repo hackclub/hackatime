@@ -256,9 +256,7 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
     assert_equal @user.heartbeat_cache_version, User.find(@user.id).heartbeat_cache_version
   end
 
-  test "cached streaks do not survive a poison" do
-    original_cache = Rails.cache
-    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+  test "streaks drop poisoned heartbeats" do
     yesterday_noon = Time.current.utc.beginning_of_day - 12.hours
     17.times { |minute| build_heartbeat(yesterday_noon + minute.minutes, "streak") }
     assert_equal 1, Heartbeat.daily_streaks_for_users([ @user.id ])[@user.id]
@@ -266,8 +264,6 @@ class HeartbeatExclusionTest < ActiveSupport::TestCase
     @user.apply_poison!(Date.current.to_s)
 
     assert_equal 0, Heartbeat.daily_streaks_for_users([ @user.id ])[@user.id]
-  ensure
-    Rails.cache = original_cache
   end
 
   test "raw SQL using VISIBLE_SQL matches model reads" do

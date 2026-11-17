@@ -34,13 +34,7 @@ class LeaderboardUpdateJob < ApplicationJob
       data = durations.transform_values { |other, ai_by_day| (other + ai_by_day.sum { LeaderboardEntry.credited_ai_seconds(it) }).round }
                       .filter { |_, seconds| seconds > 60 }
 
-      # Two-phase streak: query 8d first (covers most), extend to 31d for users who maxed it.
-      streaks = Heartbeat.daily_streaks_for_users(data.keys, start_date: 8.days.ago, exclude_browser_time: true)
-      needs_full_history = streaks.select { |_, s| s >= 6 }.keys
-      if needs_full_history.any?
-        Rails.cache.delete_multi(Heartbeat.streak_cache_keys(needs_full_history, exclude_browser_time: true).values)
-        streaks.merge!(Heartbeat.daily_streaks_for_users(needs_full_history, start_date: 31.days.ago, exclude_browser_time: true))
-      end
+      streaks = Heartbeat.daily_streaks_for_users(data.keys, exclude_browser_time: true)
 
       entries = data.map do |user_id, seconds|
         { leaderboard_id: board.id, user_id:, total_seconds: seconds,

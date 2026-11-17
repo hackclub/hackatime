@@ -3,12 +3,7 @@
   import CountryFlag from "../../../components/CountryFlag.svelte";
   import StreakIcon from "../../../layouts/app/StreakIcon.svelte";
   import type { LeaderboardEntry } from "../../../types";
-  import {
-    secondsToDetailedDisplay,
-    rankDisplay,
-    streakTheme,
-    streakLabel,
-  } from "../utils";
+  import { secondsToDetailedDisplay, rankDisplay, streakTheme } from "../utils";
 
   let {
     entry,
@@ -90,15 +85,13 @@
       {#if entry.streak_count > 0}
         <div
           class="inline-flex items-center gap-1 transition-all duration-200 {theme.hbg} group shrink-0"
-          title={entry.streak_count > 30
-            ? "30+ daily streak"
-            : `${entry.streak_count} day streak`}
+          title={`${entry.streak_count} day streak`}
         >
           <StreakIcon size={16} class={theme.ic} />
           <span
             class="text-md font-semibold {theme.tc} transition-colors duration-200"
           >
-            {streakLabel(entry.streak_count)}
+            {entry.streak_count}
           </span>
         </div>
       {/if}

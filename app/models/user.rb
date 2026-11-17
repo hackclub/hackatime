@@ -331,10 +331,6 @@ class User < ApplicationRecord
   def can_delete_emails? = email_addresses.size > 1
   def can_delete_email_address?(email) = email.can_unlink? && can_delete_emails?
 
-  def streak_days_formatted
-    streak_days > 30 ? "30+" : (streak_days < 1 ? nil : streak_days.to_s)
-  end
-
   enum :hackatime_extension_text_type, {
     simple_text: 0,
     clock_emoji: 1,

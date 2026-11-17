@@ -39,7 +39,7 @@ class HeartbeatTest < ActiveSupport::TestCase
     assert_includes Heartbeat.all, heartbeat
   end
 
-  test "daily streak cache is separated for browser-filtered leaderboard streaks" do
+  test "daily streaks only drop browser time when asked" do
     user = create(:user, username: "hb_streak_cache")
     create_heartbeat_sequence(user: user, started_at: 1.day.ago.beginning_of_day + 9.hours, editor: "firefox")
 
@@ -62,6 +62,46 @@ class HeartbeatTest < ActiveSupport::TestCase
 
       assert_equal({ utc_user.id => 1, new_york_user.id => 2 },
         Heartbeat.daily_streaks_for_users(users.map(&:id)))
+    end
+  end
+
+  test "daily streaks count today once it reaches 15 minutes and stop at the first short day" do
+    travel_to Time.utc(2026, 10, 18, 20) do
+      waiting = create(:user, timezone: "UTC")
+      done = create(:user, timezone: "UTC")
+
+      [ waiting, done ].each do |user|
+        create_heartbeat_sequence(user: user, started_at: Time.utc(2026, 10, 14, 9), editor: "vscode")
+        create_heartbeat_sequence(user: user, started_at: Time.utc(2026, 10, 15, 9), editor: "vscode", count: 8)
+        create_heartbeat_sequence(user: user, started_at: Time.utc(2026, 10, 16, 9), editor: "vscode")
+        create_heartbeat_sequence(user: user, started_at: Time.utc(2026, 10, 17, 9), editor: "vscode")
+      end
+      # Eight heartbeats two minutes apart are 14 minutes; nine are 16.
+      create_heartbeat_sequence(user: waiting, started_at: Time.utc(2026, 10, 18, 9), editor: "vscode", count: 8)
+      create_heartbeat_sequence(user: done, started_at: Time.utc(2026, 10, 18, 9), editor: "vscode")
+
+      assert_equal({ waiting.id => 2, done.id => 3 }, Heartbeat.daily_streaks_for_users([ waiting.id, done.id ]))
+    end
+  end
+
+  test "daily streaks round a day's activity to the nearest second" do
+    travel_to Time.utc(2026, 10, 18, 20) do
+      user = create(:user, timezone: "UTC")
+      # 14 minutes from eight heartbeats, then 59.6 seconds more.
+      create_heartbeat_sequence(user: user, started_at: Time.utc(2026, 10, 17, 9), editor: "vscode", count: 8)
+      create(:heartbeat, user: user, entity: "src/vscode.rb", type: "file", category: "coding", editor: "vscode",
+        time: (Time.utc(2026, 10, 17, 9, 14) + 59.6.seconds).to_f, project: "heartbeat-test", source_type: :test_entry)
+
+      assert_equal 1, user.streak_days
+    end
+  end
+
+  test "daily streaks count every day back to the first short one" do
+    travel_to Time.utc(2026, 10, 18, 20) do
+      user = create(:user, timezone: "UTC")
+      40.times { |days_ago| create_heartbeat_sequence(user: user, started_at: Time.utc(2026, 10, 18, 9) - days_ago.days, editor: "vscode") }
+
+      assert_equal 40, user.streak_days
     end
   end
 

@@ -103,9 +103,6 @@ export const streakTheme = (count: number) => {
   };
 };
 
-export const streakLabel = (count: number) =>
-  count > 30 ? "30+" : `${count}`;
-
 export const rankDisplay = (index: number) => {
   if (index === 0) return "🥇";
   if (index === 1) return "🥈";
