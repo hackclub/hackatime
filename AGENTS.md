@@ -195,7 +195,7 @@ fooThings.update.path({ query: { from: "x" } }); // -> "/foo_things?from=x"
 ### Adding a new path helper
 
 1. Mark the route in `config/routes.rb`: add `export: true` to the route or `resources` call, or wrap a group in `defaults export: true do ... end`. Unmarked routes are not exported, keeping the generated `app/javascript/api/` small and predictable. Beware that js_from_routes derives helper names from sibling routes on the same controller, so adding or removing an exported route can rename existing helpers — check `svelte-check` after changing exports.
-2. In dev, refresh the page (Rails reloader regenerates) or run `docker compose exec web bin/rake js_from_routes:generate`. Force regeneration with `JS_FROM_ROUTES_FORCE=true`.
+2. In dev, refresh the page (Rails reloader regenerates) or run `docker compose exec web bin/rake js_from_routes:generate`.
 3. Import from `app/javascript/api/<Namespace>Api.ts` (one file per controller). All helpers are also re-exported from `app/javascript/api/index.ts`.
 
 ### When to keep paths as server-built props

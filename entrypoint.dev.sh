@@ -9,7 +9,7 @@ rm -f /app/tmp/pids/server.pid
 # Rails reloader regenerates on route changes during the dev session, but on
 # a fresh container start app/javascript/api/ would otherwise be empty.
 if [ -f /app/Gemfile ]; then
-  cd /app && bundle exec rake js_from_routes:generate JS_FROM_ROUTES_FORCE=true || \
+  cd /app && bundle exec rake js_from_routes:generate || \
     echo "Warning: js_from_routes generation failed; Rails reloader will retry on first request"
 fi
 
