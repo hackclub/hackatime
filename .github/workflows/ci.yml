@@ -30,7 +30,7 @@ jobs:
         run: bin/brakeman --no-pager -f sarif -o brakeman.sarif.json
 
       - name: Upload SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v4.38.3
+        uses: github/codeql-action/upload-sarif@v4.39.3
         with:
           sarif_file: brakeman.sarif.json
 
@@ -74,8 +74,6 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Generate js_from_routes path helpers
-        env:
-          JS_FROM_ROUTES_FORCE: "true"
         run: bin/rake js_from_routes:generate
 
       - name: Run Svelte type checks
@@ -263,8 +261,6 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Generate js_from_routes path helpers
-        env:
-          JS_FROM_ROUTES_FORCE: "true"
         run: bin/rake js_from_routes:generate
 
       - name: Pre-build Vite assets for test
