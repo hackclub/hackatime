@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_171553) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -434,11 +434,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_171553) do
 
   create_table "leaderboard_entries", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.integer "discounted_ai_seconds", default: 0, null: false
     t.bigint "leaderboard_id", null: false
     t.integer "rank"
     t.integer "streak_count", default: 0
     t.integer "total_seconds", default: 0, null: false
-    t.integer "unprompted_ai_seconds", default: 0, null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["leaderboard_id", "user_id"], name: "idx_leaderboard_entries_on_leaderboard_and_user", unique: true

@@ -18,7 +18,7 @@ class LeaderboardsController < InertiaController
       is_logged_in: current_user.present?,
       github_uid_blank: current_user.present? && current_user.github_uid.blank?,
       can_view_telescreen: current_user&.admin_level.in?(AuthHelpers::ADMIN_LEVELS) || false,
-      lost_unprompted_ai_time: lost_unprompted_ai_time?(leaderboard),
+      lost_ai_time: lost_ai_time?(leaderboard),
       entries: InertiaRails.defer { entries_payload(leaderboard, leaderboard_scope, country) }
     }
   end
@@ -67,10 +67,10 @@ class LeaderboardsController < InertiaController
     }
   end
 
-  def lost_unprompted_ai_time?(leaderboard)
+  def lost_ai_time?(leaderboard)
     return false unless current_user && leaderboard&.persisted?
 
-    leaderboard.entries.find_by(user_id: current_user.id)&.lost_unprompted_ai_time? || false
+    leaderboard.entries.find_by(user_id: current_user.id)&.lost_ai_time? || false
   end
 
   def entries_payload(leaderboard, scope, country)

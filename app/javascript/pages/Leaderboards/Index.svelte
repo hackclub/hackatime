@@ -21,7 +21,7 @@
     is_logged_in,
     github_uid_blank,
     can_view_telescreen,
-    lost_unprompted_ai_time,
+    lost_ai_time,
     entries,
     page_title,
   }: {
@@ -32,7 +32,7 @@
     is_logged_in: boolean;
     github_uid_blank: boolean;
     can_view_telescreen: boolean;
-    lost_unprompted_ai_time: boolean;
+    lost_ai_time: boolean;
     entries?: LeaderboardEntriesPayload;
     page_title: string;
   } = $props();
@@ -40,7 +40,7 @@
   const settingsPath = settingsProfile.my.path();
   let searchQuery = $state("");
 
-  const aiNoticeKey = "leaderboard-unprompted-ai-notice-dismissed";
+  const aiNoticeKey = "leaderboard-ai-curve-notice-dismissed";
   let aiNoticeDismissed = $state(true);
   onMount(() => {
     aiNoticeDismissed = localStorage.getItem(aiNoticeKey) === "true";
@@ -117,7 +117,7 @@
       </p>
     {/if}
 
-    {#if lost_unprompted_ai_time && !aiNoticeDismissed}
+    {#if lost_ai_time && !aiNoticeDismissed}
       <div
         class="rounded-xl border border-surface-200 bg-elevated p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
       >
@@ -126,7 +126,8 @@
             Some of your AI time isn't counted
           </p>
           <p class="text-sm text-muted">
-            AI time counts for 25 minutes after each prompt.
+            AI coding counts at 90% for the first 3 hours each day, then less
+            and less, up to 4.5 hours a day.
           </p>
         </div>
         <Button

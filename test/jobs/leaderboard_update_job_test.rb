@@ -50,39 +50,76 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
     assert_equal [ user.id ], board.entries.reload.pluck(:user_id)
   end
 
-  test "perform counts AI coding only within 25 minutes of the latest prompt" do
+  test "perform counts AI coding at 90% whether or not it was prompted" do
     freeze_time do
       agent_user = create_user(username: "lb_job_agent", github_uid: "GH_LEADERBOARD_JOB_AGENT")
-      early_prompt_user = create_user(username: "lb_job_early_prompt", github_uid: "GH_LEADERBOARD_JOB_EARLY")
 
-      # Prompt, then the agent keeps working for 40 minutes. The heartbeat at
-      # exactly +25 minutes still counts; the ones after it do not.
-      prompt_at = 3.hours.ago
-      create_ai_heartbeat(user: agent_user, time: prompt_at, ai_prompt_length: 42)
-      (1..40).each { |minute| create_ai_heartbeat(user: agent_user, time: prompt_at + minute.minutes) }
-
-      # The prompt comes before the rolling 24 hours start but still credits
-      # the first 15 minutes of the range.
-      range_start = 24.hours.ago
-      create_ai_heartbeat(user: early_prompt_user, time: range_start - 10.minutes, ai_prompt_length: 42)
-      (1..20).each { |minute| create_ai_heartbeat(user: early_prompt_user, time: range_start + minute.minutes) }
+      start = 3.hours.ago
+      (0..40).each { |minute| create_ai_heartbeat(user: agent_user, time: start + minute.minutes) }
 
       LeaderboardUpdateJob.perform_now(:daily, Date.current, force_update: true)
 
       board = Leaderboard.find_by!(start_date: Date.current, period_type: :daily, timezone_utc_offset: nil)
-      agent_entry = board.entries.find_by!(user_id: agent_user.id)
-      early_prompt_entry = board.entries.find_by!(user_id: early_prompt_user.id)
+      entry = board.entries.find_by!(user_id: agent_user.id)
 
-      assert_equal 25.minutes.to_i, agent_entry.total_seconds
-      assert_equal 15.minutes.to_i, agent_entry.unprompted_ai_seconds
-      assert_equal 14.minutes.to_i, early_prompt_entry.total_seconds
-      assert_equal 5.minutes.to_i, early_prompt_entry.unprompted_ai_seconds
+      assert_equal (40.minutes * 0.9).to_i, entry.total_seconds
+      assert_equal (40.minutes * 0.1).to_i, entry.discounted_ai_seconds
+    end
+  end
+
+  test "perform deflates AI coding on a curve that resets each day" do
+    freeze_time do
+      human_user = create_user(username: "lb_job_human", github_uid: "GH_LEADERBOARD_JOB_HUMAN")
+      mixed_user = create_user(username: "lb_job_mixed", github_uid: "GH_LEADERBOARD_JOB_MIXED")
+      split_user = create_user(username: "lb_job_split", github_uid: "GH_LEADERBOARD_JOB_SPLIT")
+      binge_user = create_user(username: "lb_job_binge", github_uid: "GH_LEADERBOARD_JOB_BINGE")
+
+      date = Date.current
+      day_one = (date - 3.days).beginning_of_day + 1.hour
+      day_two = (date - 2.days).beginning_of_day + 1.hour
+
+      create_session(user: human_user, start: day_one, hours: 6, category: "coding")
+      create_session(user: mixed_user, start: day_one, hours: 2, category: "coding")
+      create_session(user: mixed_user, start: day_one + 2.hours, hours: 6, category: "ai coding")
+      create_session(user: split_user, start: day_one, hours: 6, category: "ai coding")
+      create_session(user: split_user, start: day_two, hours: 6, category: "ai coding")
+      create_session(user: binge_user, start: day_one, hours: 12, category: "ai coding")
+
+      LeaderboardUpdateJob.perform_now(:last_7_days, date, force_update: true)
+
+      board = Leaderboard.find_by!(start_date: date, period_type: :last_7_days, timezone_utc_offset: nil)
+      totals = board.entries.pluck(:user_id, :total_seconds).to_h
+      six_hours_of_ai = LeaderboardEntry.credited_ai_seconds(6.hours.to_i)
+
+      assert_equal 6.hours.to_i, totals[human_user.id]
+      assert_equal (2.hours + six_hours_of_ai).round, totals[mixed_user.id]
+      # Day two's first heartbeat also earns the capped two minute gap since day one.
+      assert_equal (six_hours_of_ai + LeaderboardEntry.credited_ai_seconds(6.hours.to_i + 2.minutes.to_i)).round, totals[split_user.id]
+      assert_equal LeaderboardEntry.credited_ai_seconds(12.hours.to_i).round, totals[binge_user.id]
+      assert_operator totals[split_user.id], :>, totals[binge_user.id]
+      assert_equal 12.hours.to_i - totals[binge_user.id], board.entries.find_by!(user_id: binge_user.id).discounted_ai_seconds
+      assert_equal 0, board.entries.find_by!(user_id: human_user.id).discounted_ai_seconds
     end
   end
 
   private
 
-  def create_ai_heartbeat(user:, time:, ai_prompt_length: nil)
+  # A heartbeat every two minutes for hours, so every gap counts in full.
+  def create_session(user:, start:, hours:, category:)
+    (0..(hours * 30)).each do |i|
+      create(:heartbeat, user: user,
+        entity: "src/session.rb",
+        type: "file",
+        category: category,
+        editor: category == "ai coding" ? "claude-code" : "vscode",
+        time: (start + (i * 2).minutes).to_f,
+        project: "leaderboard-job-test",
+        source_type: :test_entry
+      )
+    end
+  end
+
+  def create_ai_heartbeat(user:, time:)
     create(:heartbeat, user: user,
       entity: "src/agent.rb",
       type: "file",
@@ -90,7 +127,6 @@ class LeaderboardUpdateJobTest < ActiveJob::TestCase
       editor: "claude-code",
       time: time.to_f,
       project: "leaderboard-job-test",
-      ai_prompt_length: ai_prompt_length,
       source_type: :test_entry
     )
   end

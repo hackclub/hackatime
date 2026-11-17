@@ -2,7 +2,6 @@ module Heartbeatable
   extend ActiveSupport::Concern
 
   BROWSER_EDITORS = %w[arc brave chrome chromium edge firefox floorp librewolf microsoft-edge opera opera-gx safari vivaldi waterfox zen].freeze
-  AI_PROMPT_CREDIT_WINDOW = 25.minutes
 
   included do
     # Filter heartbeats to only include those with category equal to "coding"
@@ -27,17 +26,29 @@ module Heartbeatable
       duration ? (@heartbeat_timeout_duration = duration) : (@heartbeat_timeout_duration || 2.minutes)
     end
 
-    # Heartbeats in range, except AI coding that comes more than
-    # AI_PROMPT_CREDIT_WINDOW after the user's latest prompt. An agent left
-    # running on its own stops earning time until the user prompts it again.
-    def prompted_ai_only(range)
-      candidates = where(time: (range.begin - AI_PROMPT_CREDIT_WINDOW)..range.end).select(:id, :user_id, :time, :category, <<~SQL.squish)
-        MAX(CASE WHEN category = 'ai coding' AND ai_prompt_length > 0 THEN time END)
-          OVER (PARTITION BY user_id ORDER BY time, id ROWS UNBOUNDED PRECEDING) AS last_ai_prompt_time
+    # Durations per user, split into non-AI seconds and AI seconds for each
+    # 24 hour slice of range: { user_id => [other, [ai_day_0, ...]] }. Each
+    # gap belongs to the heartbeat that ends it, so a user's seconds add up to
+    # where(time: range).group(:user_id).duration_seconds.
+    def durations_by_day(range)
+      gaps = where(time: range).with_valid_timestamps.select(<<~SQL.squish)
+        user_id,
+        category = 'ai coding' AS ai,
+        FLOOR((time - #{connection.quote(range.begin.to_f)}) / 86400)::integer AS day,
+        LEAST(COALESCE(time - LAG(time) OVER (PARTITION BY user_id ORDER BY time, #{quoted_table_name}.id), 0), #{heartbeat_timeout_duration.to_i}) AS duration
       SQL
+      # One column per day keeps the rows in the window's user_id order, so
+      # Postgres aggregates them without sorting millions of gaps again.
+      ai_days = (0...((range.end - range.begin) / 1.day).ceil).map do |day|
+        "COALESCE(SUM(duration) FILTER (WHERE ai AND day = #{day}), 0)"
+      end
 
-      unscoped.from(candidates, table_name).where(time: range)
-        .where("category <> 'ai coding' OR time <= last_ai_prompt_time + ?", AI_PROMPT_CREDIT_WINDOW.to_i)
+      connection.select_rows(<<~SQL.squish, "Heartbeat Durations").to_h do |user_id, other, *ai|
+        SELECT user_id, COALESCE(SUM(duration) FILTER (WHERE NOT ai), 0), #{ai_days.join(", ")}
+        FROM (#{gaps.to_sql}) AS gaps GROUP BY user_id
+      SQL
+        [ user_id.to_i, [ other.to_f, ai.map(&:to_f) ] ]
+      end
     end
 
     # The relation's distinct non-null values of column, in column order. A
