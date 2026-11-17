@@ -1,7 +1,7 @@
 <script lang="ts">
   import CountryFlag from "../../components/CountryFlag.svelte";
   import StreakIcon from "./StreakIcon.svelte";
-  import { streakTheme } from "../../utils";
+  import { streakTheme, streakLabel } from "../../utils";
   import type { AdminLevel, NavCurrentUser } from "../../types";
 
   let { user }: { user: NavCurrentUser } = $props();
@@ -54,7 +54,7 @@
 {#if streak && user.streak_days}
   <div
     class={`group inline-flex items-center gap-1 rounded-lg bg-gradient-to-r px-2 py-1 transition-[background-color,border-color,color,box-shadow] duration-200 ${streak.bg} border ${streak.bc} ${streak.hbg}`}
-    title={`${user.streak_days} day streak`}
+    title={`${streakLabel(user.streak_days)} day streak`}
   >
     <StreakIcon
       class={`${streak.ic} transition-colors duration-200 group-hover:animate-pulse`}
@@ -62,7 +62,7 @@
     <span
       class={`text-md font-semibold tabular-nums ${streak.tc} transition-colors duration-200`}
     >
-      {user.streak_days}
+      {streakLabel(user.streak_days)}
       <span class={`ml-1 font-normal ${streak.tm}`}>day streak</span>
     </span>
   </div>

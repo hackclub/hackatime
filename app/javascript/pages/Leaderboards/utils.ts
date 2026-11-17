@@ -3,6 +3,7 @@ export {
   timeAgo,
   rankDisplay,
   streakTheme,
+  streakLabel,
 } from "../../utils";
 
 export const tabClass = (active: boolean) =>

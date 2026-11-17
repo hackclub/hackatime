@@ -4,6 +4,7 @@
   import ActivityGraph from "../Home/signedIn/ActivityGraph.svelte";
   import Dashboard from "../Home/signedIn/Dashboard.svelte";
   import { settingsPrivacy, settingsProfile } from "../../api";
+  import { streakLabel } from "../../utils";
   import type {
     ActivityGraphData,
     FilterableDashboardData,
@@ -69,7 +70,7 @@
             {/if}
             {#if profile.streak_days && profile.streak_days > 0}
               <span class="{badgeClass} bg-orange-500/15 text-orange-300">
-                Streak: {profile.streak_days} days
+                Streak: {streakLabel(profile.streak_days)} days
               </span>
             {/if}
           </div>

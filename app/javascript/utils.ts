@@ -103,6 +103,10 @@ export const streakTheme = (count: number) => {
   };
 };
 
+// Matches STREAK_MAX_DAYS in heartbeatable.rb.
+export const streakLabel = (count: number) =>
+  count >= 1000 ? "1000+" : `${count}`;
+
 export const rankDisplay = (index: number) => {
   if (index === 0) return "🥇";
   if (index === 1) return "🥈";

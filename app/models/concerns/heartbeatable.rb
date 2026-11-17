@@ -13,6 +13,9 @@ module Heartbeatable
     COALESCE(SUM(duration) FILTER (WHERE ai AND day = 6), 0)
   SQL
   STREAK_DAY_SECONDS = 15.minutes.to_i
+  # Far above any real streak, so heartbeats backdated by years cannot make
+  # one streak lookup walk thousands of days.
+  STREAK_MAX_DAYS = 1000
   STREAK_DAY_CONDITION = <<~SQL.squish.freeze
     heartbeats.user_id = walk.user_id
     AND heartbeats.time >= EXTRACT(EPOCH FROM walk.day::timestamp AT TIME ZONE walk.timezone)
@@ -162,7 +165,7 @@ module Heartbeatable
           FROM users WHERE id IN (:user_ids)
           UNION ALL
           SELECT user_id, timezone, day - 1, back + 1 FROM walk
-          WHERE CASE WHEN back = 0 THEN TRUE ELSE #{active_day} END
+          WHERE back < #{STREAK_MAX_DAYS} AND CASE WHEN back = 0 THEN TRUE ELSE #{active_day} END
         )
         SELECT user_id, MAX(back) - 1 + MAX(CASE WHEN back = 0 AND #{active_day} THEN 1 ELSE 0 END)
         FROM walk GROUP BY user_id
