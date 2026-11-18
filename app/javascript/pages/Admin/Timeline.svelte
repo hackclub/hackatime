@@ -366,7 +366,8 @@
                 >
                   No users found
                 </div>{/if}
-              {#each results as user}<button
+              {#each results as user}<Button
+                  unstyled
                   type="button"
                   onmousedown={(event) => event.preventDefault()}
                   onclick={() => selectUser(user)}
@@ -380,7 +381,7 @@
                     class="ml-auto rounded-full bg-surface-100 px-2 py-1 text-xs text-muted"
                     >#{user.id}</span
                   >
-                </button>{/each}
+                </Button>{/each}
             </div>{/if}
         </div>
         <Button
@@ -416,13 +417,14 @@
               />{/if}<span class="mr-2">{user.display_name}</span><span
               class="rounded-md px-2 py-0.5 text-xs">#{user.id}</span
             >
-            {#if user.id !== current_user.id}<button
+            {#if user.id !== current_user.id}<Button
+                unstyled
                 type="button"
                 aria-label="Remove user"
                 onclick={() =>
                   (selected = selected.filter(({ id }) => id !== user.id))}
                 class="ml-2 text-lg leading-none text-muted hover:text-surface-content"
-                >×</button
+                >×</Button
               >{/if}
           </span>{/each}
       </div>
@@ -488,11 +490,12 @@
                     class="text-xs text-green underline">Git</a
                   >{/if}<span class="text-sm"
                   >{trustEmoji(column.user.trust_level)}</span
-                >{#if canMutate && column.user.id !== current_user.id}<button
+                >{#if canMutate && column.user.id !== current_user.id}<Button
+                    unstyled
                     type="button"
                     onclick={() => setTrust(column)}
                     class="text-xs text-muted hover:text-surface-content"
-                    title="Set trust level">🔨</button
+                    title="Set trust level">🔨</Button
                   >{/if}
               </div>
               <div
