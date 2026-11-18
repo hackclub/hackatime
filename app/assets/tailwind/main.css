@@ -18,11 +18,18 @@
   }
 }
 
+@font-face {
+  font-family: "Spline Sans Fallback";
+  src: local("Arial"), local("Liberation Sans"), local("DejaVu Sans");
+  size-adjust: 89.6%;
+}
+
 body,
 html {
   font-family:
     "Spline Sans Variable",
     "Spline Sans",
+    "Spline Sans Fallback",
     -apple-system,
     BlinkMacSystemFont,
     "Inter",
