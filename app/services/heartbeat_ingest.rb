@@ -81,6 +81,7 @@ class HeartbeatIngest
           )
         end
         entries.map { |entry| entry[:attrs][:project] }.uniq.each { |project| queue_project_mapping(project) }
+        warn_about_home_folder_project(entries)
       rescue => e
         entries.each do |entry|
           errors << { heartbeat: entry[:heartbeat], error: e.message, type: e.class.name }
@@ -462,6 +463,18 @@ class HeartbeatIngest
 
   def sanitize_project(project_name)
     project_name&.gsub(/[[:cntrl:]]/, "")&.strip
+  end
+
+  def warn_about_home_folder_project(entries)
+    return if @user.home_folder_project_warned_at?
+
+    entries.each do |entry|
+      attrs = entry[:attrs]
+      folder = Heartbeat.home_folder_project_root(entity: attrs[:entity], project: attrs[:project], project_root_count: attrs[:project_root_count])
+      return @user.warn_about_home_folder_project!(project: attrs[:project], folder:) if folder
+    end
+  rescue => e
+    Rails.error.report(e, handled: true, context: { message: "Error warning about home folder project" })
   end
 
   def queue_project_mapping(project_name)

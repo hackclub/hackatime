@@ -1,0 +1,19 @@
+Hackatime: Your projects are being lumped together
+==================================================
+
+Hi <%= @user.display_name %>,
+
+Hackatime has been logging your coding time to a project called "<%= @project %>". That is the name of <%= @folder %>, which looks like your home folder, so everything you work on inside it is ending up in one project.
+
+This usually happens for one of two reasons:
+
+- There is a .git folder in <%= @folder %>. Projects are named after the nearest Git repository, so a repository in your home folder covers everything inside it. If you did not create it on purpose, delete or move that .git folder. It is hidden, so you may need to turn on hidden files to see it.
+- Your editor has your whole home folder open. Open each project's own folder instead.
+
+If you want to keep things as they are, add a .wakatime-project file to each project folder with the project's name on the first line.
+
+New time will appear under the right projects once this is fixed. Time already logged to "<%= @project %>" will stay there.
+
+Read about project names: <%= @docs_url %>
+
+If this is set up the way you want, you can ignore this email. We will not send it again.

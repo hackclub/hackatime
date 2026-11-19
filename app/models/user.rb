@@ -423,6 +423,25 @@ class User < ApplicationRecord
 
   def find_valid_token(token) = sign_in_tokens.valid.find_by(token: token)
 
+  HOME_FOLDER_PROJECT_WARNING_FLAG = :home_folder_project_warning
+
+  # Emails the user, at most once ever, when their editor names a project
+  # after their home folder. Claiming the row and enqueueing the mail commit
+  # together, so concurrent heartbeat batches cannot send it twice.
+  def warn_about_home_folder_project!(project:, folder:)
+    return if home_folder_project_warned_at?
+    return unless Flipper.enabled?(HOME_FOLDER_PROJECT_WARNING_FLAG, self)
+    return if pending_deletion?
+
+    recipient_email = email_addresses.order(:id).pick(:email)
+    return if recipient_email.blank?
+
+    transaction do
+      claimed = self.class.where(id:, home_folder_project_warned_at: nil).update_all(home_folder_project_warned_at: Time.current)
+      ProjectDetectionMailer.home_folder_project(self, recipient_email:, project:, folder:).deliver_later if claimed == 1
+    end
+  end
+
   def self.not_convicted = where.not(trust_level: User.trust_levels[:red])
   def self.not_suspect = where(trust_level: [ User.trust_levels[:blue], User.trust_levels[:green] ])
 

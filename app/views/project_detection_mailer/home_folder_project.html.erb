@@ -1,0 +1,32 @@
+<h1 class="text-xl font-bold text-gray-900 tracking-tight mt-4 mb-0">
+  Your projects are being lumped together
+</h1>
+<p class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  Hi <%= @user.display_name %>, Hackatime has been logging your coding time to a project called <strong><%= @project %></strong>.
+  That is the name of <code><%= @folder %></code>, which looks like your home folder, so everything you work on inside it is ending up in one project.
+</p>
+<p class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  This usually happens for one of two reasons:
+</p>
+<ul class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  <li>
+    <strong>There is a <code>.git</code> folder in <code><%= @folder %></code>.</strong>
+    Projects are named after the nearest Git repository, so a repository in your home folder covers everything inside it.
+    If you did not create it on purpose, delete or move that <code>.git</code> folder. It is hidden, so you may need to turn on hidden files to see it.
+  </li>
+  <li>
+    <strong>Your editor has your whole home folder open.</strong>
+    Open each project's own folder instead.
+  </li>
+</ul>
+<p class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  If you want to keep things as they are, add a <code>.wakatime-project</code> file to each project folder with the project's name on the first line.
+</p>
+<p class="text-base leading-relaxed text-gray-700 mt-4 mb-0">
+  New time will appear under the right projects once this is fixed. Time already logged to <strong><%= @project %></strong> will stay there.
+</p>
+
+<%= render "shared/mailer/button", url: @docs_url, label: "Read about project names" %>
+<p class="text-sm leading-5 text-gray-400 mt-6 mb-0">
+  If this is set up the way you want, you can ignore this email. We will not send it again.
+</p>
