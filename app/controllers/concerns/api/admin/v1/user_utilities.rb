@@ -83,7 +83,7 @@ module Api
         end
 
         def user_info
-          user = find_user_by_id
+          user = find_user_by_id(allow_hca_id: true)
           return unless user
 
           valid = user.heartbeats.with_excluded.where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
@@ -96,6 +96,7 @@ module Api
               id: user.id,
               username: user.username,
               display_name: user.display_name,
+              hca_id: user.hca_id,
               slack_uid: user.slack_uid,
               slack_username: user.slack_username,
               github_username: user.github_username,
@@ -290,7 +291,7 @@ module Api
           users = User.includes(:email_addresses).where(id: user_ids)
           render json: {
             users: users.as_json(
-              only: %i[id username slack_uid slack_username github_username timezone country_code trust_level slack_avatar_url github_avatar_url],
+              only: %i[id username hca_id slack_uid slack_username github_username timezone country_code trust_level slack_avatar_url github_avatar_url],
               methods: %i[display_name avatar_url]
             )
           }
@@ -356,12 +357,22 @@ module Api
           render_forbidden("no perms lmaooo") unless current_user.admin_level.in?(AuthHelpers::ADMIN_LEVELS)
         end
 
-        def find_user_by_id
-          user_id = params[:id] || params[:user_id]
-          return render_error("who?") if user_id.blank?
-          User.find(user_id)
+        def find_user_by_id(allow_hca_id: false)
+          user_id = scalar_param(:id) || scalar_param(:user_id)
+          return User.find(user_id) if user_id
+
+          hca_id = scalar_param(:hca_id) if allow_hca_id
+          return User.find_by!(hca_id: hca_id) if hca_id
+
+          render_error("who?")
         rescue ActiveRecord::RecordNotFound
           render_not_found_json("user not found")
+        end
+
+        # Arrays and hashes would turn into IN queries or cast errors, so treat them as missing.
+        def scalar_param(key)
+          value = params[key]
+          value.to_s.presence if value.is_a?(String) || value.is_a?(Integer)
         end
       end
     end
