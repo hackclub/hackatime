@@ -83,7 +83,7 @@ module Api
         end
 
         def user_info
-          user = find_user_by_id
+          user = find_user_by_id(allow_hca_id: true)
           return unless user
 
           valid = user.heartbeats.with_excluded.where("CASE WHEN time > 1000000000000 THEN time / 1000 ELSE time END BETWEEN ? AND ?", Time.utc(2000, 1, 1).to_i, Time.utc(2100, 1, 1).to_i)
@@ -357,14 +357,22 @@ module Api
           render_forbidden("no perms lmaooo") unless current_user.admin_level.in?(AuthHelpers::ADMIN_LEVELS)
         end
 
-        def find_user_by_id
-          user_id = params[:id].presence || params[:user_id].presence
+        def find_user_by_id(allow_hca_id: false)
+          user_id = scalar_param(:id) || scalar_param(:user_id)
           return User.find(user_id) if user_id
-          return User.find_by!(hca_id: params[:hca_id]) if params[:hca_id].present?
+
+          hca_id = scalar_param(:hca_id) if allow_hca_id
+          return User.find_by!(hca_id: hca_id) if hca_id
 
           render_error("who?")
         rescue ActiveRecord::RecordNotFound
           render_not_found_json("user not found")
+        end
+
+        # Arrays and hashes would turn into IN queries or cast errors, so treat them as missing.
+        def scalar_param(key)
+          value = params[key]
+          value.to_s.presence if value.is_a?(String) || value.is_a?(Integer)
         end
       end
     end

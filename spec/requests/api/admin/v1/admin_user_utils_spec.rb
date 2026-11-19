@@ -117,9 +117,28 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
         run_test!
       end
 
+      response(200, 'successful') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:user) { create(:user, hca_id: 'ident!rswag') }
+        let(:user_id) { '' }
+        let(:hca_id) { user.hca_id }
+        run_test! do |response|
+          body = JSON.parse(response.body)
+          expect(body.dig('user', 'id')).to eq(user.id)
+          expect(body.dig('user', 'hca_id')).to eq('ident!rswag')
+        end
+      end
+
       response(404, 'user not found') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user_id) { '0' }
+        run_test!
+      end
+
+      response(404, 'user not found') do
+        let(:Authorization) { "Bearer dev-admin-api-key-12345" }
+        let(:user_id) { '' }
+        let(:hca_id) { 'ident!nobody' }
         run_test!
       end
 
