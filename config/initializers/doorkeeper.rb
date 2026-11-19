@@ -38,6 +38,6 @@ Doorkeeper.configure do
   allow_blank_redirect_uri
   skip_client_authentication_for_password_grant
 
-  # Enable PKCE for public clients
+  # PKCE is switched on by the code_challenge columns on oauth_access_grants
   force_ssl_in_redirect_uri false
 end

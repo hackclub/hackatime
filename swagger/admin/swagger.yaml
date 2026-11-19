@@ -1811,6 +1811,10 @@ paths:
                         display_name:
                           type: string
                           example: orpheus
+                        hca_id:
+                          type: string
+                          nullable: true
+                          example: ident!a1b2c3
                         slack_uid:
                           type: string
                           nullable: true
@@ -1875,6 +1879,13 @@ paths:
           precedence.
         schema:
           type: string
+      - name: hca_id
+        in: query
+        required: false
+        description: Hack Club Auth identity ID (e.g. "ident!a1b2c3"). Used only when
+          neither id nor user_id is supplied.
+        schema:
+          type: string
       responses:
         '200':
           description: successful
@@ -1895,6 +1906,10 @@ paths:
                       display_name:
                         type: string
                         example: orpheus
+                      hca_id:
+                        type: string
+                        nullable: true
+                        example: ident!a1b2c3
                       slack_uid:
                         type: string
                         nullable: true
@@ -1968,8 +1983,8 @@ paths:
         '404':
           description: user not found
         '422':
-          description: missing id — Returned ("who?") when neither id nor user_id
-            is supplied.
+          description: missing id — Returned ("who?") when none of id, user_id or
+            hca_id is supplied.
           content:
             application/json:
               schema:

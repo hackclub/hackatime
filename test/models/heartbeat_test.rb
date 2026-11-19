@@ -16,6 +16,38 @@ class HeartbeatTest < ActiveSupport::TestCase
     ActiveJob::Base.queue_adapter = @original_queue_adapter
   end
 
+  test "home_folder_project_root finds projects named after a home folder" do
+    found = {
+      [ "C:/Users/kevin/Desktop/Code/game/main.py", "kevin", 3 ] => "C:/Users/kevin",
+      [ "C:\\Users\\kevin\\Desktop\\main.py", "Kevin", 3 ] => "C:/Users/kevin",
+      [ "C:/Users/kevin/Desktop/main.py", "Users", 2 ] => "C:/Users",
+      [ "/Users/kevin/code/app.rb", "kevin", 3 ] => "/Users/kevin",
+      [ "/home/kevin/code/app.rb", "kevin", 3 ] => "/home/kevin",
+      [ "/mnt/c/Users/kevin/code/app.rb", "kevin", 5 ] => "/mnt/c/Users/kevin",
+      [ "/root/code/app.rb", "root", 2 ] => "/root"
+    }
+    found.each do |(entity, project, project_root_count), folder|
+      assert_equal folder, Heartbeat.home_folder_project_root(entity:, project:, project_root_count:), entity
+    end
+
+    ignored = [
+      [ "/home/kevin/code/app/app.rb", "app", 5 ],
+      [ "C:/Code/game/main.py", "game", 3 ],
+      [ "/home/kevin/code/app.rb", "dotfiles", 3 ],
+      [ "/home/kevin/.zshrc", "kevin", 3 ],
+      [ "C:/Users/kevin/AppData/Local/Temp/x.py", "kevin", 3 ],
+      [ "/Users/kevin/Library/Application Support/x.json", "kevin", 3 ],
+      [ "/home/kevin", "kevin", 3 ],
+      [ "C:/Users/kevin/script.py", "kevin", 3 ],
+      [ "C:/Users/kevin/Desktop/", "kevin", 3 ],
+      [ "/home/kevin/code/app.rb", "kevin", nil ],
+      [ "/home/kevin/code/app.rb", "", 3 ]
+    ]
+    ignored.each do |entity, project, project_root_count|
+      assert_nil Heartbeat.home_folder_project_root(entity:, project:, project_root_count:), entity
+    end
+  end
+
   test "soft delete hides record from default scope and restore brings it back" do
     user = create(:user)
     heartbeat = create(:heartbeat, user: user,

@@ -68,6 +68,7 @@ class HeartbeatIngest
     end
 
     if entries.any?
+      accepted = false
       begin
         persisted_by_hash, inserted_hashes = persist_direct_heartbeats(entries)
         persisted_count = inserted_hashes.length
@@ -81,12 +82,16 @@ class HeartbeatIngest
           )
         end
         entries.map { |entry| entry[:attrs][:project] }.uniq.each { |project| queue_project_mapping(project) }
+        accepted = true
       rescue => e
         entries.each do |entry|
           errors << { heartbeat: entry[:heartbeat], error: e.message, type: e.class.name }
           items[entry[:index]] = Item.new(heartbeat: nil, status: :failed, error: e)
         end
       end
+
+      # A failure here must not mark the saved heartbeats as failed.
+      warn_about_home_folder_project(entries) if accepted
     end
 
     Result.new(
@@ -462,6 +467,19 @@ class HeartbeatIngest
 
   def sanitize_project(project_name)
     project_name&.gsub(/[[:cntrl:]]/, "")&.strip
+  end
+
+  def warn_about_home_folder_project(entries)
+    return if @user.home_folder_project_warned_at?
+
+    matches = entries.filter_map do |entry|
+      attrs = entry[:attrs]
+      folder = Heartbeat.home_folder_project_root(entity: attrs[:entity], project: attrs[:project], project_root_count: attrs[:project_root_count])
+      [ attrs[:project], folder ] if folder
+    end
+    matches.uniq(&:first).any? { |project, folder| @user.warn_about_home_folder_project!(project:, folder:) }
+  rescue ActiveRecord::ActiveRecordError => e
+    Rails.error.report(e, handled: true, context: { message: "Error warning about home folder project", user_id: @user.id })
   end
 
   def queue_project_mapping(project_name)
