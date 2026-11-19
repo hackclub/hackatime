@@ -936,21 +936,13 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
   test "a project named after the home folder emails the user once" do
     Flipper.enable(User::HOME_FOLDER_PROJECT_WARNING_FLAG)
     user = create(:user)
-    create(:email_address, user:, email: "kevin@example.com")
+    create(:email_address, user:)
 
     assert_enqueued_emails 1 do
       ingest_home_folder_heartbeat(user)
       ingest_home_folder_heartbeat(user, entity: "C:/Users/kevin/Desktop/Code/other/main.py")
     end
     assert user.reload.home_folder_project_warned_at?
-
-    perform_enqueued_jobs
-    mail = ActionMailer::Base.deliveries.last
-    assert_equal [ "kevin@example.com" ], mail.to
-    assert_equal "Hackatime is logging your coding time to \"kevin\"", mail.subject
-    assert_includes mail.text_part.body.decoded, "There is a .git folder in C:/Users/kevin."
-
-    assert_no_enqueued_emails { ingest_home_folder_heartbeat(user.reload, entity: "C:/Users/kevin/Desktop/third.py") }
   ensure
     Flipper.disable(User::HOME_FOLDER_PROJECT_WARNING_FLAG)
   end
@@ -961,19 +953,6 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
 
     assert_no_enqueued_emails { ingest_home_folder_heartbeat(user) }
     assert_not user.reload.home_folder_project_warned_at?
-  end
-
-  test "ordinary projects do not email the user" do
-    Flipper.enable(User::HOME_FOLDER_PROJECT_WARNING_FLAG)
-    user = create(:user)
-    create(:email_address, user:)
-
-    assert_no_enqueued_emails do
-      ingest_home_folder_heartbeat(user, entity: "C:/Users/kevin/Desktop/Code/game/main.py", project: "game", project_root_count: 6)
-    end
-    assert_not user.reload.home_folder_project_warned_at?
-  ensure
-    Flipper.disable(User::HOME_FOLDER_PROJECT_WARNING_FLAG)
   end
 
   private

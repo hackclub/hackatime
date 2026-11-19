@@ -55,17 +55,11 @@ class Heartbeat < ApplicationRecord
     %w[ai_model ai_session ai_subscription_plan ai_input_tokens ai_output_tokens ai_prompt_length ai_line_changes human_line_changes]
   end
 
-  # A home folder, or the folder that holds home folders, on Windows, macOS,
-  # Linux or WSL.
+  # A home folder, or the folder that holds them, on Windows, macOS, Linux or WSL.
   HOME_FOLDER = %r{\A(?:(?:[A-Z]:|/mnt/[a-z])?/Users|/home)(?:/[^/]+)?\z|\A/root\z}i
-  # Files under these are usually tool or config files, not code someone is
-  # working on, so they say little about where the user's projects live.
+  # Dotfiles and tool scratch files rather than projects.
   HOME_FOLDER_NOISE = %r{\A(?:\.|AppData/|Library/)}i
 
-  # Returns the project folder when the client named the project after a home
-  # folder, which usually means a stray .git (or an editor workspace) at the
-  # home folder is swallowing every project inside it.
-  #
   # The client does not send the project folder, but project_root_count is the
   # number of slashes in it, so it is the first project_root_count segments of
   # the entity path.
@@ -75,7 +69,6 @@ class Heartbeat < ApplicationRecord
     segments = entity.tr("\\", "/").split("/", -1)
     folder = segments.first(project_root_count).join("/")
     relative = segments.drop(project_root_count).join("/")
-    # Only a file inside a subfolder shows other projects being swallowed.
     return unless relative.include?("/") && segments.last.present? && !relative.match?(HOME_FOLDER_NOISE)
     return unless folder.match?(HOME_FOLDER) && folder.split("/").last.casecmp?(project)
 

@@ -425,9 +425,8 @@ class User < ApplicationRecord
 
   HOME_FOLDER_PROJECT_WARNING_FLAG = :home_folder_project_warning
 
-  # Emails the user, at most once ever, when their editor names a project
-  # after their home folder. Claiming the row and enqueueing the mail commit
-  # together, so concurrent heartbeat batches cannot send it twice.
+  # Claiming the row and enqueueing the mail commit together, so concurrent
+  # heartbeat batches cannot send it twice.
   def warn_about_home_folder_project!(project:, folder:)
     return if home_folder_project_warned_at?
     return unless Flipper.enabled?(HOME_FOLDER_PROJECT_WARNING_FLAG, self)

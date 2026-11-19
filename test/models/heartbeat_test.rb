@@ -31,14 +31,14 @@ class HeartbeatTest < ActiveSupport::TestCase
     end
 
     ignored = [
-      [ "/home/kevin/code/app/app.rb", "app", 5 ], # a real project folder
-      [ "C:/Code/game/main.py", "game", 3 ], # shallow, but not a home folder
-      [ "/home/kevin/code/app.rb", "dotfiles", 3 ], # name chosen by .wakatime-project or a project map
-      [ "/home/kevin/.zshrc", "kevin", 3 ], # dotfiles repository
-      [ "C:/Users/kevin/AppData/Local/Temp/x.py", "kevin", 3 ], # tool scratch files
+      [ "/home/kevin/code/app/app.rb", "app", 5 ],
+      [ "C:/Code/game/main.py", "game", 3 ],
+      [ "/home/kevin/code/app.rb", "dotfiles", 3 ],
+      [ "/home/kevin/.zshrc", "kevin", 3 ],
+      [ "C:/Users/kevin/AppData/Local/Temp/x.py", "kevin", 3 ],
       [ "/Users/kevin/Library/Application Support/x.json", "kevin", 3 ],
-      [ "/home/kevin", "kevin", 3 ], # the folder itself
-      [ "C:/Users/kevin/script.py", "kevin", 3 ], # a standalone file, not a project
+      [ "/home/kevin", "kevin", 3 ],
+      [ "C:/Users/kevin/script.py", "kevin", 3 ],
       [ "C:/Users/kevin/Desktop/", "kevin", 3 ],
       [ "/home/kevin/code/app.rb", "kevin", nil ],
       [ "/home/kevin/code/app.rb", "", 3 ]

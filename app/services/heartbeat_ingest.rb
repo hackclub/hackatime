@@ -90,8 +90,7 @@ class HeartbeatIngest
         end
       end
 
-      # Outside the block above so a failure here is never reported as the
-      # heartbeats failing to save.
+      # A failure here must not mark the saved heartbeats as failed.
       warn_about_home_folder_project(entries) if accepted
     end
 
@@ -479,8 +478,6 @@ class HeartbeatIngest
       return @user.warn_about_home_folder_project!(project: attrs[:project], folder:) if folder
     end
   rescue ActiveRecord::ActiveRecordError => e
-    # The heartbeats are already saved and the warning is retried on the next
-    # batch, so a database or enqueue failure here should not fail the request.
     Rails.error.report(e, handled: true, context: { message: "Error warning about home folder project", user_id: @user.id })
   end
 
