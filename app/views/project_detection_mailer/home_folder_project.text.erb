@@ -1,19 +1,15 @@
 Hackatime: Your projects are being lumped together
 ==================================================
 
-Hi <%= @user.display_name %>,
-
-Hackatime has been logging your coding time to a project called "<%= @project %>". That is the name of <%= @folder %>, which looks like your home folder, so everything you work on inside it is ending up in one project.
+Hi <%= @user.display_name %>, Hackatime has been logging your coding time to a project called <%= @project %>. That is the name of <%= @folder %>, which looks like your home folder, so everything you work on inside it is ending up in one project.
 
 This usually happens for one of two reasons:
 
-- There is a .git folder in <%= @folder %>. Projects are named after the nearest Git repository, so a repository in your home folder covers everything inside it. If you did not create it on purpose, delete or move that .git folder. It is hidden, so you may need to turn on hidden files to see it.
-- Your editor has your whole home folder open. Open each project's own folder instead.
+- There is a .git folder in <%= @folder %>. Because projects are named after the nearest Git repository, a Git repo in your home folder covers everything inside it. If you did not create it on purpose, delete or move that .git folder (you might need to enable the 'Show hidden files' feature in your file manager to view it).
+- Your editor has your whole home folder open. To prevent this from happening again, you can open the specific folder for the project you are working on.
 
-If you want to keep things as they are, add a .wakatime-project file to each project folder with the project's name on the first line.
+If you want to keep things as they are, you can add a .wakatime-project file to each project folder, with the contents set to the project name you'd like for that folder.
 
-New time will appear under the right projects once this is fixed. Time already logged to "<%= @project %>" will stay there.
+Once you've fixed this issue, your coding time will appear under the right projects, but time already logged to <%= @project %> will stay there.
 
 Read about project names: <%= @docs_url %>
-
-If this is set up the way you want, you can ignore this email. We will not send it again.
