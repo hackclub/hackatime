@@ -70,6 +70,34 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
     assert_equal "wakatime/v1.102.1", heartbeat.user_agent
   end
 
+  test "resolves wakatime ids, imports recent heartbeats and does not duplicate rows imported without the lookups" do
+    user = create(:user)
+    user_agent = "wakatime/v1.102.1 (darwin-24.6.0-arm64) go1.22.0 vscode/1.95.0 vscode-wakatime/24.0.0"
+    exported = { entity: "/code/app.rb", type: "file", time: 1_727_905_177.5, category: "coding", project: "app",
+                 language: "Ruby", machine_name_id: "machine-1", user_agent_id: "ua-1", is_write: true }
+    recent = exported.merge(entity: "/code/recent.rb", time: 1_727_995_177.5)
+    file_content = { days: [ { date: "2024-10-02", heartbeats: [ exported ] } ] }.to_json
+
+    # Imported before user agents beyond page one and machine names were resolved.
+    HeartbeatImportService.import_from_file(file_content, user)
+    assert_equal [ [ "machine-1", "ua-1" ] ], user.heartbeats.pluck(:machine, :user_agent)
+
+    result = HeartbeatImportService.import_from_file(
+      file_content, user,
+      user_agents_by_id: { "ua-1" => { "value" => user_agent, "editor" => "VS Code", "os" => "Mac" } },
+      machine_names_by_id: { "machine-1" => "mahads-macbook" },
+      extra_heartbeats: [ recent.deep_stringify_keys, exported.deep_stringify_keys ]
+    )
+
+    assert result[:success]
+    assert_equal 3, result[:total_count]
+    assert_equal 1, result[:imported_count]
+    assert_equal 2, user.heartbeats.count
+    heartbeat = user.heartbeats.find_by!(entity: "/code/recent.rb")
+    assert_equal [ "mahads-macbook", user_agent, "VS Code", "Mac" ],
+      [ heartbeat.machine, heartbeat.user_agent, heartbeat.editor, heartbeat.operating_system ]
+  end
+
   test "normalizes and validates each imported heartbeat once" do
     user = create(:user)
     validation_count = 0

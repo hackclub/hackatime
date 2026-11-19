@@ -1,4 +1,5 @@
 require "test_helper"
+require "webmock/minitest"
 
 class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
@@ -123,7 +124,7 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
     assert_empty ActionMailer::Base.deliveries
   end
 
-  test "fail_run_for_error! emails the user about invalid api keys" do
+  test "fail_run_for_error! emails the user about rejected tokens and revokes the token" do
     user = create(:user, :with_email, email: "invalid-key-#{SecureRandom.hex(4)}@example.com")
     run = create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
@@ -131,15 +132,20 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
       encrypted_api_key: "secret"
     )
 
-    HeartbeatImportRunner.fail_run_for_error!(
-      import_run_id: run.id,
-      error: HeartbeatImportDumpClient::AuthenticationError.new("Authentication failed (401)", status: 401)
-    )
+    revoke = stub_request(:post, "https://wakatime.com/oauth/revoke")
+      .with(body: { client_id: "test-client", client_secret: "test-secret", token: "secret" })
+    with_wakatime_app do
+      HeartbeatImportRunner.fail_run_for_error!(
+        import_run_id: run.id,
+        error: HeartbeatImportDumpClient::AuthenticationError.new("Authentication failed (401)", status: 401)
+      )
+    end
 
     run.reload
     assert_equal "failed", run.state
-    assert_equal "WakaTime rejected the import because the API key is invalid.", run.error_message
+    assert_equal "WakaTime rejected the connection. Connect WakaTime again to retry.", run.error_message
     assert_nil run.encrypted_api_key
+    assert_requested revoke
     assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob
   end
 
@@ -212,5 +218,17 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
 
       assert_not HeartbeatImportRunner.refreshable_remote_run?(run)
     end
+  end
+
+  private
+
+  def with_wakatime_app
+    original = ENV.to_h.slice("WAKATIME_CLIENT_ID", "WAKATIME_CLIENT_SECRET")
+    ENV.update("WAKATIME_CLIENT_ID" => "test-client", "WAKATIME_CLIENT_SECRET" => "test-secret")
+    yield
+  ensure
+    ENV.delete("WAKATIME_CLIENT_ID")
+    ENV.delete("WAKATIME_CLIENT_SECRET")
+    ENV.update(original)
   end
 end

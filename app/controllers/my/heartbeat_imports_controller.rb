@@ -2,7 +2,7 @@ class My::HeartbeatImportsController < ApplicationController
   layout "inertia"
 
   before_action :ensure_current_user, only: %i[create show]
-  before_action :authenticate_user!, only: :wakatime_download_link
+  before_action :authenticate_user!, only: %i[wakatime_download_link wakatime_authorize wakatime_callback]
 
   IMPORT_RESCUE_CLASSES = [
     HeartbeatImportRunner::ActiveImportError,
@@ -41,6 +41,44 @@ class My::HeartbeatImportsController < ApplicationController
     end
   end
 
+  def wakatime_authorize
+    HeartbeatImportRunner.ensure_no_active_import!(current_user)
+    HeartbeatImportRunner.ensure_remote_cooldown!(current_user)
+
+    session[:wakatime_import_oauth_state] = state = SecureRandom.hex(24)
+    redirect_to HeartbeatImportDumpClient.wakatime_authorize_url(redirect_uri: wakatime_callback_my_heartbeat_imports_url, state:),
+                allow_other_host: true
+  rescue HeartbeatImportRunner::CooldownError => e
+    flash[:cooldown_until] = e.retry_at.iso8601
+    redirect_with_import_error(e.message)
+  rescue HeartbeatImportRunner::ActiveImportError => e
+    redirect_with_import_error(e.message)
+  end
+
+  def wakatime_callback
+    expected_state = session.delete(:wakatime_import_oauth_state)
+    if params[:error].present?
+      return redirect_with_import_error(params[:error] == "access_denied" ? "WakaTime connection cancelled." : "WakaTime could not connect (#{params[:error]}).")
+    end
+    unless expected_state.present? && ActiveSupport::SecurityUtils.secure_compare(params[:state].to_s, expected_state)
+      return redirect_with_import_error("This WakaTime connection attempt is no longer valid. Please connect WakaTime again.")
+    end
+
+    token = HeartbeatImportDumpClient.exchange_wakatime_code(code: params[:code].to_s, redirect_uri: wakatime_callback_my_heartbeat_imports_url)
+    HeartbeatImportRunner.start_remote_import(user: current_user, provider: "wakatime_dump", api_key: token)
+    redirect_to my_settings_imports_exports_path
+  rescue HeartbeatImportRunner::CooldownError => e
+    revoke_unused_wakatime_token(token)
+    flash[:cooldown_until] = e.retry_at.iso8601
+    redirect_with_import_error(e.message)
+  rescue HeartbeatImportRunner::ActiveImportError => e
+    revoke_unused_wakatime_token(token)
+    redirect_with_import_error(e.message)
+  rescue HeartbeatImportDumpClient::ResponseError => e
+    report_error(e, message: "WakaTime OAuth token exchange failed for user #{current_user.id}")
+    redirect_with_import_error("WakaTime could not connect. Please try again.")
+  end
+
   def wakatime_download_link
     render inertia: "HeartbeatImports/WakatimeDownloadLink", props: { page_title: "Import from WakaTime | Hackatime" }
   end
@@ -71,11 +109,20 @@ class My::HeartbeatImportsController < ApplicationController
       return
     end
 
+    if HeartbeatImportRunner::PROVIDER_ALIASES[heartbeat_import[:provider].to_s] == "wakatime_dump"
+      raise HeartbeatImportRunner::InvalidProviderError, "Use Connect WakaTime to import from WakaTime."
+    end
     raise HeartbeatImportRunner::InvalidProviderError, "API key is required." if heartbeat_import[:api_key].blank?
 
     HeartbeatImportRunner.start_remote_import(user: current_user,
                                               provider: heartbeat_import[:provider],
                                               api_key: heartbeat_import[:api_key])
+  end
+
+  def revoke_unused_wakatime_token(token)
+    HeartbeatImportDumpClient.revoke_wakatime_token(token) if token.present?
+  rescue HeartbeatImportDumpClient::ResponseError, HTTP::Error => e
+    report_error(e, message: "Failed to revoke unused WakaTime token for user #{current_user.id}")
   end
 
   def ensure_development

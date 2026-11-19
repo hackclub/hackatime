@@ -16,7 +16,7 @@
     {
       value: "wakatime_dump",
       label: "WakaTime",
-      helper: "Request a one-time heartbeat dump from WakaTime.",
+      helper: "Connect your WakaTime account to import all of your heartbeats.",
     },
     {
       value: "hackatime_v1_dump",
@@ -44,6 +44,9 @@
     $state<(typeof PROVIDERS)[number]["value"]>("wakatime_dump");
   let remoteApiKey = $state("");
   let clock = $state(Date.now());
+
+  const wakatimeAuthorizePath = myHeartbeatImports.wakatimeAuthorize.path();
+  const usesWakatimeConnect = $derived(remoteProvider === "wakatime_dump");
 
   const importState = $derived(latestImport?.state ?? "idle");
   const importSourceKind = $derived(latestImport?.source_kind ?? "");
@@ -144,22 +147,24 @@
           {/each}
         </div>
 
-        <div class="max-w-2xl">
-          <label
-            for="remote_import_api_key"
-            class="mb-2 block text-sm text-surface-content"
-          >
-            API Key
-          </label>
-          <input
-            id="remote_import_api_key"
-            name="heartbeat_import[api_key]"
-            type="password"
-            bind:value={remoteApiKey}
-            class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-base text-surface-content focus:border-primary focus:outline-none"
-            disabled={importInProgress || processing}
-          />
-        </div>
+        {#if !usesWakatimeConnect}
+          <div class="max-w-2xl">
+            <label
+              for="remote_import_api_key"
+              class="mb-2 block text-sm text-surface-content"
+            >
+              API Key
+            </label>
+            <input
+              id="remote_import_api_key"
+              name="heartbeat_import[api_key]"
+              type="password"
+              bind:value={remoteApiKey}
+              class="w-full rounded-md border border-surface-200 bg-input px-3 py-2 text-base text-surface-content focus:border-primary focus:outline-none"
+              disabled={importInProgress || processing}
+            />
+          </div>
+        {/if}
 
         {#if errors.import}
           <p class="text-sm text-red-300">{errors.import}</p>
@@ -188,23 +193,35 @@
             <div></div>
           {/if}
           <div class="w-full sm:w-auto">
-            <Button
-              type="submit"
-              variant="primary"
-              class="w-full"
-              disabled={cooldownActive ||
-                !remoteApiKey.trim() ||
-                importInProgress ||
-                processing}
-            >
-              {#if processing}
-                Starting remote import...
-              {:else if importInProgress && latestImportIsRemote}
-                Import in progress...
-              {:else}
-                Start remote import
-              {/if}
-            </Button>
+            {#if usesWakatimeConnect && !cooldownActive && !importInProgress}
+              <Button
+                native
+                href={wakatimeAuthorizePath}
+                variant="primary"
+                class="w-full"
+              >
+                Connect WakaTime and import
+              </Button>
+            {:else}
+              <Button
+                type="submit"
+                variant="primary"
+                class="w-full"
+                disabled={cooldownActive ||
+                  usesWakatimeConnect ||
+                  !remoteApiKey.trim() ||
+                  importInProgress ||
+                  processing}
+              >
+                {#if processing}
+                  Starting remote import...
+                {:else if importInProgress && latestImportIsRemote}
+                  Import in progress...
+                {:else}
+                  Start remote import
+                {/if}
+              </Button>
+            {/if}
           </div>
         </div>
       {/snippet}

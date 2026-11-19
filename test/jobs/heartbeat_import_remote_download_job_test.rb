@@ -31,10 +31,20 @@ class HeartbeatImportRemoteDownloadJobTest < ActiveJob::TestCase
     fake_client.define_singleton_method(:list_user_agents) do
       [ { id: "ua-123", value: "wakatime/v1.102.1 (darwin-arm64) go1.22.0 vscode/1.0.0", editor: "vscode", os: "darwin" } ]
     end
+    fake_client.define_singleton_method(:list_machine_names) do
+      [ { id: "machine-1", value: "skyfall-pc" } ]
+    end
+    requested_dates = []
+    fake_client.define_singleton_method(:list_heartbeats) do |date|
+      requested_dates << date
+      [ { "id" => "hb-#{date}", "time" => date.to_time.to_f } ]
+    end
 
-    with_dump_client(fake_client) do
-      assert_enqueued_with(job: HeartbeatImportJob) do
-        HeartbeatImportRemoteDownloadJob.perform_now(run.id, "https://wakatime.s3.amazonaws.com/export.json")
+    travel_to Time.utc(2026, 11, 20, 12) do
+      with_dump_client(fake_client) do
+        assert_enqueued_with(job: HeartbeatImportJob) do
+          HeartbeatImportRemoteDownloadJob.perform_now(run.id, "https://wakatime.s3.amazonaws.com/export.json", "2026-11-17T23:06:47Z")
+        end
       end
     end
 
@@ -47,6 +57,10 @@ class HeartbeatImportRemoteDownloadJobTest < ActiveJob::TestCase
     assert_equal "darwin", context.dig("user_agents_by_id", "ua-123", "os")
     assert_equal "wakatime/v1.102.1 (darwin-arm64) go1.22.0 vscode/1.0.0",
       context.dig("user_agents_by_id", "ua-123", "value")
+    assert_equal({ "machine-1" => "skyfall-pc" }, context["machine_names_by_id"])
+    # Every day since the export was created, padded by a day for timezones.
+    assert_equal (Date.new(2026, 11, 16)..Date.new(2026, 11, 21)).to_a, requested_dates
+    assert_equal requested_dates.map { "hb-#{_1}" }, context["recent_heartbeats"].map { _1["id"] }
   ensure
     FileUtils.rm_f(HeartbeatImportRunner::TMP_DIR.join("#{run.id}-remote.json")) if run
     FileUtils.rm_f(context_path) if defined?(context_path)

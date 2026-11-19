@@ -86,6 +86,59 @@ class HeartbeatImportDumpClientTest < ActiveSupport::TestCase
     assert_equal "Pending…", response[:status]
   end
 
+  test "request_dump resumes the active wakatime dump instead of asking for a manual download link" do
+    client = HeartbeatImportDumpClient.new(source_kind: :wakatime_dump, api_key: "waka_tok_abc")
+
+    stub_request(:post, "https://wakatime.com/api/v1/users/current/data_dumps")
+      .to_return(status: 400, body: { error: "Wait for your current export to finish before creating another." }.to_json)
+    stub_request(:get, "https://wakatime.com/api/v1/users/current/data_dumps")
+      .to_return(status: 200, body: {
+        data: [
+          { id: "old-dump", type: "heartbeats", status: "Completed", is_processing: false },
+          { id: "dump-789", type: "heartbeats", status: "Processing coding activity…", percent_complete: 20.9, is_processing: true }
+        ]
+      }.to_json)
+
+    response = client.request_dump
+
+    assert_equal "dump-789", response[:id]
+    assert_equal 20.9, response[:percent_complete]
+  end
+
+  test "request_dump reuses an unexpired completed wakatime export" do
+    client = HeartbeatImportDumpClient.new(source_kind: :wakatime_dump, api_key: "waka_tok_abc")
+
+    stub_request(:post, "https://wakatime.com/api/v1/users/current/data_dumps")
+      .to_return(status: 400, body: { error: "Wait for your current export to expire before creating another." }.to_json)
+    stub_request(:get, "https://wakatime.com/api/v1/users/current/data_dumps")
+      .to_return(status: 200, body: {
+        data: [
+          { id: "daily", type: "daily", download_url: "https://wakatime.s3.amazonaws.com/daily.json", created_at: "2026-11-19T00:00:00Z" },
+          { id: "older", type: "heartbeats", download_url: "https://wakatime.s3.amazonaws.com/older.json", created_at: "2026-11-10T00:00:00Z" },
+          { id: "latest", type: "heartbeats", download_url: "https://wakatime.s3.amazonaws.com/latest.json", created_at: "2026-11-18T00:00:00Z" }
+        ]
+      }.to_json)
+
+    response = client.request_dump
+
+    assert_equal "latest", response[:id]
+    assert_equal "2026-11-18T00:00:00Z", response[:created_at]
+  end
+
+  test "list_user_agents and list_machine_names read every page" do
+    client = HeartbeatImportDumpClient.new(source_kind: :wakatime_dump, api_key: "waka_tok_abc")
+
+    { "user_agents" => %w[ua-1 ua-2], "machine_names" => %w[m-1 m-2] }.each do |resource, (first, second)|
+      stub_request(:get, "https://wakatime.com/api/v1/users/current/#{resource}?page=1")
+        .to_return(status: 200, body: { data: [ { id: first, value: "#{first}-value" } ], total_pages: 2 }.to_json)
+      stub_request(:get, "https://wakatime.com/api/v1/users/current/#{resource}?page=2")
+        .to_return(status: 200, body: { data: [ { id: second, value: "#{second}-value" } ], total_pages: 2 }.to_json)
+    end
+
+    assert_equal %w[ua-1 ua-2], client.list_user_agents.map { _1[:id] }
+    assert_equal [ { id: "m-1", value: "m-1-value" }, { id: "m-2", value: "m-2-value" } ], client.list_machine_names
+  end
+
   test "download_dump reuses auth header for same-host downloads" do
     client = HeartbeatImportDumpClient.new(source_kind: :hackatime_v1_dump, api_key: "secret-key")
 
