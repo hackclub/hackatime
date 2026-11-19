@@ -12,6 +12,7 @@ class ProjectDetectionMailerTest < ActionMailer::TestCase
     assert_includes text, "a project called Tom & Jerry."
     assert_includes text, "There is a .git folder in C:/Users/Tom & Jerry."
     assert_includes text, "http://example.com/docs/configuration/projects"
+    assert_includes text, "ask in #hackatime-help on Slack: https://hackclub.slack.com/archives/C07MQ845X1F"
     assert_includes mail.html_part.body.decoded, "<code>C:/Users/Tom &amp; Jerry</code>"
   end
 end
