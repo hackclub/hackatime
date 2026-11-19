@@ -151,6 +151,38 @@ class Api::Admin::V1::AdminControllerTest < ActionDispatch::IntegrationTest
     response.parsed_body.fetch("heartbeats").to_h { |hb| [ hb.fetch("id"), hb.fetch("hidden") ] }
   end
 
+  test "user info looks a user up by hca_id and returns it" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, hca_id: "ident!lookup")
+
+    get "/api/admin/v1/user/info", params: { hca_id: "ident!lookup" }, headers: auth_headers(key)
+
+    assert_response :success
+    assert_equal user.id, response.parsed_body.dig("user", "id")
+    assert_equal "ident!lookup", response.parsed_body.dig("user", "hca_id")
+  end
+
+  test "user info returns not found for an unknown hca_id" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+
+    get "/api/admin/v1/user/info", params: { hca_id: "ident!nobody" }, headers: auth_headers(key)
+
+    assert_response :not_found
+  end
+
+  test "user info batch returns hca_id" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, hca_id: "ident!batch")
+
+    get "/api/admin/v1/user/info_batch", params: { ids: user.id.to_s }, headers: auth_headers(key)
+
+    assert_response :success
+    assert_equal "ident!batch", response.parsed_body.fetch("users").first.fetch("hca_id")
+  end
+
   def auth_headers(key)
     { "Authorization" => ActionController::HttpAuthentication::Token.encode_credentials(key.token) }
   end

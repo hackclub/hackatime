@@ -96,6 +96,7 @@ module Api
               id: user.id,
               username: user.username,
               display_name: user.display_name,
+              hca_id: user.hca_id,
               slack_uid: user.slack_uid,
               slack_username: user.slack_username,
               github_username: user.github_username,
@@ -290,7 +291,7 @@ module Api
           users = User.includes(:email_addresses).where(id: user_ids)
           render json: {
             users: users.as_json(
-              only: %i[id username slack_uid slack_username github_username timezone country_code trust_level slack_avatar_url github_avatar_url],
+              only: %i[id username hca_id slack_uid slack_username github_username timezone country_code trust_level slack_avatar_url github_avatar_url],
               methods: %i[display_name avatar_url]
             )
           }
@@ -357,9 +358,11 @@ module Api
         end
 
         def find_user_by_id
-          user_id = params[:id] || params[:user_id]
-          return render_error("who?") if user_id.blank?
-          User.find(user_id)
+          user_id = params[:id].presence || params[:user_id].presence
+          return User.find(user_id) if user_id
+          return User.find_by!(hca_id: params[:hca_id]) if params[:hca_id].present?
+
+          render_error("who?")
         rescue ActiveRecord::RecordNotFound
           render_not_found_json("user not found")
         end

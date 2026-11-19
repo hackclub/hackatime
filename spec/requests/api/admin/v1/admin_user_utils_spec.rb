@@ -29,6 +29,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
                   id: { type: :integer, example: 42 },
                   username: { type: :string, example: 'orpheus' },
                   display_name: { type: :string, example: 'orpheus' },
+                  hca_id: { type: :string, nullable: true, example: 'ident!a1b2c3' },
                   slack_uid: { type: :string, nullable: true, example: 'U0266FRGP' },
                   slack_username: { type: :string, nullable: true, example: 'orpheus' },
                   github_username: { type: :string, nullable: true, example: 'orpheus' },
@@ -69,6 +70,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
 
       parameter name: :user_id, in: :query, type: :string, description: 'User ID. Either user_id or id may be supplied.'
       parameter name: :id, in: :query, type: :string, required: false, description: 'Alias for user_id. If both id and user_id are supplied, id takes precedence.'
+      parameter name: :hca_id, in: :query, type: :string, required: false, description: 'Hack Club Auth identity ID (e.g. "ident!a1b2c3"). Used only when neither id nor user_id is supplied.'
 
       response(200, 'successful') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
@@ -84,6 +86,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
                 id: { type: :integer, example: 42 },
                 username: { type: :string, example: 'orpheus' },
                 display_name: { type: :string, example: 'orpheus' },
+                hca_id: { type: :string, nullable: true, example: 'ident!a1b2c3' },
                 slack_uid: { type: :string, nullable: true, example: 'U0266FRGP' },
                 slack_username: { type: :string, nullable: true, example: 'orpheus' },
                 github_username: { type: :string, nullable: true, example: 'orpheus' },
@@ -120,7 +123,7 @@ RSpec.describe 'Api::Admin::V1::UserUtils', type: :request, openapi_spec: 'admin
         run_test!
       end
 
-      response(422, 'missing id — Returned ("who?") when neither id nor user_id is supplied.') do
+      response(422, 'missing id — Returned ("who?") when none of id, user_id or hca_id is supplied.') do
         let(:Authorization) { "Bearer dev-admin-api-key-12345" }
         let(:user_id) { '' }
         schema '$ref' => '#/components/schemas/Error'
