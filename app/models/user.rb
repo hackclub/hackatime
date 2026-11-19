@@ -438,8 +438,9 @@ class User < ApplicationRecord
     return if recipient_email.blank?
 
     transaction do
-      claimed = self.class.where(id:, home_folder_project_warned_at: nil).update_all(home_folder_project_warned_at: Time.current)
-      ProjectDetectionMailer.home_folder_project(self, recipient_email:, project:, folder:).deliver_later if claimed == 1
+      claimed = self.class.where(id:, home_folder_project_warned_at: nil).update_all(home_folder_project_warned_at: Time.current) == 1
+      ProjectDetectionMailer.home_folder_project(self, recipient_email:, project:, folder:).deliver_later if claimed
+      claimed
     end
   end
 

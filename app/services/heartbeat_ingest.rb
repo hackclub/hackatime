@@ -472,11 +472,12 @@ class HeartbeatIngest
   def warn_about_home_folder_project(entries)
     return if @user.home_folder_project_warned_at?
 
-    entries.each do |entry|
+    matches = entries.filter_map do |entry|
       attrs = entry[:attrs]
       folder = Heartbeat.home_folder_project_root(entity: attrs[:entity], project: attrs[:project], project_root_count: attrs[:project_root_count])
-      return @user.warn_about_home_folder_project!(project: attrs[:project], folder:) if folder
+      [ attrs[:project], folder ] if folder
     end
+    matches.uniq(&:first).any? { |project, folder| @user.warn_about_home_folder_project!(project:, folder:) }
   rescue ActiveRecord::ActiveRecordError => e
     Rails.error.report(e, handled: true, context: { message: "Error warning about home folder project", user_id: @user.id })
   end
