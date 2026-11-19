@@ -36,7 +36,12 @@
     query: { continue: settingsSlackGithub.show.path() },
   });
 
+  let usesSlackStatus = $state(user.uses_slack_status);
   let unlinkGithubModalOpen = $state(false);
+
+  $effect(() => {
+    usesSlackStatus = user.uses_slack_status;
+  });
 </script>
 
 <svelte:head>
@@ -93,7 +98,7 @@
     >
       <CheckboxField
         name="user[uses_slack_status]"
-        bind:checked={user.uses_slack_status}
+        bind:checked={usesSlackStatus}
         label="Update my Slack status automatically"
       />
     </Form>
