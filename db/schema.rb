@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_19_140335) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -724,6 +724,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
+    t.datetime "home_folder_project_warned_at"
     t.boolean "leaderboard_opt_out", default: false, null: false
     t.datetime "leaderboard_shadowban_expires_at"
     t.text "leaderboard_shadowban_reason"

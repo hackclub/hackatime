@@ -2,6 +2,7 @@ require "test_helper"
 
 class HeartbeatIngestTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
+  include ActionMailer::TestHelper
 
   setup do
     Rails.cache.clear
@@ -932,6 +933,45 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     assert_equal "wakapi_import", heartbeat.source_type
   end
 
+  test "a project named after the home folder emails the user once" do
+    Flipper.enable(User::HOME_FOLDER_PROJECT_WARNING_FLAG)
+    user = create(:user)
+    create(:email_address, user:)
+
+    assert_no_enqueued_emails { ingest_home_folder_heartbeats(user, minutes: 0..9) }
+    assert_enqueued_emails 1 do
+      ingest_home_folder_heartbeats(user, minutes: 10..10)
+      ingest_home_folder_heartbeats(user, minutes: 11..11)
+    end
+    assert user.reload.home_folder_project_warned_at?
+  ensure
+    Flipper.disable(User::HOME_FOLDER_PROJECT_WARNING_FLAG)
+  end
+
+  test "a later home folder project in the batch can send the email when an earlier one is under the threshold" do
+    user = create(:user)
+    create(:email_address, user:)
+    ingest_home_folder_heartbeats(user, minutes: 0..10, project: "Users", project_root_count: 2)
+    Flipper.enable(User::HOME_FOLDER_PROJECT_WARNING_FLAG)
+
+    assert_enqueued_emails 1 do
+      HeartbeatIngest.call(user:, mode: :direct, heartbeats: [
+        { entity: "C:/Users/kevin/Desktop/Code/game/main.py", project: "kevin", project_root_count: 3, plugin: "vscode/1.0.0", time: 50.minutes.ago.to_f, type: "file" },
+        { entity: "C:/Users/kevin/Desktop/Code/game/main.py", project: "Users", project_root_count: 2, plugin: "vscode/1.0.0", time: 49.minutes.ago.to_f, type: "file" }
+      ])
+    end
+  ensure
+    Flipper.disable(User::HOME_FOLDER_PROJECT_WARNING_FLAG)
+  end
+
+  test "home folder projects are not reported while the warning flag is off" do
+    user = create(:user)
+    create(:email_address, user:)
+
+    assert_no_enqueued_emails { ingest_home_folder_heartbeats(user, minutes: 0..15) }
+    assert_not user.reload.home_folder_project_warned_at?
+  end
+
   private
 
   def create_legacy_imported_heartbeat(user, attributes)
@@ -943,5 +983,13 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     heartbeat = user.heartbeats.create!(legacy_attributes.merge(source_type: :wakapi_import))
     heartbeat.update_column(:fields_hash, Heartbeat.generate_fields_hash(legacy_attributes))
     heartbeat
+  end
+
+  def ingest_home_folder_heartbeats(user, minutes:, project: "kevin", project_root_count: 3)
+    start = 1.hour.ago
+    heartbeats = minutes.map do |minute|
+      { entity: "C:/Users/kevin/Desktop/Code/game/main.py", project:, project_root_count:, plugin: "vscode/1.0.0", time: (start + minute.minutes).to_f, type: "file" }
+    end
+    HeartbeatIngest.call(user:, mode: :direct, heartbeats:)
   end
 end

@@ -55,6 +55,26 @@ class Heartbeat < ApplicationRecord
     %w[ai_model ai_session ai_subscription_plan ai_input_tokens ai_output_tokens ai_prompt_length ai_line_changes human_line_changes]
   end
 
+  # A home folder, or the folder that holds them, on Windows, macOS, Linux or WSL.
+  HOME_FOLDER = %r{\A(?:(?:[A-Z]:|/mnt/[a-z])?/Users|/home)(?:/[^/]+)?\z|\A/root\z}i
+  # Dotfiles and tool scratch files rather than projects.
+  HOME_FOLDER_NOISE = %r{\A(?:\.|AppData/|Library/)}i
+
+  # The client does not send the project folder, but project_root_count is the
+  # number of slashes in it, so it is the first project_root_count segments of
+  # the entity path.
+  def self.home_folder_project_root(entity:, project:, project_root_count:)
+    return if entity.blank? || project.blank? || project_root_count.to_i < 2
+
+    segments = entity.tr("\\", "/").split("/", -1)
+    folder = segments.first(project_root_count).join("/")
+    relative = segments.drop(project_root_count).join("/")
+    return unless relative.include?("/") && segments.last.present? && !relative.match?(HOME_FOLDER_NOISE)
+    return unless folder.match?(HOME_FOLDER) && folder.split("/").last.casecmp?(project)
+
+    folder
+  end
+
   def soft_delete
     update_column(:deleted_at, Time.current)
     DashboardRollupRefreshJob.schedule_for(user_id)
