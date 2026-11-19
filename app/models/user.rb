@@ -424,12 +424,14 @@ class User < ApplicationRecord
   def find_valid_token(token) = sign_in_tokens.valid.find_by(token: token)
 
   HOME_FOLDER_PROJECT_WARNING_FLAG = :home_folder_project_warning
+  HOME_FOLDER_PROJECT_WARNING_AFTER = 10.minutes
 
   # Claiming the row and enqueueing the mail commit together, so concurrent
   # heartbeat batches cannot send it twice.
   def warn_about_home_folder_project!(project:, folder:)
     return if home_folder_project_warned_at?
     return unless Flipper.enabled?(HOME_FOLDER_PROJECT_WARNING_FLAG, self)
+    return if heartbeats.where(project:, time: 1.day.ago.to_f..).duration_seconds < HOME_FOLDER_PROJECT_WARNING_AFTER
     return if pending_deletion?
 
     recipient_email = email_addresses.order(:id).pick(:email)

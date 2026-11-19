@@ -938,9 +938,10 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     user = create(:user)
     create(:email_address, user:)
 
+    assert_no_enqueued_emails { ingest_home_folder_heartbeats(user, minutes: 0..9) }
     assert_enqueued_emails 1 do
-      ingest_home_folder_heartbeat(user)
-      ingest_home_folder_heartbeat(user, entity: "C:/Users/kevin/Desktop/Code/other/main.py")
+      ingest_home_folder_heartbeats(user, minutes: 10..10)
+      ingest_home_folder_heartbeats(user, minutes: 11..11)
     end
     assert user.reload.home_folder_project_warned_at?
   ensure
@@ -951,7 +952,7 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     user = create(:user)
     create(:email_address, user:)
 
-    assert_no_enqueued_emails { ingest_home_folder_heartbeat(user) }
+    assert_no_enqueued_emails { ingest_home_folder_heartbeats(user, minutes: 0..15) }
     assert_not user.reload.home_folder_project_warned_at?
   end
 
@@ -968,12 +969,11 @@ class HeartbeatIngestTest < ActiveSupport::TestCase
     heartbeat
   end
 
-  def ingest_home_folder_heartbeat(user, entity: "C:/Users/kevin/Desktop/Code/game/main.py", project: "kevin", project_root_count: 3)
-    result = HeartbeatIngest.call(
-      user:,
-      mode: :direct,
-      heartbeats: [ { entity:, project:, project_root_count:, plugin: "vscode/1.0.0", time: Time.current.to_f, type: "file" } ]
-    )
-    assert_equal 1, result.persisted_count
+  def ingest_home_folder_heartbeats(user, minutes:)
+    start = 1.hour.ago
+    heartbeats = minutes.map do |minute|
+      { entity: "C:/Users/kevin/Desktop/Code/game/main.py", project: "kevin", project_root_count: 3, plugin: "vscode/1.0.0", time: (start + minute.minutes).to_f, type: "file" }
+    end
+    HeartbeatIngest.call(user:, mode: :direct, heartbeats:)
   end
 end
