@@ -68,6 +68,7 @@ class HeartbeatIngest
     end
 
     if entries.any?
+      accepted = false
       begin
         persisted_by_hash, inserted_hashes = persist_direct_heartbeats(entries)
         persisted_count = inserted_hashes.length
@@ -81,13 +82,17 @@ class HeartbeatIngest
           )
         end
         entries.map { |entry| entry[:attrs][:project] }.uniq.each { |project| queue_project_mapping(project) }
-        warn_about_home_folder_project(entries)
+        accepted = true
       rescue => e
         entries.each do |entry|
           errors << { heartbeat: entry[:heartbeat], error: e.message, type: e.class.name }
           items[entry[:index]] = Item.new(heartbeat: nil, status: :failed, error: e)
         end
       end
+
+      # Outside the block above so a failure here is never reported as the
+      # heartbeats failing to save.
+      warn_about_home_folder_project(entries) if accepted
     end
 
     Result.new(
@@ -473,8 +478,10 @@ class HeartbeatIngest
       folder = Heartbeat.home_folder_project_root(entity: attrs[:entity], project: attrs[:project], project_root_count: attrs[:project_root_count])
       return @user.warn_about_home_folder_project!(project: attrs[:project], folder:) if folder
     end
-  rescue => e
-    Rails.error.report(e, handled: true, context: { message: "Error warning about home folder project" })
+  rescue ActiveRecord::ActiveRecordError => e
+    # The heartbeats are already saved and the warning is retried on the next
+    # batch, so a database or enqueue failure here should not fail the request.
+    Rails.error.report(e, handled: true, context: { message: "Error warning about home folder project", user_id: @user.id })
   end
 
   def queue_project_mapping(project_name)

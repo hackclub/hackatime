@@ -75,7 +75,8 @@ class Heartbeat < ApplicationRecord
     segments = entity.tr("\\", "/").split("/", -1)
     folder = segments.first(project_root_count).join("/")
     relative = segments.drop(project_root_count).join("/")
-    return if relative.blank? || relative.match?(HOME_FOLDER_NOISE)
+    # Only a file inside a subfolder shows other projects being swallowed.
+    return unless relative.include?("/") && segments.last.present? && !relative.match?(HOME_FOLDER_NOISE)
     return unless folder.match?(HOME_FOLDER) && folder.split("/").last.casecmp?(project)
 
     folder

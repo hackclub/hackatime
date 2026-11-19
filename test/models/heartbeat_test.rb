@@ -38,6 +38,8 @@ class HeartbeatTest < ActiveSupport::TestCase
       [ "C:/Users/kevin/AppData/Local/Temp/x.py", "kevin", 3 ], # tool scratch files
       [ "/Users/kevin/Library/Application Support/x.json", "kevin", 3 ],
       [ "/home/kevin", "kevin", 3 ], # the folder itself
+      [ "C:/Users/kevin/script.py", "kevin", 3 ], # a standalone file, not a project
+      [ "C:/Users/kevin/Desktop/", "kevin", 3 ],
       [ "/home/kevin/code/app.rb", "kevin", nil ],
       [ "/home/kevin/code/app.rb", "", 3 ]
     ]
