@@ -167,7 +167,56 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
     assert_redirected_to %r{https://example\.com/callback\?code=}
   end
 
+  test "token exchange rejects a PKCE code redeemed with the wrong verifier" do
+    code = authorize_public_client_with_pkce!(verifier: "correct-verifier-" + "a" * 32)
+
+    post "/oauth/token", params: token_params(code, code_verifier: "wrong-verifier-" + "b" * 32)
+
+    assert_response :bad_request
+    assert_equal "invalid_grant", response.parsed_body["error"]
+  end
+
+  test "token exchange rejects a PKCE code redeemed without a verifier" do
+    code = authorize_public_client_with_pkce!(verifier: "correct-verifier-" + "a" * 32)
+
+    post "/oauth/token", params: token_params(code)
+
+    assert_response :bad_request
+  end
+
+  test "token exchange accepts a PKCE code redeemed with the matching verifier" do
+    verifier = "correct-verifier-" + "a" * 32
+    code = authorize_public_client_with_pkce!(verifier: verifier)
+
+    post "/oauth/token", params: token_params(code, code_verifier: verifier)
+
+    assert_response :success
+    assert_predicate response.parsed_body["access_token"], :present?
+  end
+
   private
+
+  def authorize_public_client_with_pkce!(verifier:)
+    @oauth_app.update!(confidential: false)
+    sign_in_as(@user)
+    challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
+
+    post "/oauth/authorize", params: authorization_params.merge(
+      code_challenge: challenge,
+      code_challenge_method: "S256"
+    )
+
+    Rack::Utils.parse_query(URI.parse(response.location).query).fetch("code")
+  end
+
+  def token_params(code, **extra)
+    {
+      grant_type: "authorization_code",
+      code: code,
+      client_id: @oauth_app.uid,
+      redirect_uri: "https://example.com/callback"
+    }.merge(extra)
+  end
 
   def enable_admin_scope!(verified: true)
     @oauth_app.update!(scopes: "profile admin", confidential: true, verified: verified)
