@@ -151,6 +151,102 @@ class Api::Admin::V1::AdminControllerTest < ActionDispatch::IntegrationTest
     response.parsed_body.fetch("heartbeats").to_h { |hb| [ hb.fetch("id"), hb.fetch("hidden") ] }
   end
 
+  test "user info looks a user up by hca_id and returns it" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, hca_id: "ident!lookup")
+
+    get "/api/admin/v1/user/info", params: { hca_id: "ident!lookup" }, headers: auth_headers(key)
+
+    assert_response :success
+    assert_equal user.id, response.parsed_body.dig("user", "id")
+    assert_equal "ident!lookup", response.parsed_body.dig("user", "hca_id")
+  end
+
+  test "user info returns not found for an unknown hca_id" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+
+    get "/api/admin/v1/user/info", params: { hca_id: "ident!nobody" }, headers: auth_headers(key)
+
+    assert_response :not_found
+  end
+
+  test "user info prefers id over hca_id" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    by_id = create(:user)
+    create(:user, hca_id: "ident!other")
+
+    get "/api/admin/v1/user/info", params: { id: by_id.id, hca_id: "ident!other" }, headers: auth_headers(key)
+
+    assert_response :success
+    assert_equal by_id.id, response.parsed_body.dig("user", "id")
+  end
+
+  test "user info falls back to user_id when id is blank" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user)
+
+    get "/api/admin/v1/user/info", params: { id: "", user_id: user.id }, headers: auth_headers(key)
+
+    assert_response :success
+    assert_equal user.id, response.parsed_body.dig("user", "id")
+  end
+
+  test "user info rejects an array hca_id instead of picking one of the matches" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    create(:user, hca_id: "ident!one")
+    create(:user, hca_id: "ident!two")
+
+    get "/api/admin/v1/user/info", params: { hca_id: [ "ident!one", "ident!two" ] }, headers: auth_headers(key)
+
+    assert_response :unprocessable_entity
+  end
+
+  test "user info rejects a hash hca_id" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+
+    get "/api/admin/v1/user/info", params: { hca_id: { k: "v" } }, headers: auth_headers(key)
+
+    assert_response :unprocessable_entity
+  end
+
+  test "user info rejects an array id" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    first = create(:user)
+    second = create(:user)
+
+    get "/api/admin/v1/user/info", params: { id: [ first.id, second.id ] }, headers: auth_headers(key)
+
+    assert_response :unprocessable_entity
+  end
+
+  test "hca_id lookup is only accepted by user info" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    create(:user, hca_id: "ident!stats")
+
+    get "/api/admin/v1/user/stats", params: { hca_id: "ident!stats" }, headers: auth_headers(key)
+
+    assert_response :unprocessable_entity
+  end
+
+  test "user info batch returns hca_id" do
+    admin = create(:user, :superadmin)
+    key = create(:admin_api_key, user: admin, name: "test")
+    user = create(:user, hca_id: "ident!batch")
+
+    get "/api/admin/v1/user/info_batch", params: { ids: user.id.to_s }, headers: auth_headers(key)
+
+    assert_response :success
+    assert_equal "ident!batch", response.parsed_body.fetch("users").first.fetch("hca_id")
+  end
+
   def auth_headers(key)
     { "Authorization" => ActionController::HttpAuthentication::Token.encode_credentials(key.token) }
   end
