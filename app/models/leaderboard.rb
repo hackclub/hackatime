@@ -9,6 +9,14 @@ class Leaderboard < ApplicationRecord
 
   REBUILDABLE_PERIODS = %i[daily last_7_days].freeze
 
+  def self.current(period)
+    date = LeaderboardDateRange.normalize_date(Date.current, period)
+    board = where.not(finished_generating_at: nil)
+              .find_by(start_date: date, period_type: period, timezone_utc_offset: nil, deleted_at: nil)
+    LeaderboardUpdateJob.perform_later(period, date) unless board
+    board
+  end
+
   def finished_generating? = finished_generating_at.present?
   def period_end_date = start_date
 

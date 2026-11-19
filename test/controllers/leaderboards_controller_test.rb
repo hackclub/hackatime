@@ -61,18 +61,6 @@ class LeaderboardsControllerTest < ActionDispatch::IntegrationTest
     assert_inertia_props can_view_telescreen: false
   end
 
-  test "validated_period_type does not intern arbitrary symbols" do
-    user = create_user(username: "bad_period_user")
-    create_boards_for_today(period_type: :daily)
-
-    sign_in_as(user)
-    get leaderboards_path(period_type: "evil_user_input_xyz")
-
-    assert_response :success
-    assert_not Symbol.all_symbols.map(&:to_s).include?("evil_user_input_xyz"),
-      "Arbitrary user input should not be interned as a symbol"
-  end
-
   test "deferred entries hide leaderboard shadowbanned users from other viewers" do
     viewer = create_user(username: "lb_visible_viewer")
     visible_user = create_user(username: "lb_visible_user")

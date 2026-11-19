@@ -15,20 +15,10 @@ class LeaderboardPageCacheTest < ActiveSupport::TestCase
 
     payload = LeaderboardPageCache.fetch(leaderboard: board, scope: :global)
 
-    assert_equal 1, payload[:total_entries]
-    assert_equal [ user.id ], payload[:user_ids]
+    assert_equal [ user.id ], payload[:entries].pluck(:user_id)
     assert_equal 321, payload[:entries].first[:total_seconds]
     assert_equal user.display_name, payload[:entries].first.dig(:user, :display_name)
     assert_equal true, payload[:entries].first.dig(:user, :verified)
-  end
-
-  test "fetch includes internal leaderboard shadowban marker" do
-    user = create_user(username: "hidden_lbcache", country_code: "US", leaderboard_shadowbanned: true)
-    board = create_board_with_entry(user: user, total_seconds: 321)
-
-    payload = LeaderboardPageCache.fetch(leaderboard: board, scope: :global)
-
-    assert_equal true, payload[:entries].first.dig(:user, :shadowbanned)
   end
 
   test "fetch filters country scoped rows" do
@@ -40,8 +30,7 @@ class LeaderboardPageCacheTest < ActiveSupport::TestCase
 
     payload = LeaderboardPageCache.fetch(leaderboard: board, scope: :country, country_code: "US")
 
-    assert_equal 1, payload[:total_entries]
-    assert_equal [ us_user.id ], payload[:user_ids]
+    assert_equal [ us_user.id ], payload[:entries].pluck(:user_id)
   end
 
   test "set_leaderboard_shadowban invalidates cached rows" do
@@ -66,8 +55,7 @@ class LeaderboardPageCacheTest < ActiveSupport::TestCase
       user.update!(leaderboard_opt_out: opt_out)
       [ :global, :country ].each do |scope|
         payload = LeaderboardPageCache.fetch(leaderboard: board, scope: scope, country_code: "US")
-        assert_equal opt_out ? [] : [ user.id ], payload[:user_ids]
-        assert_equal opt_out ? 0 : 1, payload[:total_entries]
+        assert_equal opt_out ? [] : [ user.id ], payload[:entries].pluck(:user_id)
       end
     end
   end

@@ -5,7 +5,7 @@ class Api::V1::LeaderboardController < ApplicationController
   private
 
   def render_period(period)
-    leaderboard = LeaderboardService.get(period: period, date: Date.current)
+    leaderboard = Leaderboard.current(period)
     if leaderboard.nil?
       render json: { error: "Leaderboard is being generated" }, status: :service_unavailable
     else

@@ -56,7 +56,6 @@ class LeaderboardUpdateJob < ApplicationJob
       )
     end
 
-    LeaderboardCache.write(LeaderboardCache.global_key(period, date), board)
     LeaderboardPageCache.warm(leaderboard: board)
     Rails.logger.debug "Persisted leaderboard for #{period} with #{board.entries.count} entries"
     board
