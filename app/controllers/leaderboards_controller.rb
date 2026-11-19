@@ -6,7 +6,7 @@ class LeaderboardsController < InertiaController
     country = load_country_context
     leaderboard_scope = validated_leaderboard_scope(country)
 
-    leaderboard = LeaderboardService.get(period: period_type, date: Date.current)
+    leaderboard = Leaderboard.current(period_type)
 
     use_og_page(:leaderboards)
     render inertia: "Leaderboards/Index", props: {

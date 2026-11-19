@@ -26,11 +26,11 @@ class LeaderboardPageCache
     end
 
     def build_payload(leaderboard:, scope:, country_code:)
-      rows = entries_scope(leaderboard:, scope:, country_code:).map do |entry|
+      entries = entries_scope(leaderboard:, scope:, country_code:).map do |entry|
         { user_id: entry.user_id, total_seconds: entry.total_seconds,
           streak_count: entry.streak_count, user: serialize_user(entry.user) }
       end
-      { total_entries: rows.size, user_ids: rows.map { |r| r[:user_id] }, entries: rows }
+      { entries: }
     end
 
     def entries_scope(leaderboard:, scope:, country_code:)
