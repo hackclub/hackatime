@@ -78,7 +78,6 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
     recent = exported.merge(entity: "/code/recent.rb", time: 1_727_995_177.5)
     file_content = { days: [ { date: "2024-10-02", heartbeats: [ exported ] } ] }.to_json
 
-    # Imported before user agents beyond page one and machine names were resolved.
     HeartbeatImportService.import_from_file(file_content, user)
     assert_equal [ [ "machine-1", "ua-1" ] ], user.heartbeats.pluck(:machine, :user_agent)
 
@@ -102,8 +101,7 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
     user = create(:user)
     exported = { entity: "/code/app.rb", type: "file", time: 1_727_905_177.5, category: "", project: "app",
                  language: "", machine_name_id: "machine-1", user_agent_id: "ua-on-page-2", is_write: true }
-    # The pre-#1478 import hash for this row: category kept as "", language filled from the extension
-    # and the user agent left as its raw id because it was on a page that was not read.
+    # Pre-#1478 hash with the raw user agent id.
     legacy_attrs = {
       user_id: user.id, time: exported[:time], entity: exported[:entity], type: "file", category: "",
       project: "app", language: "Ruby", editor: nil, operating_system: nil, machine: "machine-1", branch: nil,

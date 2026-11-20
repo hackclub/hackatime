@@ -250,25 +250,22 @@ class HeartbeatIngest
     normalized[:fields_hash] = import_fields_hash(model_attributes, source: hb)
     normalized[:compatible_fields_hashes] = [
       legacy_import_fields_hash(hb, user_agent_info:, resolved_user_agent:, normalized_time: normalized[:time]),
-      # Rows imported before user agents were read from every page kept the raw id.
-      legacy_import_fields_hash(hb, user_agent_info: {}, resolved_user_agent: hb[:user_agent].presence || hb[:user_agent_id].presence,
-                                    normalized_time: normalized[:time]),
-      *unresolved_import_fields_hashes(hb, user_agent_info:, machine_name:, placeholders:)
+      *unresolved_import_fields_hashes(hb, user_agent_info:, machine_name:, placeholders:, normalized_time: normalized[:time])
     ].uniq - [ normalized[:fields_hash] ]
     update_placeholder_state!(normalized, placeholder_state)
     normalized
   end
 
-  # Before user agents were read from every page and machine names were
-  # resolved, imports stored the raw WakaTime IDs. Keep those hashes as lookup
-  # aliases so re-importing a dump cannot duplicate rows imported back then.
-  def unresolved_import_fields_hashes(hb, user_agent_info:, machine_name:, placeholders:)
+  # Older imports stored raw WakaTime ids for user agents past the first page
+  # and for every machine, so match those hashes too when re-importing.
+  def unresolved_import_fields_hashes(hb, user_agent_info:, machine_name:, placeholders:, normalized_time:)
     return [] if user_agent_info.blank? && machine_name.blank?
 
-    [ user_agent_info, {} ].uniq.map do |info|
+    hashes = [ user_agent_info, {} ].uniq.map do |info|
       attrs = Heartbeat.new(imported_attributes(hb, user_agent_info: info.with_indifferent_access, machine_name: nil, placeholders:)).attributes
       import_fields_hash(attrs, source: hb)
     end
+    hashes << legacy_import_fields_hash(hb, user_agent_info: {}, resolved_user_agent: hb[:user_agent].presence || hb[:user_agent_id].presence, normalized_time:)
   end
 
   def imported_attributes(hb, user_agent_info:, machine_name:, placeholders:)

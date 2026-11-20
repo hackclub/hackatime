@@ -58,7 +58,6 @@ class HeartbeatImportRemoteDownloadJobTest < ActiveJob::TestCase
     assert_equal "wakatime/v1.102.1 (darwin-arm64) go1.22.0 vscode/1.0.0",
       context.dig("user_agents_by_id", "ua-123", "value")
     assert_equal({ "machine-1" => "skyfall-pc" }, context["machine_names_by_id"])
-    # Every day since the export was created, padded by a day for timezones.
     assert_equal (Date.new(2026, 11, 16)..Date.new(2026, 11, 21)).to_a, requested_dates
     assert_equal requested_dates.map { "hb-#{_1}" }, context["recent_heartbeats"].map { _1["id"] }
   ensure

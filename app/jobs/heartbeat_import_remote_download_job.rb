@@ -39,9 +39,7 @@ class HeartbeatImportRemoteDownloadJob < ApplicationJob
 
   private
 
-  # A reused export stops when it was created, so fetch every day since then.
-  # The days are in the user's WakaTime timezone, so pad both ends by a day;
-  # heartbeats already in the export are deduplicated on import.
+  # A reused export ends when it was created. Days are in the user's WakaTime timezone, so pad by a day.
   def recent_heartbeats(client, run:, exported_at:)
     exported_on = Time.zone.parse(exported_at.to_s)&.to_date || (run.remote_requested_at || run.created_at).to_date
     ((exported_on - 1.day)..(Date.current + 1.day)).flat_map { |date| client.list_heartbeats(date) }

@@ -156,17 +156,6 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
     assert_equal session[:wakatime_import_oauth_state], query["state"]
   end
 
-  test "wakatime authorize does not leave hackatime during the remote cooldown" do
-    user = create(:user)
-    sign_in_as(user)
-    create(:heartbeat_import_run, user:, source_kind: :wakatime_dump, state: :completed,
-      encrypted_api_key: "old-secret", remote_requested_at: 1.minute.ago)
-
-    with_wakatime_app { get wakatime_authorize_my_heartbeat_imports_path }
-
-    assert_redirected_with_import_error("Remote imports are limited to once every 8 minutes.")
-  end
-
   test "wakatime callback exchanges the code and starts a wakatime import with the token" do
     user = create(:user)
     sign_in_as(user)

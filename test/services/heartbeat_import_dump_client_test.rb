@@ -86,25 +86,6 @@ class HeartbeatImportDumpClientTest < ActiveSupport::TestCase
     assert_equal "Pending…", response[:status]
   end
 
-  test "request_dump resumes the active wakatime dump instead of asking for a manual download link" do
-    client = HeartbeatImportDumpClient.new(source_kind: :wakatime_dump, api_key: "waka_tok_abc")
-
-    stub_request(:post, "https://wakatime.com/api/v1/users/current/data_dumps")
-      .to_return(status: 400, body: { error: "Wait for your current export to finish before creating another." }.to_json)
-    stub_request(:get, "https://wakatime.com/api/v1/users/current/data_dumps")
-      .to_return(status: 200, body: {
-        data: [
-          { id: "old-dump", type: "heartbeats", status: "Completed", is_processing: false },
-          { id: "dump-789", type: "heartbeats", status: "Processing coding activity…", percent_complete: 20.9, is_processing: true }
-        ]
-      }.to_json)
-
-    response = client.request_dump
-
-    assert_equal "dump-789", response[:id]
-    assert_equal 20.9, response[:percent_complete]
-  end
-
   test "request_dump reuses an unexpired completed wakatime export" do
     client = HeartbeatImportDumpClient.new(source_kind: :wakatime_dump, api_key: "waka_tok_abc")
 

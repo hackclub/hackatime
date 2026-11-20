@@ -20,7 +20,6 @@ class HeartbeatImportDumpClient
   }.freeze
   WAKATIME_DOWNLOAD_HOST = "wakatime.s3.amazonaws.com".freeze
   WAKATIME_OAUTH_URL = "https://wakatime.com/oauth".freeze
-  # Exports, user agents (editor and OS) and machine names.
   WAKATIME_OAUTH_SCOPES = "read_heartbeats,read_stats.editors,read_stats.machines".freeze
   TIMEOUTS = { connect: 5, read: 60, write: 15 }.freeze
   DOWNLOAD_ACCEPT = "application/json,application/octet-stream,*/*".freeze
@@ -59,7 +58,7 @@ class HeartbeatImportDumpClient
     request_all_pages("/users/current/machine_names").map { { id: _1["id"].to_s, value: _1["value"].presence } }
   end
 
-  # Heartbeats for one day in the user's WakaTime timezone, in the same shape as the export.
+  # One day in the user's WakaTime timezone.
   def list_heartbeats(date)
     Array(request_json(method: :get, path: "/users/current/heartbeats?date=#{date.iso8601}")["data"])
   end
@@ -118,7 +117,6 @@ class HeartbeatImportDumpClient
     raise RequestError, "Invalid JSON response"
   end
 
-  # WakaTime returns at most 100 items per page.
   def request_all_pages(path)
     (1..).each_with_object([]) do |page, items|
       body = request_json(method: :get, path: "#{path}?page=#{page}")
@@ -146,7 +144,7 @@ class HeartbeatImportDumpClient
     body = response.to_s
     case @source_kind
     when "hackatime_v1_dump" then body.include?("a data export is already in progress")
-    # "Wait for your current export to finish" or "... to expire" (a completed export is still downloadable).
+    # "...to finish" or "...to expire"; either way that export can be reused.
     when "wakatime_dump" then body.include?("Wait for your current export to")
     else false
     end

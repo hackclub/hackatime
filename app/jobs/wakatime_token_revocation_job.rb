@@ -1,6 +1,4 @@
-# Revokes a WakaTime OAuth token once Hackatime no longer needs it. The token
-# is stored encrypted in the job arguments so a WakaTime outage can be retried
-# after the import run has dropped its copy.
+# The token is encrypted because GoodJob stores job arguments in plain text.
 class WakatimeTokenRevocationJob < ApplicationJob
   queue_as :latency_5m
 
