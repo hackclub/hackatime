@@ -1,0 +1,188 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn-svelte/tailwind.css";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/familjen-grotesk";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Every colour comes from the student's Hackatime theme (#lib/theme.ts sets
+   --ink, --cream, --link and friends on <html>). shadcn's tokens map onto them.
+   Flat fills only: no gradients anywhere. */
+:root {
+	--ink: #050505;
+	--panel: #101312;
+	--panel-2: #242a28;
+	--cream: #e8eee9;
+	--link: #d7ff6a;
+	--dim: #8f9b95;
+	--line: #2b3532;
+	--ok: #7dfc6a;
+	--warn: #ffd166;
+	--info: #6fd7ff;
+
+	--background: var(--ink);
+	--foreground: var(--cream);
+	--card: var(--panel);
+	--card-foreground: var(--cream);
+	--popover: var(--panel);
+	--popover-foreground: var(--cream);
+	--primary: var(--cream);
+	--primary-foreground: var(--ink);
+	--secondary: var(--panel-2);
+	--secondary-foreground: var(--cream);
+	--muted: var(--panel);
+	--muted-foreground: var(--dim);
+	--accent: var(--panel-2);
+	--accent-foreground: var(--cream);
+	--destructive: var(--warn);
+	--border: var(--line);
+	--input: var(--line);
+	--ring: var(--link);
+	--radius: 0rem;
+
+	/* Fast by default: things answer in under 160ms. */
+	--fast: 120ms;
+	--snap: 160ms;
+	--ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@theme inline {
+	--font-mono: 'JetBrains Mono Variable', monospace;
+	--font-sans: 'Familjen Grotesk Variable', system-ui, sans-serif;
+	--color-ink: var(--ink);
+	--color-cream: var(--cream);
+	--color-link: var(--link);
+	--color-dim: var(--dim);
+	--color-line: var(--line);
+	--color-panel: var(--panel);
+	--color-panel-2: var(--panel-2);
+	--color-ok: var(--ok);
+	--color-warn: var(--warn);
+	--color-info: var(--info);
+	--breakpoint-md: 980px;
+	--color-sidebar-ring: var(--sidebar-ring);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar: var(--sidebar);
+	--color-chart-5: var(--chart-5);
+	--color-chart-4: var(--chart-4);
+	--color-chart-3: var(--chart-3);
+	--color-chart-2: var(--chart-2);
+	--color-chart-1: var(--chart-1);
+	--color-ring: var(--ring);
+	--color-input: var(--input);
+	--color-border: var(--border);
+	--color-destructive: var(--destructive);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-accent: var(--accent);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-muted: var(--muted);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-secondary: var(--secondary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-primary: var(--primary);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-popover: var(--popover);
+	--color-card-foreground: var(--card-foreground);
+	--color-card: var(--card);
+	--color-foreground: var(--foreground);
+	--color-background: var(--background);
+	--radius-sm: calc(var(--radius) * 0.6);
+	--radius-md: calc(var(--radius) * 0.8);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) * 1.4);
+	--radius-2xl: calc(var(--radius) * 1.8);
+	--radius-3xl: calc(var(--radius) * 2.2);
+	--radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+	* {
+		@apply border-border;
+	}
+	:focus-visible {
+		outline: 2px solid var(--link);
+		outline-offset: 2px;
+	}
+	body {
+		@apply bg-background text-foreground;
+	}
+	html {
+		@apply font-sans;
+		line-height: normal;
+		overscroll-behavior: none;
+		-webkit-font-smoothing: antialiased;
+	}
+	p,
+	li,
+	dd,
+	label {
+		text-wrap: pretty;
+	}
+	h1,
+	h2,
+	h3 {
+		text-wrap: balance;
+	}
+	::selection {
+		background: var(--link);
+		color: var(--ink);
+	}
+	a {
+		text-decoration-thickness: 1.5px;
+	}
+}
+
+/* Page changes cross-fade in 120ms (view transitions, +layout.svelte). The
+   sidebar keeps its own layer so it holds still. */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: var(--fast);
+	animation-timing-function: var(--ease);
+}
+.sidebar {
+	view-transition-name: sidebar;
+}
+::view-transition-old(sidebar) {
+	display: none;
+}
+::view-transition-new(sidebar) {
+	animation: none;
+}
+
+body {
+	animation: page-in 180ms var(--ease) both;
+}
+@keyframes page-in {
+	from {
+		opacity: 0;
+	}
+}
+
+/* Text links: underlined in the theme's accent, brighter on hover. */
+.link {
+	color: var(--link);
+	text-decoration-line: underline;
+	text-decoration-thickness: 1.5px;
+	text-decoration-skip-ink: auto;
+	text-underline-offset: 2px;
+	transition: color var(--fast) var(--ease);
+}
+.link:hover {
+	color: var(--cream);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 1ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 1ms !important;
+	}
+}
