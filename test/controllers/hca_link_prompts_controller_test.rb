@@ -4,12 +4,12 @@ require "webmock/minitest"
 WebMock.disable_net_connect!(allow_localhost: true)
 
 class HCALinkPromptsControllerTest < ActionDispatch::IntegrationTest
-  WEEK_ONE = HCATransition::SKIPPABLE_UNTIL - 1.day
-  WEEK_TWO = HCATransition::SKIPPABLE_UNTIL
+  NOT_NOW_ALLOWED = HCATransition::SKIPPABLE_UNTIL - 1.day
+  NOT_NOW_OVER = HCATransition::SKIPPABLE_UNTIL
   FINAL_WEEK = HCATransition::REQUIRED_FOR_EVERY_SESSION_FROM
 
   test "an unlinked account that signed in by email is sent to the link page from other pages" do
-    travel_to WEEK_ONE do
+    travel_to NOT_NOW_ALLOWED do
       sign_in_as(create(:user, :unlinked))
 
       get my_settings_path
@@ -44,8 +44,8 @@ class HCALinkPromptsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to signin_path(continue: "/my/settings")
   end
 
-  test "Not now lets the session carry on in the first week" do
-    travel_to WEEK_ONE do
+  test "Not now lets the session carry on while it is offered" do
+    travel_to NOT_NOW_ALLOWED do
       sign_in_as(create(:user, :unlinked))
 
       delete hca_link_prompt_path(continue: "/my/settings")
@@ -57,7 +57,7 @@ class HCALinkPromptsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "Not now does not leave the site for an outside address" do
-    travel_to WEEK_ONE do
+    travel_to NOT_NOW_ALLOWED do
       sign_in_as(create(:user, :unlinked))
 
       delete hca_link_prompt_path(continue: "https://evil.example.com/phish")
@@ -66,8 +66,8 @@ class HCALinkPromptsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "Not now is refused once the first week is over" do
-    travel_to WEEK_TWO do
+  test "Not now is refused once it is no longer offered" do
+    travel_to NOT_NOW_OVER do
       sign_in_as(create(:user, :unlinked))
 
       delete hca_link_prompt_path(continue: "/my/settings")
@@ -82,12 +82,12 @@ class HCALinkPromptsControllerTest < ActionDispatch::IntegrationTest
 
   test "a session that chose Not now is asked again in the final week" do
     user = create(:user, :unlinked)
-    travel_to WEEK_ONE do
+    travel_to NOT_NOW_ALLOWED do
       sign_in_as(user)
       delete hca_link_prompt_path
     end
 
-    travel_to WEEK_TWO do
+    travel_to NOT_NOW_OVER do
       get my_settings_path
       assert_response :success
     end
@@ -105,7 +105,7 @@ class HCALinkPromptsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "a failed link returns to the link page with its reason and the same destination" do
-    travel_to WEEK_TWO do
+    travel_to NOT_NOW_OVER do
       holder = create(:user, hca_id: "hca-held")
       create(:heartbeat, user: holder)
       sign_in_as(create(:user, :unlinked))
