@@ -17,6 +17,282 @@ externalDocs:
   description: Hackatime documentation
   url: https://hackatime.hackclub.com/docs
 paths:
+  "/api/desktop/v1/pair":
+    post:
+      summary: Pair Hackatime Desktop
+      tags:
+      - Desktop
+      description: Exchanges a one-time pairing code, approved by the signed-in user
+        at /desktop/pair/new, for a device token. The code only works once, for 10
+        minutes, and only with the PKCE (S256) verifier of the challenge it was issued
+        for.
+      parameters: []
+      responses:
+        '201':
+          description: paired
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - token
+                - device
+                properties:
+                  token:
+                    type: string
+                    description: Device bearer token. Store it in the OS keystore.
+                  device:
+                    type: object
+                    properties:
+                      uid:
+                        type: string
+                      key_tier:
+                        type: string
+                        enum:
+                        - software
+                        - secure_enclave
+                        - tpm
+                        - app_attest
+                      last_seq:
+                        type: integer
+        '401':
+          description: invalid, expired or reused code, or wrong verifier
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - code
+              - code_verifier
+              - platform
+              properties:
+                code:
+                  type: string
+                  example: K7Q2M9XW4D
+                code_verifier:
+                  type: string
+                name:
+                  type: string
+                  example: Orpheus's MacBook
+                platform:
+                  type: string
+                  enum:
+                  - macos
+                  - windows
+                  - linux
+                app_version:
+                  type: string
+                  example: 0.1.0
+  "/api/desktop/v1/beacon":
+    get:
+      summary: Current server beacon
+      tags:
+      - Desktop
+      description: The server beacon for this minute. Every block must mix in the
+        newest beacon value. `commitment` is the hash of a secret revealed only when
+        the range is shipped; it picks which timelapse frames are required. `next_expected_at`
+        is when this device should take this minute's timelapse frame; frames within
+        `timelapse_window_seconds` of it are on time.
+      security:
+      - Bearer: []
+      responses:
+        '200':
+          description: beacon
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - minute
+                - value
+                - commitment
+                - next_expected_at
+                - head_seq
+                - head_hash
+                properties:
+                  minute:
+                    type: integer
+                    description: Unix minute (seconds / 60)
+                  value:
+                    type: string
+                    description: 32 random bytes, hex
+                  commitment:
+                    type: string
+                  next_expected_at:
+                    type: string
+                    format: date-time
+                  timelapse_window_seconds:
+                    type: integer
+                  head_seq:
+                    type: integer
+                  head_hash:
+                    type: string
+                  server_time_ms:
+                    type: integer
+                  starts_at:
+                    type: string
+                    format: date-time
+        '401':
+          description: unknown or revoked device token
+  "/api/desktop/v1/blocks":
+    post:
+      summary: Append minute blocks to the device chain
+      tags:
+      - Desktop
+      description: 'Appends blocks in order. Each block links to the previous hash
+        and the beacon of its minute: `hash = SHA-256("hkt-chain-v1\n" || prev ||
+        beacon_value || SHA-256(payload))`. When the device enrolled a key, `signature`
+        is an ECDSA P-256 signature over the 32 hash bytes. Payloads carry summary
+        claims only. Processing stops at the first rejected block; 409 returns the
+        server head so the client can resync.'
+      security:
+      - Bearer: []
+      parameters: []
+      responses:
+        '201':
+          description: accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - accepted
+                - head_seq
+                - head_hash
+                properties:
+                  accepted:
+                    type: integer
+                  head_seq:
+                    type: integer
+                  head_hash:
+                    type: string
+                  error:
+                    type: object
+                    nullable: true
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+                      seq:
+                        type: integer
+        '409':
+          description: a block was rejected (fork, bad hash, stale beacon, bad signature,
+            not monotonic)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - blocks
+              properties:
+                blocks:
+                  type: array
+                  maxItems: 120
+                  items:
+                    type: object
+                    required:
+                    - seq
+                    - minute
+                    - beacon_minute
+                    - prev_hash
+                    - captured_at_ms
+                    - mono_ms
+                    - payload
+                    - hash
+                    properties:
+                      seq:
+                        type: integer
+                      minute:
+                        type: integer
+                      beacon_minute:
+                        type: integer
+                      prev_hash:
+                        type: string
+                      captured_at_ms:
+                        type: integer
+                      mono_ms:
+                        type: integer
+                      payload:
+                        type: string
+                        description: 'Canonical JSON: focus, project, active_s, keys,
+                          clicks, moves, injected, rhythm, jiggler, edits, commits,
+                          builds, ai, tree.root, frames[].hash'
+                      hash:
+                        type: string
+                      signature:
+                        type: string
+                        nullable: true
+  "/api/desktop/v1/ships":
+    post:
+      summary: Open a ship over a chain range
+      tags:
+      - Desktop
+      description: Opens a draft ship over a closed range and reveals the beacon secrets
+        for it, which pick the required timelapse frames and the code snapshots the
+        server will spot-check. Clients must check each secret against its published
+        commitment.
+      security:
+      - Bearer: []
+      parameters: []
+      responses:
+        '201':
+          description: draft ship with what must be revealed
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - id
+                - status
+                - required_frames
+                - spot_check_seqs
+                - revealed
+                properties:
+                  id:
+                    type: integer
+                  status:
+                    type: string
+                  required_frames:
+                    type: array
+                    items:
+                      type: string
+                  spot_check_seqs:
+                    type: array
+                    items:
+                      type: integer
+                  revealed:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        minute:
+                          type: integer
+                        secret:
+                          type: string
+                        commitment:
+                          type: string
+        '422':
+          description: range is invalid, beyond the chain or overlaps a submitted
+            ship
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - project
+              - from_seq
+              - to_seq
+              properties:
+                project:
+                  type: string
+                from_seq:
+                  type: integer
+                to_seq:
+                  type: integer
   "/api/hackatime/v1/users/{id}/heartbeats":
     post:
       summary: Push heartbeats (WakaTime compatible)
@@ -1215,6 +1491,366 @@ paths:
           description: user not found
         '403':
           description: user has disabled public stats
+  "/api/v1/authenticated/desktop":
+    get:
+      summary: Hackatime Desktop overview
+      tags:
+      - OAuth2-specific
+      description: The signed-in student's Hackatime theme, paired devices, time tracked
+        today and shipped work. Requires the `desktop` scope. Reviewer flags and scoring
+        details are never included.
+      security:
+      - OAuth2:
+        - desktop
+      responses:
+        '200':
+          description: overview
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - user
+                - today_seconds
+                - devices
+                - ships
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      username:
+                        type: string
+                        nullable: true
+                      avatar_url:
+                        type: string
+                        nullable: true
+                      timezone:
+                        type: string
+                      theme:
+                        type: object
+                        properties:
+                          value:
+                            type: string
+                          label:
+                            type: string
+                          color_scheme:
+                            type: string
+                          palette:
+                            type: object
+                            additionalProperties:
+                              type: string
+                              nullable: true
+                  today_seconds:
+                    type: integer
+                  devices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        platform:
+                          type: string
+                        app_version:
+                          type: string
+                          nullable: true
+                        hardware_key:
+                          type: boolean
+                        paired_at:
+                          type: string
+                          format: date-time
+                        last_seen_at:
+                          type: string
+                          format: date-time
+                          nullable: true
+                  ships:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                      - id
+                      - project
+                      - status
+                      properties:
+                        id:
+                          type: integer
+                        project:
+                          type: string
+                        status:
+                          type: string
+                          enum:
+                          - in_review
+                          - appeal_in_review
+                          - question
+                          - approved
+                          - approved_in_part
+                          - rejected
+                        submitted_at:
+                          type: string
+                          format: date-time
+                          nullable: true
+                        decided_at:
+                          type: string
+                          format: date-time
+                          nullable: true
+                        claimed_seconds:
+                          type: integer
+                        approved_seconds:
+                          type: integer
+                          nullable: true
+        '403':
+          description: token lacks the desktop scope
+  "/api/v1/authenticated/desktop/ships/{id}":
+    get:
+      summary: One shipped stretch of work
+      tags:
+      - OAuth2-specific
+      description: A plain-words reflection on the work, the reviewer conversation,
+        whether it can still be appealed and an access log of every reviewer view.
+      security:
+      - OAuth2:
+        - desktop
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: ship
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - id
+                - project
+                - status
+                properties:
+                  id:
+                    type: integer
+                  project:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                    - in_review
+                    - appeal_in_review
+                    - question
+                    - approved
+                    - approved_in_part
+                    - rejected
+                  submitted_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  decided_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  claimed_seconds:
+                    type: integer
+                  approved_seconds:
+                    type: integer
+                    nullable: true
+                  reflection:
+                    type: string
+                  started_at:
+                    type: string
+                    nullable: true
+                  ended_at:
+                    type: string
+                    nullable: true
+                  frames_shared:
+                    type: integer
+                  reviewer_question:
+                    type: string
+                    nullable: true
+                  user_answer:
+                    type: string
+                    nullable: true
+                  decision_reason:
+                    type: string
+                    nullable: true
+                  appeal:
+                    type: string
+                    nullable: true
+                  appealable:
+                    type: boolean
+                  access_log:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        at:
+                          type: string
+                        who:
+                          type: string
+                        what:
+                          type: string
+        '404':
+          description: not your ship
+  "/api/v1/authenticated/desktop/pairings":
+    post:
+      summary: Issue a pairing code for Hackatime Desktop
+      tags:
+      - OAuth2-specific
+      description: Called after the student consents to timelapse capture. Returns
+        a one-time code (10 minutes) bound to the app's PKCE challenge.
+      security:
+      - OAuth2:
+        - desktop
+      parameters: []
+      responses:
+        '201':
+          description: pairing code
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - code
+                - deep_link
+                - expires_at
+                properties:
+                  code:
+                    type: string
+                  deep_link:
+                    type: string
+                  expires_at:
+                    type: string
+                    format: date-time
+        '422':
+          description: consent missing or challenge invalid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - code_challenge
+              - consent
+              properties:
+                code_challenge:
+                  type: string
+                  description: BASE64URL(SHA256(verifier)), 43 characters
+                consent:
+                  type: boolean
+  "/api/v1/authenticated/desktop/devices/{id}":
+    delete:
+      summary: Unpair a device
+      tags:
+      - OAuth2-specific
+      security:
+      - OAuth2:
+        - desktop
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '204':
+          description: unpaired
+  "/api/v1/authenticated/desktop/ships/{id}/answer":
+    post:
+      summary: Answer a reviewer's question
+      tags:
+      - OAuth2-specific
+      security:
+      - OAuth2:
+        - desktop
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: answered; back in review
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - id
+                - project
+                - status
+                properties:
+                  id:
+                    type: integer
+                  project:
+                    type: string
+                  status:
+                    type: string
+                    enum:
+                    - in_review
+                    - appeal_in_review
+                    - question
+                    - approved
+                    - approved_in_part
+                    - rejected
+                  submitted_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  decided_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  claimed_seconds:
+                    type: integer
+                  approved_seconds:
+                    type: integer
+                    nullable: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - answer
+              properties:
+                answer:
+                  type: string
+                  maxLength: 5000
+  "/api/v1/authenticated/desktop/ships/{id}/appeal":
+    post:
+      summary: Appeal a decision
+      tags:
+      - OAuth2-specific
+      description: Allowed once, within 90 days of a rejected or partly approved decision.
+        A different reviewer picks it up.
+      security:
+      - OAuth2:
+        - desktop
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '422':
+          description: not appealable
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - appeal
+              properties:
+                appeal:
+                  type: string
+                  maxLength: 5000
   "/api/v1/authenticated/me":
     get:
       summary: Get current user info

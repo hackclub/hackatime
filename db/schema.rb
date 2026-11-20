@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_20_205429) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -121,6 +121,46 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
     t.index ["user_id"], name: "index_deletion_requests_on_user_id"
   end
 
+  create_table "desktop_devices", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "uid", null: false
+    t.string "name", null: false
+    t.string "platform", null: false
+    t.string "app_version"
+    t.string "token_digest", null: false
+    t.text "public_key"
+    t.integer "key_tier", default: 0, null: false
+    t.string "hardware_id_digest"
+    t.string "app_attest_key_id"
+    t.datetime "attested_at"
+    t.integer "last_seq", default: 0, null: false
+    t.string "head_hash", default: "0000000000000000000000000000000000000000000000000000000000000000", null: false
+    t.bigint "last_minute"
+    t.bigint "last_mono_ms"
+    t.datetime "last_seen_at"
+    t.datetime "capture_consented_at", null: false
+    t.datetime "revoked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["hardware_id_digest"], name: "index_desktop_devices_on_hardware_id_digest", unique: true, where: "((revoked_at IS NULL) AND (hardware_id_digest IS NOT NULL))"
+    t.index ["token_digest"], name: "index_desktop_devices_on_token_digest", unique: true
+    t.index ["uid"], name: "index_desktop_devices_on_uid", unique: true
+    t.index ["user_id"], name: "index_desktop_devices_on_user_id"
+  end
+
+  create_table "desktop_pairings", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "code_digest", null: false
+    t.string "code_challenge", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "consumed_at"
+    t.datetime "capture_consented_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code_digest"], name: "index_desktop_pairings_on_code_digest", unique: true
+    t.index ["user_id"], name: "index_desktop_pairings_on_user_id"
+  end
+
   create_table "documentation_feedbacks", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.boolean "helpful", null: false
@@ -156,6 +196,100 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
     t.bigint "user_id", null: false
     t.index ["email"], name: "index_email_verification_requests_on_email_active", unique: true, where: "(deleted_at IS NULL)"
     t.index ["user_id"], name: "index_email_verification_requests_on_user_id"
+  end
+
+  create_table "evidence_beacons", force: :cascade do |t|
+    t.bigint "minute", null: false
+    t.string "value", null: false
+    t.string "commitment", null: false
+    t.text "secret", null: false
+    t.datetime "created_at", null: false
+    t.index ["minute"], name: "index_evidence_beacons_on_minute", unique: true
+  end
+
+  create_table "evidence_blocks", force: :cascade do |t|
+    t.bigint "desktop_device_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "evidence_beacon_id", null: false
+    t.integer "seq", null: false
+    t.bigint "minute", null: false
+    t.string "prev_hash", null: false
+    t.string "block_hash", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.boolean "signed", default: false, null: false
+    t.boolean "offline", default: false, null: false
+    t.bigint "captured_at_ms", null: false
+    t.datetime "received_at", null: false
+    t.inet "ip_address"
+    t.integer "ja4_id"
+    t.index ["desktop_device_id", "seq"], name: "index_evidence_blocks_on_desktop_device_id_and_seq", unique: true
+    t.index ["desktop_device_id"], name: "index_evidence_blocks_on_desktop_device_id"
+    t.index ["evidence_beacon_id"], name: "index_evidence_blocks_on_evidence_beacon_id"
+    t.index ["user_id", "minute"], name: "index_evidence_blocks_on_user_id_and_minute"
+    t.index ["user_id"], name: "index_evidence_blocks_on_user_id"
+  end
+
+  create_table "evidence_frames", force: :cascade do |t|
+    t.bigint "evidence_ship_id", null: false
+    t.string "frame_hash", null: false
+    t.integer "seq", null: false
+    t.bigint "captured_at_ms", null: false
+    t.string "kind", null: false
+    t.string "trigger"
+    t.boolean "required", default: false, null: false
+    t.boolean "redacted", default: false, null: false
+    t.jsonb "redactions", default: [], null: false
+    t.text "segment_key"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["evidence_ship_id", "frame_hash"], name: "index_evidence_frames_on_evidence_ship_id_and_frame_hash", unique: true
+    t.index ["evidence_ship_id"], name: "index_evidence_frames_on_evidence_ship_id"
+  end
+
+  create_table "evidence_ships", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "desktop_device_id", null: false
+    t.bigint "reviewer_id"
+    t.string "project", null: false
+    t.integer "from_seq", null: false
+    t.integer "to_seq", null: false
+    t.integer "status", default: 0, null: false
+    t.jsonb "required_frames", default: [], null: false
+    t.jsonb "spot_check_seqs", default: [], null: false
+    t.jsonb "stretches", default: [], null: false
+    t.jsonb "spot_checks", default: [], null: false
+    t.jsonb "flags", default: [], null: false
+    t.integer "claimed_seconds", default: 0, null: false
+    t.integer "scored_seconds", default: 0, null: false
+    t.integer "ceiling_seconds"
+    t.integer "credited_seconds", default: 0, null: false
+    t.integer "approved_seconds"
+    t.float "confidence"
+    t.string "scorer"
+    t.text "summary"
+    t.text "reviewer_question"
+    t.text "user_answer"
+    t.text "decision_reason"
+    t.text "appeal"
+    t.datetime "submitted_at"
+    t.datetime "decided_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["desktop_device_id"], name: "index_evidence_ships_on_desktop_device_id"
+    t.index ["reviewer_id"], name: "index_evidence_ships_on_reviewer_id"
+    t.index ["status", "submitted_at"], name: "index_evidence_ships_on_status_and_submitted_at"
+    t.index ["user_id"], name: "index_evidence_ships_on_user_id"
+  end
+
+  create_table "evidence_views", force: :cascade do |t|
+    t.bigint "evidence_ship_id", null: false
+    t.bigint "evidence_frame_id"
+    t.bigint "viewer_id"
+    t.string "action", null: false
+    t.datetime "created_at", null: false
+    t.index ["evidence_frame_id"], name: "index_evidence_views_on_evidence_frame_id"
+    t.index ["evidence_ship_id"], name: "index_evidence_views_on_evidence_ship_id"
+    t.index ["viewer_id"], name: "index_evidence_views_on_viewer_id"
   end
 
   create_table "flipper_features", force: :cascade do |t|
@@ -501,8 +635,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
 
   create_table "oauth_access_grants", force: :cascade do |t|
     t.bigint "application_id", null: false
-    t.string "code_challenge"
-    t.string "code_challenge_method"
     t.datetime "created_at", null: false
     t.integer "expires_in", null: false
     t.text "redirect_uri", null: false
@@ -510,6 +642,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
     t.datetime "revoked_at"
     t.string "scopes", default: "", null: false
     t.string "token", null: false
+    t.string "code_challenge"
+    t.string "code_challenge_method"
     t.index ["application_id"], name: "index_oauth_access_grants_on_application_id"
     t.index ["resource_owner_id"], name: "index_oauth_access_grants_on_resource_owner_id"
     t.index ["token"], name: "index_oauth_access_grants_on_token", unique: true
@@ -726,7 +860,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
     t.string "hca_access_token"
     t.string "hca_id"
     t.string "hca_scopes", default: [], array: true
-    t.datetime "home_folder_project_warned_at"
     t.boolean "leaderboard_opt_out", default: false, null: false
     t.datetime "leaderboard_shadowban_expires_at"
     t.text "leaderboard_shadowban_reason"
@@ -753,6 +886,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
     t.string "username"
     t.boolean "uses_slack_status", default: false, null: false
     t.boolean "weekly_summary_email_enabled", default: true, null: false
+    t.datetime "home_folder_project_warned_at"
     t.index "lower((username)::text)", name: "index_users_on_lower_username_unique", unique: true
     t.index ["display_name_override"], name: "index_users_on_display_name_override_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
@@ -805,9 +939,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
   add_foreign_key "dashboard_rollups", "users"
   add_foreign_key "deletion_requests", "users"
   add_foreign_key "deletion_requests", "users", column: "admin_approved_by_id"
+  add_foreign_key "desktop_devices", "users"
+  add_foreign_key "desktop_pairings", "users"
   add_foreign_key "documentation_feedbacks", "users", on_delete: :cascade
   add_foreign_key "email_addresses", "users"
   add_foreign_key "email_verification_requests", "users"
+  add_foreign_key "evidence_blocks", "desktop_devices"
+  add_foreign_key "evidence_blocks", "evidence_beacons"
+  add_foreign_key "evidence_blocks", "users"
+  add_foreign_key "evidence_frames", "evidence_ships"
+  add_foreign_key "evidence_ships", "desktop_devices"
+  add_foreign_key "evidence_ships", "users"
+  add_foreign_key "evidence_ships", "users", column: "reviewer_id"
+  add_foreign_key "evidence_views", "evidence_frames"
+  add_foreign_key "evidence_views", "evidence_ships"
+  add_foreign_key "evidence_views", "users", column: "viewer_id"
   add_foreign_key "goals", "users"
   add_foreign_key "heartbeat_exclusions", "users"
   add_foreign_key "heartbeat_exclusions", "users", column: "created_by_id", on_delete: :nullify

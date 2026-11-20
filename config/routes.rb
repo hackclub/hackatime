@@ -245,6 +245,21 @@ Rails.application.routes.draw do
   get "/hackatime/v1", to: redirect("/", status: 302) # some clients seem to link this as the user's dashboard instead of /api/v1/hackatime
   # API routes
   namespace :api do
+    namespace :desktop do
+      namespace :v1 do
+        post "pair", to: "desktop#pair"
+        get "me", to: "desktop#me"
+        delete "me", to: "desktop#unpair"
+        get "beacon", to: "desktop#beacon"
+        post "key", to: "desktop#key"
+        post "blocks", to: "desktop#blocks"
+        post "ships", to: "desktop#create_ship"
+        get "ships/:id", to: "desktop#show_ship"
+        post "ships/:id/frames", to: "desktop#upload_frame"
+        post "ships/:id/submit", to: "desktop#submit_ship"
+      end
+    end
+
     # This is our own API– don't worry about compatibility.
     namespace :v1 do
       get "leaderboard", to: "leaderboard#daily"
@@ -282,6 +297,14 @@ Rails.application.routes.draw do
         # get "projects/:name", to: "projects#show", constraints: { name: /.+/ }
         get "heartbeats/latest", to: "heartbeats#latest"
         get "api_keys", to: "api_keys#index"
+
+        # Hackatime Desktop's companion site (desktop/site), `desktop` scope
+        get "desktop", to: "desktop#index"
+        get "desktop/ships/:id", to: "desktop#show_ship"
+        post "desktop/pairings", to: "desktop#create_pairing"
+        delete "desktop/devices/:id", to: "desktop#revoke_device"
+        post "desktop/ships/:id/answer", to: "desktop#answer"
+        post "desktop/ships/:id/appeal", to: "desktop#appeal"
       end
     end
 

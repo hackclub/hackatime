@@ -9,6 +9,7 @@ module Privacy
       heartbeat_import_runs heartbeat_import_sources heartbeats instance_import_sources
       leaderboard_entries project_labels project_repo_mappings repo_host_events
       sign_in_tokens trust_level_audit_logs wakatime_mirrors commits
+      desktop_pairings desktop_devices evidence_blocks evidence_ships
     ].freeze
     USER_JOBS = %w[
       AttemptProjectRepoMappingJob DashboardRollupRefreshJob HeartbeatExportJob
@@ -206,10 +207,16 @@ module Privacy
       @scopes["notable_requests"] = table("notable_requests").where(user_type: "User", user_id: @user_ids)
       @scopes["pghero_query_stats"] = table("pghero_query_stats").none
 
+      ship_ids = @scopes.fetch("evidence_ships").pluck(:id)
+      @scopes["evidence_views"] = table("evidence_views").where(evidence_ship_id: ship_ids)
+      @scopes["evidence_frames"] = table("evidence_frames").where(evidence_ship_id: ship_ids)
+      frame_ids = @scopes.fetch("evidence_frames").pluck(:id)
+
       @import_ids = @scopes.fetch("heartbeat_import_runs").pluck(:id)
       @repository_ids = (@scopes.fetch("project_repo_mappings").pluck(:repository_id) + @scopes.fetch("commits").pluck(:repository_id)).compact.uniq
       @leaderboard_ids = @scopes.fetch("leaderboard_entries").pluck(:leaderboard_id).uniq
       attachments = ActiveStorage::Attachment.where(record_type: "User", record_id: @user_ids)
+        .or(ActiveStorage::Attachment.where(record_type: "EvidenceFrame", record_id: frame_ids))
       exports = ActiveStorage::Blob.where("metadata::jsonb @> ?::jsonb", { heartbeat_export: true }.to_json)
         .where("metadata::jsonb ->> 'user_id' IN (?)", @user_ids.map(&:to_s))
       blobs = ActiveStorage::Blob.where(id: attachments.select(:blob_id)).or(exports)
@@ -324,7 +331,8 @@ module Privacy
       @audit = TrustLevelAuditLog.where.not(user_id: @user_ids).where(changed_by_id: @user_ids).or(
         TrustLevelAuditLog.where.not(user_id: @user_ids).where(edited_by_id: @user_ids))
       @references = {}
-      { "deletion_requests" => [ "admin_approved_by_id" ], "heartbeat_exclusions" => %w[created_by_id revoked_by_id], "users" => [ "leaderboard_shadowbanned_by_id" ] }.each do |name, fields|
+      { "deletion_requests" => [ "admin_approved_by_id" ], "heartbeat_exclusions" => %w[created_by_id revoked_by_id],
+        "users" => [ "leaderboard_shadowbanned_by_id" ], "evidence_ships" => [ "reviewer_id" ] }.each do |name, fields|
         fields.each do |field|
           scope = table(name).where(field => @user_ids)
           scope = scope.where.not(name == "users" ? { id: @user_ids } : { user_id: @user_ids })
@@ -368,7 +376,8 @@ module Privacy
       version_ids = @scopes.fetch("versions").pluck(:id)
       @scopes["versions"] = table("versions").where(id: version_ids)
       order = %w[versions good_job_executions good_jobs good_job_batches notable_jobs notable_requests
-        active_storage_attachments active_storage_variant_records active_storage_blobs]
+        active_storage_attachments active_storage_variant_records active_storage_blobs
+        evidence_views evidence_frames evidence_blocks evidence_ships desktop_devices desktop_pairings]
       (order + (@scopes.keys - order)).each { |name| record_deleted(name, @scopes.fetch(name).delete_all) }
       repositories = Repository.where(id: @repository_ids).where.not(id: ProjectRepoMapping.select(:repository_id).where.not(repository_id: nil))
         .where.not(id: Commit.select(:repository_id).where.not(repository_id: nil))
@@ -392,6 +401,11 @@ module Privacy
       TrustLevelAuditLog.where(id: audit_ids).update_all(reason: nil, notes: nil, original_reason: nil, original_notes: nil)
       TrustLevelAuditLog.where(changed_by_id: @user_ids).where.not(user_id: @user_ids).update_all(changed_by_id: nil)
       TrustLevelAuditLog.where(edited_by_id: @user_ids).where.not(user_id: @user_ids).update_all(edited_by_id: nil)
+      # A reviewer's views of other users' ships stay in those users' access
+      # logs, shown as a deleted reviewer.
+      reviewer_views = table("evidence_views").where(viewer_id: @user_ids).where.not(id: @scopes.fetch("evidence_views").select(:id))
+      retain("evidence_views.viewer_id", reviewer_views.count, "other users' access logs; reviewer reference removed")
+      reviewer_views.update_all(viewer_id: nil)
       @references.each do |type, (scope, field)|
         retain(type, scope.count, "other users' records; administrator reference removed")
         ids = scope.pluck(:id)

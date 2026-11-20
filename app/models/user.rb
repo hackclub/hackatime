@@ -201,6 +201,9 @@ class User < ApplicationRecord
   has_many :project_repo_mappings
 
   has_many :api_keys
+  has_many :desktop_devices, dependent: :destroy
+  has_many :desktop_pairings, dependent: :delete_all
+  has_many :evidence_ships, dependent: :destroy
   has_many :admin_api_keys, dependent: :destroy
   has_many :oauth_applications, as: :owner, dependent: :destroy
   belongs_to :leaderboard_shadowbanned_by, class_name: "User", optional: true

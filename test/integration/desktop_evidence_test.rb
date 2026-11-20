@@ -1,0 +1,246 @@
+require "test_helper"
+
+# Drives Hackatime Desktop's API end to end: PKCE pairing, key enrolment,
+# beacon-linked signed minute blocks, shipping with frames and code
+# spot-checks, then review with the access log.
+class DesktopEvidenceTest < ActionDispatch::IntegrationTest
+  START = Time.utc(2026, 11, 20, 10, 0, 5)
+
+  setup do
+    @user = create(:user, :with_email, username: "orpheus")
+    @key = OpenSSL::PKey::EC.generate("prime256v1")
+    @salt = SecureRandom.hex(32)
+  end
+
+  teardown { travel_back }
+
+  test "a paired device chains signed minutes and ships them, and the student sees their ship without reviewer flags" do
+    token = pair_device
+    enrol_key(token)
+
+    files_v1 = { "app.rb" => "def hello\n  puts 'hi'\nend\n", ".env" => "SECRET=1\n" }
+    files_v2 = { "app.rb" => "def hello\n  puts 'hi'\nend\n\ndef sync(items)\n  items.map { |item| item.save! }\nend\n", ".env" => "SECRET=1\n" }
+    frames = []
+    20.times do |i|
+      tree = i == 0 ? files_v1 : (i == 10 || i == 19 ? files_v2 : nil)
+      frame = i.even? ? encrypted_frame("minute #{i}") : nil
+      frames << frame if frame
+      post_minute(token, i, payload(i, tree:, frame:))
+    end
+    device = @user.desktop_devices.sole
+    assert_equal 20, device.last_seq
+    assert device.evidence_blocks.all?(&:signed), "every block should carry a verified signature"
+    assert_equal 20, @user.heartbeats.where(entity: "Hackatime Desktop").count, "project minutes become heartbeats"
+
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 20 }, headers: auth(token), as: :json
+    assert_response :created
+    ship = response.parsed_body
+    assert_equal 3, ship["spot_check_seqs"].length
+    assert_includes ship["spot_check_seqs"], 1
+    assert_includes ship["spot_check_seqs"], 20
+    revealed = ship["revealed"].first
+    assert_equal Evidence::Crypto.beacon_commitment(revealed["secret"]), revealed["commitment"]
+
+    frames.each do |frame|
+      post "/api/desktop/v1/ships/#{ship["id"]}/frames", params: frame.slice(:hash, :ciphertext, :segment_key), headers: auth(token), as: :json
+      assert_response :created
+    end
+
+    post "/api/desktop/v1/ships/#{ship["id"]}/submit", headers: auth(token), as: :json, params: {
+      final_files: [ { path: "app.rb", content: Base64.strict_encode64(files_v2["app.rb"]) } ],
+      snapshots: ship["spot_check_seqs"].map { |seq| snapshot(seq, seq == 1 ? files_v1 : files_v2) }
+    }
+    assert_response :success
+    result = response.parsed_body
+    assert_equal "submitted", result["status"]
+    assert result["credited_seconds"].positive?
+    record = EvidenceShip.find(ship["id"])
+    assert_operator record.credited_seconds, :<=, record.ceiling_seconds
+    assert_not_includes record.flags, "snapshot_mismatch"
+    assert record.spot_checks.all? { |check| check["root_ok"] && check["plausible"] }, record.spot_checks.inspect
+
+    assert_nil result["flags"], "the desktop app never sees reviewer flags"
+    assert_nil result["confidence"]
+
+    # The student's site shows their ship and who looked at it, never flags.
+    reviewer = create(:user, :admin)
+    record.log_view!(viewer: reviewer, action: "frame", frame: record.evidence_frames.first)
+    get "/api/v1/authenticated/desktop", headers: site_auth
+    assert_response :success
+    overview = response.parsed_body
+    assert_equal [ "in_review" ], overview["ships"].map { |row| row["status"] }
+    assert_equal "#{@user.theme}", overview.dig("user", "theme", "value")
+    get "/api/v1/authenticated/desktop/ships/#{record.id}", headers: site_auth
+    assert_response :success
+    detail = response.parsed_body
+    assert_match(/focused minutes on sync-app/, detail["reflection"])
+    assert_equal [ "watched a timelapse frame" ], detail["access_log"].map { |entry| entry["what"] }
+    leaked = %w[flags confidence scored_seconds ceiling_seconds stretches spot_checks summary]
+    assert_empty leaked & (overview["ships"].flat_map(&:keys) + detail.keys), "reviewer-only fields leaked"
+    assert_no_match(/jiggler|snapshot|flag|chain|hash/i, detail.to_json)
+  end
+
+  test "the chain rejects forks, stale beacons, bad hashes and forged signatures" do
+    token = pair_device
+    enrol_key(token)
+    post_minute(token, 0, payload(0))
+
+    travel_to START + 60
+    beacon = beacon_for(token)
+    body = payload(1).to_json
+    base = { seq: 2, minute: beacon["minute"], beacon_minute: beacon["minute"], captured_at_ms: (Time.current.to_f * 1000).to_i, mono_ms: 70_000, payload: body }
+
+    post_block(token, base.merge(seq: 2, prev_hash: "0" * 64, hash: Evidence::Crypto.chain_hash("0" * 64, beacon["value"], body)))
+    assert_equal "fork", response.parsed_body.dig("error", "code")
+
+    head = @user.desktop_devices.sole.head_hash
+    post_block(token, base.merge(prev_hash: head, hash: "f" * 64))
+    assert_equal "bad_hash", response.parsed_body.dig("error", "code")
+
+    good = Evidence::Crypto.chain_hash(head, beacon["value"], body)
+    forged = Base64.strict_encode64(OpenSSL::PKey::EC.generate("prime256v1").sign("SHA256", [ good ].pack("H*")))
+    post_block(token, base.merge(prev_hash: head, hash: good, signature: forged))
+    assert_equal "bad_signature", response.parsed_body.dig("error", "code")
+
+    post_block(token, base.merge(prev_hash: head, hash: good, mono_ms: 1))
+    assert_equal "not_monotonic", response.parsed_body.dig("error", "code")
+
+    post_block(token, base.merge(prev_hash: head, hash: good, signature: sign(good)))
+    assert_response :created
+    assert_equal 2, @user.desktop_devices.sole.last_seq
+  end
+
+  test "a pairing code works once and only with its verifier" do
+    verifier = SecureRandom.urlsafe_base64(48)
+    challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)
+    post "/api/v1/authenticated/desktop/pairings", params: { code_challenge: challenge }, headers: site_auth, as: :json
+    assert_response :unprocessable_entity, "pairing needs consent to timelapse capture"
+    post "/api/v1/authenticated/desktop/pairings", params: { code_challenge: challenge, consent: true },
+      headers: auth(create(:oauth_access_token, resource_owner_id: @user.id, scopes: "read").token), as: :json
+    assert_response :forbidden, "the desktop scope is required"
+    _pairing, code = DesktopPairing.issue!(user: @user, code_challenge: challenge, consented: true)
+
+    post "/api/desktop/v1/pair", params: { code:, code_verifier: "wrong", platform: "macos" }, as: :json
+    assert_response :unauthorized
+    post "/api/desktop/v1/pair", params: { code:, code_verifier: verifier, platform: "macos" }, as: :json
+    assert_response :created
+    post "/api/desktop/v1/pair", params: { code:, code_verifier: verifier, platform: "macos" }, as: :json
+    assert_response :unauthorized
+  end
+
+  test "mouse-only and jiggler minutes earn nothing, and a snapshot that does not match its root zeroes the ship" do
+    token = pair_device
+    files = { "app.rb" => "puts 1\n" }
+    10.times do |i|
+      body = payload(i, tree: (files if i.zero? || i == 9))
+      body.merge!(keys: 0, clicks: 0, edits: 0, ai: { prompts: 0 }, moves: 300) if i.between?(1, 4)
+      body.merge!(jiggler: 0.95) if i.between?(5, 6)
+      post_minute(token, i, body)
+    end
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 10 }, headers: auth(token), as: :json
+    ship = response.parsed_body
+
+    honest = Evidence::Scorer.call(ship: EvidenceShip.find(ship["id"]))
+    stretch = honest.stretches.sole
+    assert_equal 2, stretch.reasons["jiggler"]
+    assert_equal 4, stretch.reasons["mouse_only"]
+    assert_equal 4 * 45, stretch.counted_seconds, "only the four real working minutes count"
+
+    tampered = files.merge("app.rb" => "puts 2\n")
+    post "/api/desktop/v1/ships/#{ship["id"]}/submit", headers: auth(token), as: :json, params: {
+      final_files: [ { path: "app.rb", content: Base64.strict_encode64(files["app.rb"]) } ],
+      snapshots: ship["spot_check_seqs"].map { |seq| snapshot(seq, seq == 1 ? tampered : files) }
+    }
+    assert_response :success
+    assert_includes EvidenceShip.find(ship["id"]).flags, "snapshot_mismatch"
+    assert_equal 0, response.parsed_body["credited_seconds"]
+  end
+
+  test "repeated identical frames zero out the minutes they cover" do
+    token = pair_device
+    stuck = encrypted_frame("same screen")
+    6.times { |i| post_minute(token, i, payload(i, frame: stuck.merge(phash: "aaaa"))) }
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 6 }, headers: auth(token), as: :json
+    result = Evidence::Scorer.call(ship: EvidenceShip.find(response.parsed_body["id"]))
+    assert_includes result.flags, "duplicate_frames"
+    assert_equal 0, result.scored_seconds
+  end
+
+  private
+
+  def auth(token) = { "Authorization" => "Bearer #{token}" }
+
+  # The companion site's OAuth token for the student.
+  def site_auth = auth(@site_token ||= create(:oauth_access_token, resource_owner_id: @user.id, scopes: "profile desktop").token)
+
+  def pair_device
+    verifier = SecureRandom.urlsafe_base64(48)
+    challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)
+    post "/api/v1/authenticated/desktop/pairings", params: { code_challenge: challenge, consent: true }, headers: site_auth, as: :json
+    assert_response :created
+    code = response.parsed_body["code"]
+    post "/api/desktop/v1/pair", params: { code:, code_verifier: verifier, name: "Orpheus's Mac", platform: "macos", app_version: "0.1.0" }, as: :json
+    assert_response :created
+    response.parsed_body["token"]
+  end
+
+  def enrol_key(token)
+    post "/api/desktop/v1/key", params: { public_key: Base64.strict_encode64(@key.public_to_der), key_tier: "secure_enclave", hardware_id: "SERIAL-1" }, headers: auth(token), as: :json
+    assert_response :success
+    assert_equal "secure_enclave", response.parsed_body.dig("device", "key_tier")
+  end
+
+  def beacon_for(token)
+    get "/api/desktop/v1/beacon", headers: auth(token)
+    assert_response :success
+    response.parsed_body
+  end
+
+  def payload(i, tree: nil, frame: nil)
+    body = { focus: "project", project: "sync-app", category: "coding", active_s: 45, keys: 80, clicks: 4, moves: 30,
+             injected: 0, rhythm: 0.7, jiggler: 0.05, edits: 3, commits: (i % 7).zero? ? 1 : 0, builds: 1,
+             ai: { prompts: 1, in_tokens: 400, out_tokens: 900, ai_lines: 2, human_lines: 3 } }
+    body[:tree] = { root: tree_root(tree) } if tree
+    body[:frames] = [ { hash: frame[:hash], kind: "timelapse", phash: frame[:phash] }.compact ] if frame
+    body
+  end
+
+  def post_minute(token, i, body)
+    travel_to START + i.minutes
+    beacon = beacon_for(token)
+    device = @user.desktop_devices.sole
+    # The timelapse frame lands on the second the beacon asked for.
+    body[:frames]&.each { |frame| frame[:at_ms] = Time.iso8601(beacon["next_expected_at"]).to_i * 1000 }
+    json = body.to_json
+    hash = Evidence::Crypto.chain_hash(device.head_hash, beacon["value"], json)
+    block = { seq: device.last_seq + 1, minute: beacon["minute"], beacon_minute: beacon["minute"], prev_hash: device.head_hash,
+              captured_at_ms: (Time.current.to_f * 1000).to_i, mono_ms: (i + 1) * 60_000, payload: json, hash: }
+    block[:signature] = sign(hash) if device.public_key.present?
+    post_block(token, block)
+    assert_response :created
+  end
+
+  def post_block(token, block) = post("/api/desktop/v1/blocks", params: { blocks: [ block ] }, headers: auth(token), as: :json)
+
+  def sign(hash_hex) = Base64.strict_encode64(@key.sign("SHA256", [ hash_hex ].pack("H*")))
+
+  def tree_root(files)
+    Evidence::Crypto.merkle_root(files.sort_by { |path, _| path.b }.map { |path, content| Evidence::Crypto.merkle_leaf(@salt, path, content) })
+  end
+
+  # Discloses only app.rb (a shipped file); .env goes as its leaf hash.
+  def snapshot(seq, files)
+    entries = files.sort_by { |path, _| path.b }.map do |path, content|
+      path == "app.rb" ? { path:, content: Base64.strict_encode64(content) } : { leaf: Evidence::Crypto.merkle_leaf(@salt, path, content) }
+    end
+    { seq:, salt: @salt, entries: }
+  end
+
+  def encrypted_frame(text)
+    require "vips"
+    png = Vips::Image.black(64, 32).add(40).cast(:uchar).draw_rect(255, text.sum % 50, 4, 10, 10, fill: true).write_to_buffer(".png")
+    key = SecureRandom.random_bytes(32)
+    ciphertext = Evidence::Crypto.aead_seal(key, png)
+    { hash: Evidence::Crypto.sha256_hex(ciphertext), ciphertext: Base64.strict_encode64(ciphertext), segment_key: Base64.strict_encode64(key) }
+  end
+end

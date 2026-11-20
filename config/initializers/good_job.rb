@@ -23,6 +23,10 @@ Rails.application.configure do
     end
 
   config.good_job.cron = {
+    evidence_retention: {
+      cron: "17 3 * * *",
+      class: "EvidenceRetentionJob"
+    },
     # update_slack_status: {
     #   cron: "*/5 * * * *",
     #   class: "UserSlackStatusUpdateJob"

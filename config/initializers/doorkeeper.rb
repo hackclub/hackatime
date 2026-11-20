@@ -5,7 +5,7 @@ Doorkeeper.configure do
   application_class "OauthApplication"
 
   default_scopes "profile"
-  optional_scopes "read", "admin"
+  optional_scopes "read", "admin", "desktop"
   enforce_configured_scopes
   access_token_methods :from_bearer_authorization
 
