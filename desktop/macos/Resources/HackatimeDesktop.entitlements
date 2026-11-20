@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- App Attest. Only honoured in a Developer ID signed build whose
+       provisioning profile includes the capability. -->
+  <key>com.apple.developer.devicecheck.appattest-environment</key><string>production</string>
+  <key>keychain-access-groups</key><array><string>$(TEAM_ID).com.hackclub.hackatime.desktop</string></array>
+</dict>
+</plist>

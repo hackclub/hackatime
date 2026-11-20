@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "hackatime-ai-hook claude-code" }] }],
+    "PostToolUse": [{ "matcher": "Edit|Write|MultiEdit", "hooks": [{ "type": "command", "command": "hackatime-ai-hook claude-code" }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "hackatime-ai-hook claude-code" }] }]
+  }
+}

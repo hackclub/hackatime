@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key><string>Hackatime Desktop</string>
+  <key>CFBundleDisplayName</key><string>Hackatime Desktop</string>
+  <key>CFBundleIdentifier</key><string>com.hackclub.hackatime.desktop</string>
+  <key>CFBundleExecutable</key><string>HackatimeDesktop</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <key>CFBundleVersion</key><string>1</string>
+  <key>LSMinimumSystemVersion</key><string>14.0</string>
+  <key>LSUIElement</key><true/>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key><string>Hackatime Desktop pairing</string>
+      <key>CFBundleURLSchemes</key><array><string>hackatime-desktop</string></array>
+    </dict>
+  </array>
+  <key>NSAppleEventsUsageDescription</key><string>Hackatime reads the focused browser tab's address on this Mac to tell docs from distractions. It never leaves your computer.</string>
+</dict>
+</plist>

@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+"""Forwards AI tool events to Hackatime Desktop as metadata only.
+
+Appends one JSON line to Hackatime Desktop's inbox. Never copies prompt or
+response text: only the tool, event kind, session, working directory,
+timestamp, token counts and line counts.
+
+Usage:
+  Claude Code (~/.claude/settings.json hooks): hackatime-ai-hook claude-code
+      reads the hook JSON on stdin (UserPromptSubmit, Stop, PostToolUse).
+  Codex (~/.codex/config.toml): notify = ["hackatime-ai-hook", "codex"]
+      receives the notification JSON as the last argument.
+  Cursor (.cursor/hooks.json): hackatime-ai-hook cursor
+  Amp: the plugin in desktop/hooks/amp-plugin.ts calls this with "amp".
+"""
+import json, os, sys, time, pathlib
+
+INBOX = pathlib.Path.home() / "Library/Application Support/Hackatime Desktop/ai-events.jsonl"
+if sys.platform.startswith("linux"):
+    INBOX = pathlib.Path(os.environ.get("XDG_DATA_HOME", pathlib.Path.home() / ".local/share")) / "hackatime-desktop/ai-events.jsonl"
+elif sys.platform == "win32":
+    INBOX = pathlib.Path(os.environ["APPDATA"]) / "Hackatime Desktop/ai-events.jsonl"
+
+EVENTS = {
+    "UserPromptSubmit": "prompt", "beforeSubmitPrompt": "prompt", "user-prompt": "prompt",
+    "Stop": "turn_end", "SubagentStop": "turn_end", "stop": "turn_end", "agent-turn-complete": "turn_end",
+    "PostToolUse": "tool_use", "afterFileEdit": "tool_use",
+}
+
+def count_lines(tool_input):
+    """AI-written lines from an edit tool's input, without keeping the text."""
+    if not isinstance(tool_input, dict):
+        return 0
+    new = tool_input.get("new_string") or tool_input.get("content") or ""
+    old = tool_input.get("old_string") or ""
+    edits = tool_input.get("edits") or []
+    lines = lambda text: text.count("\n") + 1 if text else 0
+    total = max(lines(new) - lines(old), 0) if new else 0
+    for edit in edits if isinstance(edits, list) else []:
+        total += max(lines(edit.get("new_string") or "") - lines(edit.get("old_string") or ""), 0)
+    return total
+
+def main():
+    tool = sys.argv[1] if len(sys.argv) > 1 else "unknown"
+    raw = sys.argv[-1] if tool == "codex" and len(sys.argv) > 2 else sys.stdin.read()
+    try:
+        data = json.loads(raw or "{}")
+    except json.JSONDecodeError:
+        return
+    kind = EVENTS.get(data.get("hook_event_name") or data.get("type") or data.get("event") or "", None)
+    if kind is None:
+        return
+    usage = data.get("usage") or {}
+    event = {
+        "tool": tool, "event": kind, "at": time.time(),
+        "session": str(data.get("session_id") or data.get("thread-id") or data.get("conversation_id") or "")[:80] or None,
+        "cwd": data.get("cwd") or os.getcwd(),
+        "in_tokens": usage.get("input_tokens"), "out_tokens": usage.get("output_tokens"),
+        "ai_lines": count_lines(data.get("tool_input")) or None,
+    }
+    INBOX.parent.mkdir(parents=True, exist_ok=True)
+    with open(INBOX, "a", encoding="utf-8") as inbox:
+        inbox.write(json.dumps({k: v for k, v in event.items() if v is not None}) + "\n")
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        pass  # A hook must never break the AI tool.
