@@ -37,8 +37,13 @@ class ImportsExportsSettingsTest < ApplicationSystemTestCase
     assert_text "Imports"
     assert_text "WakaTime"
     assert_text "Hackatime v1"
-    assert_field "remote_import_api_key"
-    assert_text "Start remote import"
+    assert_link "Connect WakaTime and import", href: wakatime_authorize_my_heartbeat_imports_path
+    assert_no_field "remote_import_api_key"
+
+    choose "Hackatime v1"
+    assert_button "Start remote import", disabled: true
+    fill_in "remote_import_api_key", with: "legacy-api-key"
+    assert_button "Start remote import", disabled: false
   end
 
   test "imports & exports page shows remote import cooldown notice" do

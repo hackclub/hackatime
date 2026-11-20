@@ -1,5 +1,4 @@
 require "test_helper"
-require "webmock/minitest"
 
 class HeartbeatImportRunnerTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
@@ -132,20 +131,18 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
       encrypted_api_key: "secret"
     )
 
-    revoke = stub_request(:post, "https://wakatime.com/oauth/revoke")
-      .with(body: { client_id: "test-client", client_secret: "test-secret", token: "secret" })
-    with_wakatime_app do
-      HeartbeatImportRunner.fail_run_for_error!(
-        import_run_id: run.id,
-        error: HeartbeatImportDumpClient::AuthenticationError.new("Authentication failed (401)", status: 401)
-      )
-    end
+    HeartbeatImportRunner.fail_run_for_error!(
+      import_run_id: run.id,
+      error: HeartbeatImportDumpClient::AuthenticationError.new("Authentication failed (401)", status: 401)
+    )
 
     run.reload
     assert_equal "failed", run.state
     assert_equal "WakaTime rejected the connection. Connect WakaTime again to retry.", run.error_message
     assert_nil run.encrypted_api_key
-    assert_requested revoke
+    revocation = enqueued_jobs.find { _1["job_class"] == "WakatimeTokenRevocationJob" }
+    assert_not_includes revocation["arguments"].to_json, "secret"
+    assert_equal "secret", ActiveRecord::Encryption.encryptor.decrypt(revocation["arguments"].first)
     assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob
   end
 
@@ -218,17 +215,5 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
 
       assert_not HeartbeatImportRunner.refreshable_remote_run?(run)
     end
-  end
-
-  private
-
-  def with_wakatime_app
-    original = ENV.to_h.slice("WAKATIME_CLIENT_ID", "WAKATIME_CLIENT_SECRET")
-    ENV.update("WAKATIME_CLIENT_ID" => "test-client", "WAKATIME_CLIENT_SECRET" => "test-secret")
-    yield
-  ensure
-    ENV.delete("WAKATIME_CLIENT_ID")
-    ENV.delete("WAKATIME_CLIENT_SECRET")
-    ENV.update(original)
   end
 end

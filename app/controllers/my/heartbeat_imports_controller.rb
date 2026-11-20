@@ -68,11 +68,11 @@ class My::HeartbeatImportsController < ApplicationController
     HeartbeatImportRunner.start_remote_import(user: current_user, provider: "wakatime_dump", api_key: token)
     redirect_to my_settings_imports_exports_path
   rescue HeartbeatImportRunner::CooldownError => e
-    revoke_unused_wakatime_token(token)
+    WakatimeTokenRevocationJob.revoke_later(token)
     flash[:cooldown_until] = e.retry_at.iso8601
     redirect_with_import_error(e.message)
   rescue HeartbeatImportRunner::ActiveImportError => e
-    revoke_unused_wakatime_token(token)
+    WakatimeTokenRevocationJob.revoke_later(token)
     redirect_with_import_error(e.message)
   rescue HeartbeatImportDumpClient::ResponseError => e
     report_error(e, message: "WakaTime OAuth token exchange failed for user #{current_user.id}")
@@ -117,12 +117,6 @@ class My::HeartbeatImportsController < ApplicationController
     HeartbeatImportRunner.start_remote_import(user: current_user,
                                               provider: heartbeat_import[:provider],
                                               api_key: heartbeat_import[:api_key])
-  end
-
-  def revoke_unused_wakatime_token(token)
-    HeartbeatImportDumpClient.revoke_wakatime_token(token) if token.present?
-  rescue HeartbeatImportDumpClient::ResponseError, HTTP::Error => e
-    report_error(e, message: "Failed to revoke unused WakaTime token for user #{current_user.id}")
   end
 
   def ensure_development

@@ -250,6 +250,9 @@ class HeartbeatIngest
     normalized[:fields_hash] = import_fields_hash(model_attributes, source: hb)
     normalized[:compatible_fields_hashes] = [
       legacy_import_fields_hash(hb, user_agent_info:, resolved_user_agent:, normalized_time: normalized[:time]),
+      # Rows imported before user agents were read from every page kept the raw id.
+      legacy_import_fields_hash(hb, user_agent_info: {}, resolved_user_agent: hb[:user_agent].presence || hb[:user_agent_id].presence,
+                                    normalized_time: normalized[:time]),
       *unresolved_import_fields_hashes(hb, user_agent_info:, machine_name:, placeholders:)
     ].uniq - [ normalized[:fields_hash] ]
     update_placeholder_state!(normalized, placeholder_state)

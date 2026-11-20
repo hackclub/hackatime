@@ -98,6 +98,31 @@ class HeartbeatImportServiceTest < ActiveSupport::TestCase
       [ heartbeat.machine, heartbeat.user_agent, heartbeat.editor, heartbeat.operating_system ]
   end
 
+  test "does not duplicate pre-normalization rows whose user agent id now resolves" do
+    user = create(:user)
+    exported = { entity: "/code/app.rb", type: "file", time: 1_727_905_177.5, category: "", project: "app",
+                 language: "", machine_name_id: "machine-1", user_agent_id: "ua-on-page-2", is_write: true }
+    # The pre-#1478 import hash for this row: category kept as "", language filled from the extension
+    # and the user agent left as its raw id because it was on a page that was not read.
+    legacy_attrs = {
+      user_id: user.id, time: exported[:time], entity: exported[:entity], type: "file", category: "",
+      project: "app", language: "Ruby", editor: nil, operating_system: nil, machine: "machine-1", branch: nil,
+      user_agent: "ua-on-page-2", is_write: true, line_additions: nil, line_deletions: nil, lineno: nil,
+      lines: nil, cursorpos: nil, dependencies: [], project_root_count: nil
+    }
+    user.heartbeats.create!(legacy_attrs.merge(source_type: :wakapi_import, fields_hash: Heartbeat.generate_fields_hash(legacy_attrs)))
+
+    result = HeartbeatImportService.import_from_file(
+      { days: [ { date: "2024-10-02", heartbeats: [ exported ] } ] }.to_json, user,
+      user_agents_by_id: { "ua-on-page-2" => { "value" => "wakatime/v1.102.1 (darwin-arm64) go1.22.0 vscode/1.95.0", "editor" => "VS Code", "os" => "Mac" } },
+      machine_names_by_id: { "machine-1" => "mahads-macbook" }
+    )
+
+    assert result[:success]
+    assert_equal 0, result[:imported_count]
+    assert_equal 1, user.heartbeats.count
+  end
+
   test "normalizes and validates each imported heartbeat once" do
     user = create(:user)
     validation_count = 0

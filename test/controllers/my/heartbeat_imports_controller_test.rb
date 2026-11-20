@@ -1,6 +1,8 @@
 require "test_helper"
 require "webmock/minitest"
 
+WebMock.disable_net_connect!(allow_localhost: true)
+
 class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
 

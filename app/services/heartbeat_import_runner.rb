@@ -276,10 +276,8 @@ class HeartbeatImportRunner < ApplicationService
 
   def self.clear_sensitive_fields!(run)
     token = run.encrypted_api_key
+    WakatimeTokenRevocationJob.revoke_later(token) if run.wakatime_dump?
     run.clear_sensitive_fields!
-    HeartbeatImportDumpClient.revoke_wakatime_token(token) if run.wakatime_dump? && token.present?
-  rescue HeartbeatImportDumpClient::ResponseError, HTTP::Error => e
-    report_error(e, message: "Failed to revoke WakaTime token for heartbeat import run #{run.id}")
   end
 
   def self.fail_run_for_error!(import_run_id:, error:, notify: true)

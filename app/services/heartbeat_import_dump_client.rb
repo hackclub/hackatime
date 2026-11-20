@@ -90,7 +90,11 @@ class HeartbeatImportDumpClient
     response = HTTP.timeout(TIMEOUTS).post("#{WAKATIME_OAUTH_URL}/revoke", form: {
       client_id: ENV["WAKATIME_CLIENT_ID"], client_secret: ENV["WAKATIME_CLIENT_SECRET"], token:
     })
-    raise RequestError.new("WakaTime token revocation failed (#{response.status.to_i})", status: response.status.to_i) unless response.status.success?
+    status = response.status.to_i
+    raise TransientError.new("WakaTime token revocation failed (#{status})", status:) if status == 408 || status == 429 || status >= 500
+    raise RequestError.new("WakaTime token revocation failed (#{status})", status:) unless response.status.success?
+  rescue HTTP::TimeoutError, HTTP::ConnectionError => e
+    raise TransientError, e.message
   end
 
   def self.valid_wakatime_download_url?(download_url)
