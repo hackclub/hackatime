@@ -20,12 +20,13 @@ class HeartbeatIngest
   def self.call(...) = new(...).call
   def self.schedule_rollup_refresh(user:) = DashboardRollupRefreshJob.schedule_for(user.id)
 
-  def initialize(user:, mode:, heartbeats:, request_context: {}, user_agents_by_id: {}, schedule_rollup_refresh: true)
+  def initialize(user:, mode:, heartbeats:, request_context: {}, user_agents_by_id: {}, machine_names_by_id: {}, schedule_rollup_refresh: true)
     @user = user
     @mode = mode
     @heartbeats = heartbeats
     @request_context = request_context.with_indifferent_access
     @user_agents_by_id = user_agents_by_id
+    @machine_names_by_id = machine_names_by_id
     @schedule_rollup_refresh = schedule_rollup_refresh
   end
 
@@ -237,6 +238,37 @@ class HeartbeatIngest
   def normalize_imported_heartbeat(heartbeat, placeholder_state: { contexts: {}, last_project: nil })
     hb = heartbeat.respond_to?(:with_indifferent_access) ? heartbeat.with_indifferent_access : heartbeat.to_h.with_indifferent_access
     user_agent_info = (@user_agents_by_id[hb[:user_agent_id].to_s] || {}).with_indifferent_access
+    machine_name = @machine_names_by_id[hb[:machine_name_id].to_s].presence
+    resolved_user_agent = hb[:user_agent].presence || user_agent_info[:value].presence || hb[:user_agent_id].presence
+
+    placeholders = { project: sanitize_project(hb[:project]), language: hb[:language], branch: hb[:branch] }
+    resolve_placeholders!(placeholders, placeholder_state)
+    model_attributes = validated_model_attributes(imported_attributes(hb, user_agent_info:, machine_name:, placeholders:))
+    normalized = model_attributes
+      .except("id", "fields_hash", "created_at", "updated_at")
+      .symbolize_keys
+    normalized[:fields_hash] = import_fields_hash(model_attributes, source: hb)
+    normalized[:compatible_fields_hashes] = [
+      legacy_import_fields_hash(hb, user_agent_info:, resolved_user_agent:, normalized_time: normalized[:time]),
+      *unresolved_import_fields_hashes(hb, user_agent_info:, machine_name:, placeholders:, normalized_time: normalized[:time])
+    ].uniq - [ normalized[:fields_hash] ]
+    update_placeholder_state!(normalized, placeholder_state)
+    normalized
+  end
+
+  # Older imports stored raw WakaTime ids for user agents past the first page
+  # and for every machine, so match those hashes too when re-importing.
+  def unresolved_import_fields_hashes(hb, user_agent_info:, machine_name:, placeholders:, normalized_time:)
+    return [] if user_agent_info.blank? && machine_name.blank?
+
+    hashes = [ user_agent_info, {} ].uniq.map do |info|
+      attrs = Heartbeat.new(imported_attributes(hb, user_agent_info: info.with_indifferent_access, machine_name: nil, placeholders:)).attributes
+      import_fields_hash(attrs, source: hb)
+    end
+    hashes << legacy_import_fields_hash(hb, user_agent_info: {}, resolved_user_agent: hb[:user_agent].presence || hb[:user_agent_id].presence, normalized_time:)
+  end
+
+  def imported_attributes(hb, user_agent_info:, machine_name:, placeholders:)
     resolved_user_agent = hb[:user_agent].presence || user_agent_info[:value].presence || hb[:user_agent_id].presence
     parsed_user_agent = parse_user_agent(resolved_user_agent, category: hb[:category])
     derived_ai_editor = parsed_user_agent[:editor].presence if parsed_user_agent[:ai_model].present?
@@ -255,12 +287,12 @@ class HeartbeatIngest
       entity: hb[:entity],
       type: hb[:type],
       category: hb[:category].presence,
-      project: sanitize_project(hb[:project]),
-      language: hb[:language],
+      project: placeholders[:project],
+      language: placeholders[:language],
       editor: derived_ai_editor || hb[:editor].presence || user_agent_info[:editor].presence || parsed_user_agent[:editor].presence,
       operating_system: hb[:operating_system].presence || user_agent_info[:os].presence || parsed_user_agent[:os].presence,
-      machine: hb[:machine].presence || hb[:machine_name_id].presence,
-      branch: hb[:branch],
+      machine: hb[:machine].presence || machine_name || hb[:machine_name_id].presence,
+      branch: placeholders[:branch],
       user_agent: resolved_user_agent,
       is_write: hb[:is_write] || false,
       line_additions: hb[:line_additions],
@@ -272,40 +304,27 @@ class HeartbeatIngest
       project_root_count: hb[:project_root_count],
       source_type: Heartbeat.source_types.fetch("wakapi_import")
     }
-    resolve_placeholders!(attrs, placeholder_state)
     attrs[:language] = LanguageUtils.fill_missing_language(attrs[:language], entity: attrs[:entity], editor: attrs[:editor], type: attrs[:type])
     attrs[:category] = default_category(attrs[:category], type: attrs[:type])
-    model_attributes = validated_model_attributes(attrs)
-    normalized = model_attributes
-      .except("id", "fields_hash", "created_at", "updated_at")
-      .symbolize_keys
-    normalized[:fields_hash] = import_fields_hash(model_attributes, source: hb)
-    normalized[:legacy_fields_hash] = legacy_import_fields_hash(
-      hb,
-      user_agent_info:,
-      resolved_user_agent:,
-      normalized_time: normalized[:time]
-    )
-    update_placeholder_state!(normalized, placeholder_state)
-    normalized
+    attrs
   end
 
   def flush_import_batch(seen_hashes)
     return 0 if seen_hashes.empty?
 
     records = seen_hashes.values
-    compatible_hashes = records.flat_map { |record| [ record[:fields_hash], record[:legacy_fields_hash] ] }.compact.uniq
+    compatible_hashes = records.flat_map { |record| [ record[:fields_hash], *record[:compatible_fields_hashes] ] }.uniq
     existing_hashes = compatible_hashes.each_slice(10_000).flat_map do |hashes|
       heartbeats_for_dedup.where(fields_hash: hashes).pluck(:fields_hash)
     end.to_set
     records = records.reject do |record|
-      existing_hashes.include?(record[:fields_hash]) || existing_hashes.include?(record[:legacy_fields_hash])
+      existing_hashes.include?(record[:fields_hash]) || record[:compatible_fields_hashes].any? { existing_hashes.include?(_1) }
     end
     return 0 if records.empty?
 
     timestamp = Time.current
     insert_records = records.map do |record|
-      record.except(:legacy_fields_hash).merge(created_at: timestamp, updated_at: timestamp)
+      record.except(:compatible_fields_hashes).merge(created_at: timestamp, updated_at: timestamp)
     end
     ActiveRecord::Base.logger.silence { Heartbeat.insert_all(insert_records, unique_by: :fields_hash).length }
   end

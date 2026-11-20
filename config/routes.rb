@@ -213,6 +213,8 @@ Rails.application.routes.draw do
   namespace :my, defaults: { export: true } do
     resources :heartbeat_imports, only: [ :create, :show ] do
       get :wakatime_download_link, on: :collection
+      get :wakatime_authorize, on: :collection
+      get :wakatime_callback, on: :collection
     end
 
     resources :project_repo_mappings, param: :project_name, only: [ :update ], constraints: { project_name: /.+/ } do

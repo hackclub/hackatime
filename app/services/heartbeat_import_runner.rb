@@ -48,12 +48,11 @@ class HeartbeatImportRunner < ApplicationService
   end
 
   def self.start_remote_import(user:, provider:, api_key:)
+    source_kind = PROVIDER_ALIASES.fetch(provider.to_s) { raise InvalidProviderError, "Unsupported import provider." }
     ensure_no_active_import!(user)
     ensure_remote_cooldown!(user)
 
-    run = create_run!(user, source_kind: PROVIDER_ALIASES.fetch(provider.to_s) {
-      raise InvalidProviderError, "Unsupported import provider."
-    }, encrypted_api_key: api_key.to_s)
+    run = create_run!(user, source_kind:, encrypted_api_key: api_key.to_s.strip)
 
     HeartbeatImportDumpJob.perform_later(run.id)
     run
@@ -181,6 +180,8 @@ class HeartbeatImportRunner < ApplicationService
         HeartbeatImportService.import_from_file(
           io, user,
           user_agents_by_id: import_context.fetch("user_agents_by_id", {}),
+          machine_names_by_id: import_context.fetch("machine_names_by_id", {}),
+          extra_heartbeats: import_context.fetch("recent_heartbeats", []),
           progress_interval: PROGRESS_INTERVAL,
           on_progress: lambda { |processed_count|
             run.update_columns(
@@ -220,7 +221,7 @@ class HeartbeatImportRunner < ApplicationService
     {}
   end
 
-  def self.queue_remote_download(run:, download_url:, remote_dump_status: nil, remote_percent_complete: nil)
+  def self.queue_remote_download(run:, download_url:, remote_dump_status: nil, remote_percent_complete: nil, exported_at: nil)
     run.update!(
       state: :downloading_dump,
       remote_dump_status: remote_dump_status || run.remote_dump_status,
@@ -229,7 +230,7 @@ class HeartbeatImportRunner < ApplicationService
       error_message: nil
     )
 
-    HeartbeatImportRemoteDownloadJob.perform_later(run.id, download_url)
+    HeartbeatImportRemoteDownloadJob.perform_later(run.id, download_url, exported_at)
   end
 
   def self.complete_run!(run, result:)
@@ -248,7 +249,7 @@ class HeartbeatImportRunner < ApplicationService
       finished_at: Time.current
     )
 
-    run.clear_sensitive_fields!
+    clear_sensitive_fields!(run)
     run.user.sailors_log&.synchronize_projects_summary! if result[:imported_count].positive?
     send_completion_email(run)
   end
@@ -270,6 +271,12 @@ class HeartbeatImportRunner < ApplicationService
     )
 
     send_failure_email(run) if notify
+    clear_sensitive_fields!(run)
+  end
+
+  def self.clear_sensitive_fields!(run)
+    token = run.encrypted_api_key
+    WakatimeTokenRevocationJob.revoke_later(token) if run.wakatime_dump?
     run.clear_sensitive_fields!
   end
 
@@ -284,7 +291,13 @@ class HeartbeatImportRunner < ApplicationService
   def self.failure_message_for(run:, error:)
     case error
     when HeartbeatImportDumpClient::AuthenticationError
-      "#{import_source_name(run)} rejected the import because the API key is invalid."
+      if run.hackatime_v1_dump?
+        "Hackatime v1 rejected the import because the API key is invalid."
+      elsif run.wakatime_download_link?
+        "WakaTime rejected the download link. It may have expired, so copy a fresh link from https://wakatime.com/settings/account."
+      else
+        "WakaTime rejected the connection. Connect WakaTime again to retry."
+      end
     when HeartbeatImportDumpClient::TransientError
       if error.status.to_i >= 500
         msg = "#{import_source_name(run)} ran into an error while processing the import."

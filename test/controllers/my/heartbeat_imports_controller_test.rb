@@ -1,4 +1,7 @@
 require "test_helper"
+require "webmock/minitest"
+
+WebMock.disable_net_connect!(allow_localhost: true)
 
 class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   include ActiveJob::TestHelper
@@ -83,7 +86,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
       remote_requested_at: 1.minute.ago
     )
 
-    post my_heartbeat_imports_path, params: remote_params(provider: "wakatime_dump")
+    post my_heartbeat_imports_path, params: remote_params(provider: "hackatime_v1_dump")
 
     assert_redirected_with_import_error("Remote imports are limited to once every 8 minutes.")
     assert flash[:cooldown_until].present?
@@ -103,7 +106,7 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference -> { user.heartbeat_import_runs.count }, +1 do
       assert_enqueued_with(job: HeartbeatImportDumpJob) do
-        post my_heartbeat_imports_path, params: remote_params(provider: "wakatime_dump")
+        post my_heartbeat_imports_path, params: remote_params(provider: "hackatime_v1_dump")
       end
     end
 
@@ -122,26 +125,68 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
       source_filename: "old.json"
     )
 
-    post my_heartbeat_imports_path, params: remote_params(provider: "wakatime_dump")
+    post my_heartbeat_imports_path, params: remote_params(provider: "hackatime_v1_dump")
 
     assert_redirected_with_import_error("Another import is already in progress.")
   end
 
-  test "remote create starts wakatime import" do
+  test "remote create rejects pasted wakatime tokens" do
     user = create(:user)
     sign_in_as(user)
 
-    assert_difference -> { user.heartbeat_import_runs.count }, +1 do
-      assert_enqueued_with(job: HeartbeatImportDumpJob) do
-        post my_heartbeat_imports_path, params: remote_params(provider: "wakatime_dump")
-      end
+    assert_no_difference -> { user.heartbeat_import_runs.count } do
+      post my_heartbeat_imports_path, params: remote_params(provider: "wakatime_dump")
     end
 
-    run = user.heartbeat_import_runs.order(:created_at).last
+    assert_redirected_with_import_error("Use Connect WakaTime to import from WakaTime.")
+  end
 
+  test "wakatime authorize redirects to wakatime with the import scopes and a state" do
+    sign_in_as(create(:user))
+
+    with_wakatime_app { get wakatime_authorize_my_heartbeat_imports_path }
+
+    uri = URI.parse(response.location)
+    query = Rack::Utils.parse_query(uri.query)
+    assert_equal "https://wakatime.com/oauth/authorize", "#{uri.scheme}://#{uri.host}#{uri.path}"
+    assert_equal "test-client", query["client_id"]
+    assert_equal "code", query["response_type"]
+    assert_equal wakatime_callback_my_heartbeat_imports_url, query["redirect_uri"]
+    assert_equal "read_heartbeats,read_stats.editors,read_stats.machines", query["scope"]
+    assert_equal session[:wakatime_import_oauth_state], query["state"]
+  end
+
+  test "wakatime callback exchanges the code and starts a wakatime import with the token" do
+    user = create(:user)
+    sign_in_as(user)
+    with_wakatime_app { get wakatime_authorize_my_heartbeat_imports_path }
+    state = session[:wakatime_import_oauth_state]
+
+    token_request = stub_request(:post, "https://wakatime.com/oauth/token")
+      .with(body: { client_id: "test-client", client_secret: "test-secret", code: "auth-code",
+                    grant_type: "authorization_code", redirect_uri: wakatime_callback_my_heartbeat_imports_url })
+      .to_return(status: 200, body: { access_token: "waka_tok_imported", refresh_token: "waka_ref_x" }.to_json)
+
+    assert_enqueued_with(job: HeartbeatImportDumpJob) do
+      with_wakatime_app { get wakatime_callback_my_heartbeat_imports_path, params: { code: "auth-code", state: } }
+    end
+
+    assert_requested token_request
     assert_redirected_to my_settings_imports_exports_url
-    assert_equal "wakatime_dump", run.source_kind
-    assert_equal "queued", run.state
+    run = user.heartbeat_import_runs.sole
+    assert_equal [ "wakatime_dump", "queued", "waka_tok_imported" ], [ run.source_kind, run.state, run.encrypted_api_key ]
+  end
+
+  test "wakatime callback rejects a mismatched state without exchanging the code" do
+    user = create(:user)
+    sign_in_as(user)
+    with_wakatime_app { get wakatime_authorize_my_heartbeat_imports_path }
+
+    with_wakatime_app { get wakatime_callback_my_heartbeat_imports_path, params: { code: "auth-code", state: "forged" } }
+
+    assert_redirected_with_import_error("This WakaTime connection attempt is no longer valid. Please connect WakaTime again.")
+    assert_not_requested :post, "https://wakatime.com/oauth/token"
+    assert_empty user.heartbeat_import_runs
   end
 
   test "remote create starts hackatime v1 import" do
@@ -318,6 +363,16 @@ class My::HeartbeatImportsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def with_wakatime_app
+    original = ENV.to_h.slice("WAKATIME_CLIENT_ID", "WAKATIME_CLIENT_SECRET")
+    ENV.update("WAKATIME_CLIENT_ID" => "test-client", "WAKATIME_CLIENT_SECRET" => "test-secret")
+    yield
+  ensure
+    ENV.delete("WAKATIME_CLIENT_ID")
+    ENV.delete("WAKATIME_CLIENT_SECRET")
+    ENV.update(original)
+  end
 
   def with_development_env
     rails_singleton = class << Rails; self; end

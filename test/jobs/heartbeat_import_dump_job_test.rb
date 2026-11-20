@@ -63,7 +63,7 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
       [ payload ]
     end
     with_dump_client(fake_client) do
-      assert_enqueued_with(job: HeartbeatImportRemoteDownloadJob, args: [ run.id, "https://example.invalid/download.json" ]) do
+      assert_enqueued_with(job: HeartbeatImportRemoteDownloadJob, args: [ run.id, "https://example.invalid/download.json", nil ]) do
         HeartbeatImportDumpJob.perform_now(run.id)
       end
     end
@@ -172,7 +172,7 @@ class HeartbeatImportDumpJobTest < ActiveJob::TestCase
 
     run.reload
     assert_equal "failed", run.state
-    assert_equal "Import failed: WakaTime rejected the import because the API key is invalid.", run.message
+    assert_equal "Import failed: WakaTime rejected the connection. Connect WakaTime again to retry.", run.message
     assert_nil run.encrypted_api_key
     assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob
   end

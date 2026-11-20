@@ -58,7 +58,8 @@ class HeartbeatImportDumpJob < ApplicationJob
     elsif !dump[:is_processing] && dump[:download_url].present?
       HeartbeatImportRunner.queue_remote_download(
         run:, download_url: dump[:download_url], remote_dump_status: dump[:status],
-        remote_percent_complete: dump[:percent_complete].positive? ? dump[:percent_complete] : 100.0
+        remote_percent_complete: dump[:percent_complete].positive? ? dump[:percent_complete] : 100.0,
+        exported_at: dump[:created_at]
       )
     else
       run.update!(state: :waiting_for_dump, remote_dump_status: dump[:status],

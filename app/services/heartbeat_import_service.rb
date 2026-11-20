@@ -1,7 +1,7 @@
 class HeartbeatImportService
   BATCH_SIZE = 50_000
 
-  def self.import_from_file(file_content, user, on_progress: nil, progress_interval: 250, user_agents_by_id: {})
+  def self.import_from_file(file_content, user, on_progress: nil, progress_interval: 250, user_agents_by_id: {}, machine_names_by_id: {}, extra_heartbeats: [])
     imported_count = 0
     total_count = 0
     errors = []
@@ -11,13 +11,13 @@ class HeartbeatImportService
     flush = lambda do
       next if heartbeat_batch.empty?
       result = HeartbeatIngest.call(user:, mode: :import, heartbeats: heartbeat_batch,
-                                    user_agents_by_id:, schedule_rollup_refresh: false)
+                                    user_agents_by_id:, machine_names_by_id:, schedule_rollup_refresh: false)
       imported_count += result.persisted_count
       errors.concat(result.errors)
       heartbeat_batch.clear
     end
 
-    handler = HeartbeatSaxHandler.new do |hb|
+    add_heartbeat = lambda do |hb|
       total_count += 1
       on_progress&.call(total_count) if progress_interval.positive? && (total_count % progress_interval).zero?
 
@@ -25,7 +25,8 @@ class HeartbeatImportService
       flush.call if heartbeat_batch.size >= BATCH_SIZE
     end
 
-    Oj.saj_parse(handler, file_content)
+    Oj.saj_parse(HeartbeatSaxHandler.new(&add_heartbeat), file_content)
+    extra_heartbeats.each(&add_heartbeat)
     on_progress&.call(total_count)
 
     raise StandardError, "Expected a heartbeat export JSON file." if total_count.zero?

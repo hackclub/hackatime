@@ -123,7 +123,7 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
     assert_empty ActionMailer::Base.deliveries
   end
 
-  test "fail_run_for_error! emails the user about invalid api keys" do
+  test "fail_run_for_error! emails the user about rejected tokens and revokes the token" do
     user = create(:user, :with_email, email: "invalid-key-#{SecureRandom.hex(4)}@example.com")
     run = create(:heartbeat_import_run, user: user,
       source_kind: :wakatime_dump,
@@ -138,8 +138,11 @@ class HeartbeatImportRunnerTest < ActiveSupport::TestCase
 
     run.reload
     assert_equal "failed", run.state
-    assert_equal "WakaTime rejected the import because the API key is invalid.", run.error_message
+    assert_equal "WakaTime rejected the connection. Connect WakaTime again to retry.", run.error_message
     assert_nil run.encrypted_api_key
+    revocation = enqueued_jobs.find { _1["job_class"] == "WakatimeTokenRevocationJob" }
+    assert_not_includes revocation["arguments"].to_json, "secret"
+    assert_equal "secret", ActiveRecord::Encryption.encryptor.decrypt(revocation["arguments"].first)
     assert_enqueued_jobs 1, only: ActionMailer::MailDeliveryJob
   end
 
