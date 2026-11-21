@@ -79,8 +79,10 @@ final class Agent: ObservableObject {
         return (recent ?? (settings.projects.count == 1 ? settings.projects[0] : nil)).map { URL(fileURLWithPath: $0).lastPathComponent }
     }
 
+    func loadKey() { key = try? DeviceKey.loadOrCreate(store: store) }
+
     func start() {
-        key = try? DeviceKey.loadOrCreate(store: store)
+        loadKey()
         inputRunning = input.start()
         watchProjects()
         timers.append(Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in Task { @MainActor in self?.sampleFocus() } })
@@ -117,7 +119,8 @@ final class Agent: ObservableObject {
             store.write("device-token", Data(token.utf8))
             api.token = token
             settings.deviceUID = device["uid"] as? String
-            chain.resync(seq: 0, head: EvidenceProtocol.zeroHash)
+            settings.keyEnrolled = false
+            startNewChain()
             pendingVerifier = nil
             await enrolKey()
             status = "Tracking"
@@ -143,10 +146,30 @@ final class Agent: ObservableObject {
         }
     }
 
-    func unpair() async {
-        try? await api.unpair()
+    /// A new pairing starts the server's chain again at seq 0, so snapshots
+    /// kept by the old chain's seq would be matched to the wrong minutes.
+    func startNewChain() {
+        chain.resync(seq: 0, head: EvidenceProtocol.zeroHash)
+        persistChain()
+        snapshots = [:]
+        lastSnapshotMinute = 0
+        persistSnapshots()
+    }
+
+    /// Returns why unpairing failed, or nil once this Mac is unpaired. The
+    /// token is kept when the server could not be told, so the device is
+    /// not left active on the site with no way to remove it from here.
+    func unpair() async -> String? {
+        do {
+            try await api.unpair()
+        } catch let failure as APIClient.Failure where failure.status == 401 || failure.status == 404 {
+            // Already gone on the server.
+        } catch {
+            return "\(error)"
+        }
         forgetPairing()
         status = "Not signed in"
+        return nil
     }
 
     /// Called when the pairing ends without the app asking, such as when the
@@ -227,6 +250,7 @@ final class Agent: ObservableObject {
         }
         guard let beacon = fresh ?? lastBeacon else { status = "Offline, waiting for the server"; return }
         if beacon != lastBeacon { lastBeacon = beacon }
+        if !settings.keyEnrolled { await enrolKey() }
 
         scheduleTimelapse(beacon)
 

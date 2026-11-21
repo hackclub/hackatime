@@ -88,6 +88,49 @@ final class AgentTests: XCTestCase {
         XCTAssertEqual(agent.activeProject, "blog")
     }
 
+    func testKeyEnrolmentIsRetriedUntilItSucceeds() async {
+        var settings = Settings(baseURL: "https://hackatime.test")
+        settings.deviceUID = "dev_1"
+        try? JSONEncoder().encode(settings).write(to: support.appendingPathComponent("settings.json"))
+        var keyStatus = 503
+        StubServer.handler = { request in
+            switch request.url!.path {
+            case let path where path.hasSuffix("/beacon"): return (200, StubServer.beacon())
+            case let path where path.hasSuffix("/key"): return (keyStatus, [:])
+            default: return (201, ["accepted": 1, "head_seq": 1, "head_hash": EvidenceProtocol.zeroHash])
+            }
+        }
+        let agent = makeAgent()
+        agent.loadKey()
+        await agent.tick()
+        XCTAssertFalse(agent.settings.keyEnrolled)
+        keyStatus = 200
+        await agent.tick()
+        XCTAssertTrue(agent.settings.keyEnrolled, "the next minute retries the enrolment")
+    }
+
+    func testFailedUnpairKeepsTheToken() async {
+        StubServer.handler = { _ in (503, [:]) }
+        let agent = makeAgent()
+        let failure = await agent.unpair()
+        XCTAssertNotNil(failure)
+        XCTAssertTrue(agent.isPaired, "the device is still active on the server")
+        StubServer.handler = { _ in (204, [:]) }
+        let none = await agent.unpair()
+        XCTAssertNil(none)
+        XCTAssertFalse(agent.isPaired)
+    }
+
+    func testRepairingClearsSnapshotsFromTheOldChain() throws {
+        let old = TreeSnapshot(salt: String(repeating: "2", count: 64), entries: [])
+        try JSONEncoder().encode([5: old]).write(to: support.appendingPathComponent("snapshots.json"))
+        let agent = makeAgent()
+        XCTAssertNotNil(agent.snapshot(at: 5))
+        agent.startNewChain()
+        XCTAssertNil(agent.snapshot(at: 5))
+        XCTAssertNil(makeAgent().snapshot(at: 5), "also on disk")
+    }
+
     func testRevokedTokenWhileSendingBlocksAlsoUnpairs() async {
         StubServer.handler = { request in
             request.url!.path.hasSuffix("/beacon") ? (200, StubServer.beacon()) : (401, ["error": "Unauthorized"])

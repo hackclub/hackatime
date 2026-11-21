@@ -186,8 +186,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func unpair() {
         Task {
-            await agent.unpair()
-            toasts.show("This Mac is unpaired", detail: "Tracking has stopped. Pair again from the window.", style: .info)
+            if let failure = await agent.unpair() {
+                toasts.show("Could not unpair this Mac", detail: "Still paired and tracking. \(failure)", style: .error, id: "unpair")
+                return
+            }
+            toasts.show("This Mac is unpaired", detail: "Tracking has stopped. Pair again from the window.", style: .info, id: "unpair")
             window.publishState()
             rebuild()
         }
