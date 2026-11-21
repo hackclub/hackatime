@@ -80,6 +80,21 @@ public final class Vault: BlobStore {
 
     private func blobPath(_ hash: String) -> URL { directory.appendingPathComponent("blobs/\(hash)") }
 
+    // MARK: Local records (never sent, encrypted with the vault key)
+
+    /// Seals a record that stays on this Mac, such as the activity log.
+    /// "Delete everything" replaces the vault key, which makes it unreadable.
+    public func sealLocal(_ content: Data) -> Data? {
+        lock.lock(); defer { lock.unlock() }
+        return try? ChaChaPoly.seal(content, using: vaultKey).combined
+    }
+
+    public func openLocal(_ sealed: Data) -> Data? {
+        lock.lock(); defer { lock.unlock() }
+        guard let box = try? ChaChaPoly.SealedBox(combined: sealed) else { return nil }
+        return try? ChaChaPoly.open(box, using: vaultKey)
+    }
+
     public func ciphertext(_ hash: String) throws -> Data { try Data(contentsOf: framePath(hash)) }
 
     /// Decrypts locally for the user's own preview, and logs the access.

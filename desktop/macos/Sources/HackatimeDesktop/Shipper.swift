@@ -18,8 +18,14 @@ struct Shipper {
         let spotCheckSeqs: [Int]
     }
 
-    func open(project: String, fromSeq: Int, toSeq: Int) async throws -> Plan {
-        let response = try await agent.api.request("POST", "api/desktop/v1/ships", body: ["project": project, "from_seq": fromSeq, "to_seq": toSeq])
+    /// Opens the ship. `excluded` are the minutes the user removed on the
+    /// timeline: they are named before the server reveals which frames it
+    /// wants, earn nothing, and none of their frames are asked for.
+    func open(project: String, fromSeq: Int, toSeq: Int, excluded: [ClosedRange<Int>] = []) async throws -> Plan {
+        let response = try await agent.api.request("POST", "api/desktop/v1/ships", body: [
+            "project": project, "from_seq": fromSeq, "to_seq": toSeq,
+            "excluded": excluded.map { ["from_seq": $0.lowerBound, "to_seq": $0.upperBound] },
+        ])
         // Check every revealed secret against the commitment the server
         // published while we worked; a mismatch means the server cheated.
         for revealed in response["revealed"] as? [[String: Any]] ?? [] {

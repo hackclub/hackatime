@@ -4,7 +4,8 @@
 
 A Mac app that tracks your editor, terminal, browser and AI tools, and backs every minute with evidence the server can check. Faking it costs more than doing the work.
 
-- **Passive tracking:** the focused window is classified on your Mac as project, research, unrelated or unknown. Titles and URLs never leave it.
+- **Passive tracking:** the focused window is classified on your Mac as project, research, unrelated or unknown. Titles and URLs never leave it. The app keeps three days of which window was in front, encrypted in the vault, only to show you the review timeline.
+- **You edit a ship before it is sent:** shipping opens a timeline of the time it covers, with the timelapse frames and the apps that were in front, like clips in a video editor. Drag over time, click a window's stretch or take an app out altogether; a removed minute earns nothing and nothing from it is sent. After that you see each frame the server asks for and can black parts out.
 - **AI tools:** hooks for Claude Code, Codex and Amp send counts, tokens and line totals, never prompt text (`hooks/`).
 - **Proof of time:** one signed, beacon-linked hash chain block per minute, plus salted Merkle roots of your working tree. The Secure Enclave signs when available, and App Attest is used on macOS 27+.
 - **A timelapse, private until shipped:** pairing means agreeing to it. One frame a minute of the focused window, allowlisted windows only, with secrets blacked out, encrypted on your Mac and destroyed there after 30 days. Only the frames you ship ever leave it.

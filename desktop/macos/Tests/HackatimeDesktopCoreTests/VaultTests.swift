@@ -16,6 +16,9 @@ final class VaultTests: XCTestCase {
         let vault = try Vault(directory: directory, store: store)
         let frame = try vault.store(frame: Data("frame".utf8), capturedAtMs: Int64(Date().timeIntervalSince1970 * 1000))
         vault.put(Data("source file".utf8), hash: "abc")
+        let activity = try XCTUnwrap(vault.sealLocal(Data("Safari: my bank".utf8)))
+        XCTAssertNil(activity.range(of: Data("bank".utf8)), "local records are encrypted")
+        XCTAssertEqual(vault.openLocal(activity), Data("Safari: my bank".utf8))
         // A backup (Time Machine, a copied folder) taken before deleting.
         let backup = try tempDir().appendingPathComponent("vault")
         try FileManager.default.copyItem(at: directory, to: backup)
@@ -26,6 +29,7 @@ final class VaultTests: XCTestCase {
         let restored = try Vault(directory: backup, store: store)
         XCTAssertNil(try? restored.preview(frame.hash), "a backed-up frame must not decrypt after deleting everything")
         XCTAssertNil(restored.get(hash: "abc"), "a backed-up snapshot blob must not decrypt either")
+        XCTAssertNil(restored.openLocal(activity), "nor a backed-up activity log")
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.appendingPathComponent("frames").path), [])
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.appendingPathComponent("blobs").path), [])
         XCTAssertTrue(try Vault(directory: directory, store: store).frames.isEmpty)

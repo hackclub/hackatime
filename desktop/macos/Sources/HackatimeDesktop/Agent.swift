@@ -39,6 +39,8 @@ final class Agent: ObservableObject {
     private var key: DeviceKey?
     private var lastBeacon: Beacon?
     private var focusSamples: [(FocusLabel, String?, pid_t)] = []
+    /// Which window was in front and when, for the ship timeline. Local only.
+    private(set) var activity = ActivityLog()
     private var fileEdits = 0, builds = 0
     private(set) var commits = 0
     private var lastActivity: [String: Date] = [:]   // project folder → last file change seen
@@ -74,6 +76,8 @@ final class Agent: ObservableObject {
             .flatMap { try? JSONDecoder().decode([Int: TreeSnapshot].self, from: $0) } ?? [:]
         trackedByDay = (try? Data(contentsOf: support.appendingPathComponent("tracked.json")))
             .flatMap { try? JSONDecoder().decode([String: Int].self, from: $0) } ?? [:]
+        activity = (try? Data(contentsOf: activityURL)).flatMap(vault.openLocal)
+            .flatMap { try? JSONDecoder().decode(ActivityLog.self, from: $0) } ?? ActivityLog()
     }
 
     static func dayKey(_ date: Date) -> String {
@@ -226,6 +230,18 @@ final class Agent: ObservableObject {
         guard let (sample, pid) = await focus.sampleInBackground(), !settings.paused else { return }
         let (label, project) = classifier.classify(sample, activeProject: activeProject)
         focusSamples.append((label, project, pid))
+        // Nobody at the keyboard leaves a gap on the timeline.
+        if isPaired, InputSensor.idleSeconds < Self.idleGapSeconds {
+            activity.record(sample, label: label, atMs: Int64(Date().timeIntervalSince1970 * 1000))
+        }
+    }
+
+    static let idleGapSeconds: Double = 180
+    private var activityURL: URL { support.appendingPathComponent("vault/activity.bin") }
+
+    private func persistActivity() {
+        guard let data = try? JSONEncoder().encode(activity), let sealed = vault.sealLocal(data) else { return }
+        try? sealed.write(to: activityURL, options: [.atomic, .completeFileProtection])
     }
 
     /// The timelapse: one frame a minute, at the second the server's beacon
@@ -269,6 +285,7 @@ final class Agent: ObservableObject {
         guard isPaired, !settings.paused else {
             _ = input.takeMinute(); focusSamples.removeAll(); return
         }
+        persistActivity()
         let fresh: Beacon?
         do {
             fresh = try await api.beacon()
@@ -491,6 +508,8 @@ final class Agent: ObservableObject {
         try? FileManager.default.removeItem(at: support.appendingPathComponent("snapshots.json"))
         framesThisMinute = []
         lastFrame = nil
+        activity = ActivityLog()
+        try? FileManager.default.removeItem(at: activityURL)
         try? FileHandle(forWritingTo: aiInbox.url).truncate(atOffset: 0)
     }
 }

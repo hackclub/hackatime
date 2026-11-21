@@ -2,11 +2,12 @@ import AppKit
 import HackatimeDesktopCore
 import SwiftUI
 
-/// The step before a ship uploads anything: every frame the ship would send,
-/// decrypted locally, where the user can drag boxes to black out regions.
-/// Cancelling uploads nothing. Required frames can be redacted, not removed.
+/// The last step before a ship uploads anything, after the timeline: every
+/// frame the server asked for, decrypted locally, where the user can drag
+/// boxes to black out regions. Cancelling uploads nothing. A requested frame
+/// can be redacted, not removed.
 @MainActor
-final class ShipPreviewModel: ObservableObject {
+final class ShipPreviewModel: ObservableObject, ShipReviewStep {
     struct Frame: Identifiable {
         let id: String          // committed frame hash
         let image: CGImage
@@ -45,7 +46,7 @@ struct ShipPreviewView: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Preview \(model.project) before shipping").font(.title2.weight(.semibold))
-                Text("\(model.minutes) tracked minutes. These \(model.frames.count) frames will be sent to Hack Club reviewers. Drag over anything you want blacked out. Nothing is uploaded until you press Ship.")
+                Text("\(model.minutes) tracked minutes. The server asked for these \(model.frames.count) frames from the time you kept; they will be sent to Hack Club reviewers. Drag over anything you want blacked out. Nothing is uploaded until you press Ship.")
                     .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             if model.frames.isEmpty {
@@ -133,15 +134,28 @@ struct ShipPreviewView: View {
     }
 }
 
-/// Shows the preview in its own window and returns the user's choice.
+/// A step of the ship flow shown in its own window, which ends when the
+/// user goes on (`finish(true)`) or cancels.
 @MainActor
-enum ShipPreview {
-    static func run(_ model: ShipPreviewModel) async -> Bool {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 680),
+protocol ShipReviewStep: AnyObject {
+    var finish: (Bool) -> Void { get set }
+}
+
+/// Shows one step in a window and returns the user's choice. Closing the
+/// window cancels.
+@MainActor
+enum ShipReviewWindow {
+    static func run(title: String, size: NSSize, step: some ShipReviewStep, content: some View) async -> Bool {
+        let window = NSWindow(contentRect: NSRect(origin: .zero, size: size),
                               styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-        window.title = "Preview frames"
+        window.title = title
         window.isReleasedWhenClosed = false
-        window.contentViewController = NSHostingController(rootView: ShipPreviewView(model: model))
+        window.contentViewController = NSHostingController(rootView: content)
+        // A hosting controller shrinks its window to the view's smallest
+        // size; ask for ours, as far as the screen has room below the title
+        // bar and above the Dock.
+        let room = (NSScreen.main?.visibleFrame.size).map { NSSize(width: $0.width, height: $0.height - 32) } ?? size
+        window.setContentSize(NSSize(width: min(size.width, room.width), height: min(size.height, room.height)))
         window.center()
         NSApp.setActivationPolicy(.regular)
         window.makeKeyAndOrderFront(nil)
@@ -149,12 +163,12 @@ enum ShipPreview {
         let closer = CloseObserver()
         let result = await withCheckedContinuation { continuation in
             var resumed = false
-            model.finish = { ship in
+            step.finish = { ship in
                 guard !resumed else { return }
                 resumed = true
                 continuation.resume(returning: ship)
             }
-            closer.onClose = { model.finish(false) }
+            closer.onClose = { step.finish(false) }
             window.delegate = closer
         }
         window.delegate = nil

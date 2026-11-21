@@ -159,21 +159,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             toasts.show("Nothing to ship", detail: "Hackatime has no tracked minutes on \(project.lastPathComponent) since your last ship.", style: .info)
             return
         }
-        toasts.show("Shipping \(project.lastPathComponent)…", style: .loading, id: "ship")
         Task {
             do {
+                let name = project.lastPathComponent
+                // Step 1, on this Mac only: the timeline, where the user
+                // removes time before the server hears of the ship.
+                let vault = agent.vault
+                let timeline = ShipTimeline(project: name, entries: agent.ledger.entries, range: range, activity: agent.activity)
+                let from = timeline.minutes.first?.startMs ?? 0, to = (timeline.minutes.last?.startMs ?? 0) + 60_000
+                let review = ShipTimelineModel(timeline: timeline,
+                                               frames: vault.frames.filter { from <= $0.capturedAtMs && $0.capturedAtMs < to }.map { ($0.hash, $0.capturedAtMs) },
+                                               loadFrame: { hash in (try? vault.preview(hash)).flatMap(FrameRedaction.decode) })
+                guard await ShipReviewWindow.run(title: "Review ship", size: NSSize(width: 1080, height: 760), step: review,
+                                                 content: ShipTimelineView(model: review)) else {
+                    toasts.show("Ship cancelled", detail: "Nothing was sent.", style: .info, id: "ship")
+                    return
+                }
+                toasts.show("Shipping \(name)…", style: .loading, id: "ship")
                 let shipper = Shipper(agent: agent)
                 let finalFiles = try await Shipper.finalFiles(projectRoot: project)
-                let plan = try await shipper.open(project: project.lastPathComponent, fromSeq: range.lowerBound, toSeq: range.upperBound)
-                // Nothing is uploaded until the user has seen every frame.
+                let plan = try await shipper.open(project: name, fromSeq: range.lowerBound, toSeq: range.upperBound,
+                                                  excluded: review.timeline.excludedRanges)
+                // Step 2: nothing is uploaded until the user has seen every frame the server asked for.
                 let frames = try plan.requiredFrames.map { hash in
                     guard let image = FrameRedaction.decode(try agent.vault.preview(hash)) else { throw CocoaError(.fileReadCorruptFile) }
                     return ShipPreviewModel.Frame(id: hash, image: image)
                 }
                 toasts.dismiss("ship")
-                let preview = ShipPreviewModel(project: project.lastPathComponent,
-                                               minutes: agent.ledger.activeMinutes(project: project.lastPathComponent, in: range), frames: frames)
-                guard await ShipPreview.run(preview) else {
+                let preview = ShipPreviewModel(project: name, minutes: review.timeline.keptCountedMinutes, frames: frames)
+                guard await ShipReviewWindow.run(title: "Preview frames", size: NSSize(width: 900, height: 680), step: preview,
+                                                 content: ShipPreviewView(model: preview)) else {
                     toasts.show("Ship cancelled", detail: "Nothing was uploaded.", style: .info, id: "ship")
                     return
                 }
