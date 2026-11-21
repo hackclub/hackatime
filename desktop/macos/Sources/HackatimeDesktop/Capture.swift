@@ -78,33 +78,45 @@ enum WindowCapture {
     }
 
     /// Patterns that look like secrets: API keys, tokens, private keys,
-    /// passwords in assignments, long base64/hex blobs, emails.
+    /// credentials in URLs, long base64/hex blobs, emails.
     static let secretPatterns: [NSRegularExpression] = [
-        #"(?i)(api[_-]?key|secret|token|passw(or)?d|bearer|authorization)\s*[:=]\s*\S+"#,
+        #"(?i)\bbearer\s+\S{10,}"#,
         #"\b(sk|pk|rk)_(live|test)_[A-Za-z0-9]{10,}"#,
+        #"\bsk-[A-Za-z0-9_-]{20,}"#,
         #"\b(ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}"#,
         #"\bxox[abpr]-[A-Za-z0-9-]{10,}"#,
         #"\bAKIA[0-9A-Z]{16}\b"#,
         #"\bAIza[0-9A-Za-z_-]{30,}"#,
-        #"-----BEGIN [A-Z ]*PRIVATE KEY-----"#,
+        #"(?i)-----BEGIN [A-Z ]*PRIVATE KEY"#,
         #"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"#,
         #"\b[A-Fa-f0-9]{32,}\b"#,
-        #"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"#,
+        #"://[^/\s:@]+:[^/\s@]+@"#,
+        #"[A-Za-z0-9._%+-]+\s?@\s?[A-Za-z0-9-]+(\s?\.\s?[A-Za-z0-9-]+)*\s?\.\s?[A-Za-z]{2,}"#,
     ].compactMap { try? NSRegularExpression(pattern: $0) }
 
     /// OCR on small text is unreliable (fast mode turns "API_KEY" into
-    /// "API KEY _" and drops "@"), so matching is deliberately loose: false
-    /// positives cost a black bar, false negatives leak a secret.
-    static let looseMarkers = try! NSRegularExpression(pattern:
-        #"(?i)(key|tok[e3]n|s[e3]cr[e3]t|pass|pwd|auth|bearer|api|private|cred|sk[_-]|pk[_-]|ghp|xox|akia|begin|session|cookie)"#)
+    /// "API KEY _" and "s3cret" into "s3cr3t"), so the secret-ish words are
+    /// matched loosely: false positives cost a black bar, false negatives
+    /// leak a secret. But the word alone is not enough, or most lines of
+    /// code are blacked out (key, auth and token are everywhere): it must be
+    /// assigned a value that looks like a secret, a quoted string with more
+    /// than letters in it or a run of 6 or more characters with a digit.
+    static let looseAssignment = try! NSRegularExpression(pattern:
+        #"(?i)(key|tok[e3]n|s[e3]cr[e3]t|pass|pwd|auth|cred|session|cookie)[\w\s"'\]]{0,4}[:=]\s*"#
+        + #"(["'][^"']*[^A-Za-z"'][^"']*["']|(?=[^\s()\[\]{},;]{6,})[^\s()\[\]{},;]*\d[^\s()\[\]{},;]*(?=[\s"',;]|$))"#)
+    /// `PASSWORD=supersecret` in an env file or shell: an upper-case name
+    /// with a secret-ish word, then a value.
+    static let envAssignment = try! NSRegularExpression(pattern:
+        #"\b[A-Z0-9_]*(KEY|TOK[E3]N|S[E3]CR[E3]T|PASS|PWD|AUTH|CRED|SESSION|COOKIE)[A-Z0-9_]*\s?=\s?[^\s=]{4,}"#)
 
     static func looksSecret(_ text: String) -> Bool {
         let range = NSRange(text.startIndex..., in: text)
-        if secretPatterns.contains(where: { $0.firstMatch(in: text, range: range) != nil }) { return true }
-        if looseMarkers.firstMatch(in: text, range: range) != nil { return true }
-        if text.contains("@") { return true }
-        // Long unbroken runs look like tokens, hashes or addresses.
-        return text.split(whereSeparator: { $0 == " " || $0 == "\t" }).contains { $0.count >= 20 }
+        let patterns = secretPatterns + [looseAssignment, envAssignment]
+        if patterns.contains(where: { $0.firstMatch(in: text, range: range) != nil }) { return true }
+        // Long unbroken runs of letters and digits look like tokens or keys.
+        return text.split(whereSeparator: { !($0.isLetter || $0.isNumber || "+/=_-".contains($0)) }).contains { run in
+            run.count >= 20 && run.contains(where: \.isNumber) && run.contains(where: \.isLetter)
+        }
     }
 
     enum OCRResult {

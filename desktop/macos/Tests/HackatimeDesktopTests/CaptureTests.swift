@@ -43,4 +43,22 @@ final class CaptureTests: XCTestCase {
         XCTAssertFalse(changed(editorFrame(code), editorFrame(code)))
         XCTAssertNotEqual(WindowCapture.perceptualHash(editorFrame(code)), WindowCapture.perceptualHash(editorFrame(oneLine)))
     }
+
+    func testRedactionCatchesSecretsButNotOrdinaryCode() {
+        let secrets = [
+            "API_KEY=sk_live_51HxQe2K8ZpL0vR9mN3", "API KEY _ = 8f3k29dk20fk30fk20", "password: hunter2", "PASSWORD=supersecret",
+            #"DB_PASSWORD="correct horse battery staple""#, #""client_secret": "d1f9e8a7b6c5""#, "tok3n: a1b2c3d4e5f6g7h8",
+            "export GITHUB_TOKEN=ghp_1a2B3c4D5e6F7g8H9i0JkLmNoPqRsTuVwXyZ", "OPENAI_API_KEY=sk-proj-Ab3dE5gH7jK9mN1pQ3sT5vX7z",
+            "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.abc", "-----BEGIN RSA PRIVATE KEY-----",
+            "MIIEowIBAAKCAQEAu1SU1LfVLPHCozMxH2Mo4lgOEePzNm0tRgeLezV6ffAt0gun", "contact mahad @ hackclub.com",
+            "DATABASE_URL=postgres://user:p4ssw0rd@db.example.com/app",
+        ]
+        for line in secrets { XCTAssertTrue(WindowCapture.looksSecret(line), line) }
+        let code = [
+            "let key = try? DeviceKey.loadOrCreate(store: store)", "api.token = token", "private func enrolKey() async {",
+            "@MainActor final class Agent: ObservableObject {", "guard let key, !settings.keyEnrolled, let uid = settings.deviceUID else { return }",
+            "body[\"public_key\"] = key.publicKeyDER.base64EncodedString()", "let session: URLSession", "payload.keys = inputs.keys",
+        ]
+        for line in code { XCTAssertFalse(WindowCapture.looksSecret(line), line) }
+    }
 }
