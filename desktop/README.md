@@ -41,7 +41,7 @@ Put `hooks/hackatime-ai-hook` on your `PATH`, then:
 
 - Claude Code: merge `hooks/claude-code-settings.json` into `~/.claude/settings.json`.
 - Codex: `notify = ["hackatime-ai-hook", "codex"]` in `~/.codex/config.toml`.
-- Amp: `amp plugins add hooks/amp-plugin.ts`.
+- Amp: `mkdir -p ~/.config/amp/plugins && cp hooks/amp-plugin.ts ~/.config/amp/plugins/hackatime.ts`, then run `plugins: reload` from Amp's command palette.
 
 ## Privacy and young users
 
