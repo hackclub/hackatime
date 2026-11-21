@@ -148,7 +148,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let shipper = Shipper(agent: agent)
                 let finalFiles = try await Shipper.finalFiles(projectRoot: project)
                 let plan = try await shipper.open(project: project.lastPathComponent, fromSeq: range.lowerBound, toSeq: range.upperBound)
-                for hash in plan.requiredFrames { try await shipper.upload(frameHash: hash, shipID: plan.shipID) }
+                // Nothing is uploaded until the user has seen every frame.
+                let frames = try plan.requiredFrames.map { hash in
+                    guard let image = FrameRedaction.decode(try agent.vault.preview(hash)) else { throw CocoaError(.fileReadCorruptFile) }
+                    return ShipPreviewModel.Frame(id: hash, image: image)
+                }
+                toasts.dismiss("ship")
+                let preview = ShipPreviewModel(project: project.lastPathComponent,
+                                               minutes: agent.ledger.activeMinutes(project: project.lastPathComponent, in: range), frames: frames)
+                guard await ShipPreview.run(preview) else {
+                    toasts.show("Ship cancelled", detail: "Nothing was uploaded.", style: .info, id: "ship")
+                    return
+                }
+                toasts.show("Shipping \(project.lastPathComponent)…", style: .loading, id: "ship")
+                for upload in preview.uploads() {
+                    try await shipper.upload(frameHash: upload.hash, shipID: plan.shipID, redacted: upload.redacted, regions: upload.regions)
+                }
                 let result = try await shipper.submit(plan: plan, finalFiles: finalFiles)
                 let flags = (result["flags"] as? [String] ?? []).joined(separator: ", ")
                 toasts.show("Shipped for review",
