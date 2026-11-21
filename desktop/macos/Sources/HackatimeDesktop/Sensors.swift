@@ -30,8 +30,7 @@ final class FocusSensor {
                 }
             }
         }
-        return FocusSample(bundleID: bundleID, appName: app.localizedName ?? bundleID, title: title, url: url,
-                           processPath: app.executableURL?.path, workingDirectory: nil)
+        return FocusSample(bundleID: bundleID, appName: app.localizedName ?? bundleID, title: title, url: url)
     }
 
     private func attribute<T>(_ element: AXUIElement, _ name: String) -> T? {
@@ -60,8 +59,6 @@ final class InputSensor {
     private let lock = NSLock()
     private var minute = InputMinute()
     private let ownPID = getpid()
-
-    var isRunning: Bool { tap != nil }
 
     static var hasInputMonitoring: Bool { CGPreflightListenEventAccess() }
     static func requestInputMonitoring() { _ = CGRequestListenEventAccess() }

@@ -22,17 +22,10 @@ public final class Vault: BlobStore {
         public var shipped: Bool
     }
 
-    public struct AccessEntry: Codable, Equatable {
-        public let at: Date
-        public let action: String
-        public let detail: String
-    }
-
     let directory: URL
     private let store: SecretStore
     private var vaultKey: SymmetricKey
     private(set) public var frames: [StoredFrame] = []
-    private(set) public var accessLog: [AccessEntry] = []
     private var wrappedKeys: [Int64: Data] = [:]
     private let lock = NSLock()
 
@@ -95,7 +88,6 @@ public final class Vault: BlobStore {
         guard let frame = frames.first(where: { $0.hash == hash }), let key = try segmentKey(frame.segment, create: false) else {
             throw CocoaError(.fileNoSuchFile)
         }
-        log("preview", hash)
         return try EvidenceProtocol.open(try Data(contentsOf: framePath(hash)), key: key)
     }
 
@@ -105,7 +97,6 @@ public final class Vault: BlobStore {
         guard let frame = frames.first(where: { $0.hash == hash }), let key = try segmentKey(frame.segment, create: false) else {
             throw CocoaError(.fileNoSuchFile)
         }
-        log("release_key", hash)
         return key.withUnsafeBytes { Data($0) }
     }
 
@@ -114,7 +105,6 @@ public final class Vault: BlobStore {
         lock.lock(); defer { lock.unlock() }
         guard let index = frames.firstIndex(where: { $0.hash == hash }) else { return }
         frames[index].shipped = true
-        log("ship", hash)
         save()
     }
 
@@ -156,12 +146,10 @@ public final class Vault: BlobStore {
         vaultKey = fresh
         wrappedKeys = [:]
         frames = []
-        accessLog = []
         for folder in ["frames", "blobs"] {
             try? FileManager.default.removeItem(at: directory.appendingPathComponent(folder))
             try? FileManager.default.createDirectory(at: directory.appendingPathComponent(folder), withIntermediateDirectories: true)
         }
-        log("delete_everything", "")
         save()
     }
 
@@ -172,7 +160,6 @@ public final class Vault: BlobStore {
             try? FileManager.default.removeItem(at: framePath(frame.hash))
         }
         frames.removeAll { segments.contains($0.segment) }
-        log("shred", "\(segments.count) segments")
         save()
     }
 
@@ -186,21 +173,15 @@ public final class Vault: BlobStore {
         return key
     }
 
-    private func log(_ action: String, _ detail: String) {
-        accessLog.append(AccessEntry(at: Date(), action: action, detail: detail))
-        if accessLog.count > 1_000 { accessLog.removeFirst(accessLog.count - 1_000) }
-    }
-
     private func framePath(_ hash: String) -> URL { directory.appendingPathComponent("frames/\(hash).bin") }
 
     private struct Index: Codable {
         var frames: [StoredFrame]
         var wrappedKeys: [String: Data]
-        var accessLog: [AccessEntry]
     }
 
     private func save() {
-        let index = Index(frames: frames, wrappedKeys: Dictionary(uniqueKeysWithValues: wrappedKeys.map { (String($0.key), $0.value) }), accessLog: accessLog)
+        let index = Index(frames: frames, wrappedKeys: Dictionary(uniqueKeysWithValues: wrappedKeys.map { (String($0.key), $0.value) }))
         try? JSONEncoder().encode(index).write(to: directory.appendingPathComponent("index.json"), options: [.atomic, .completeFileProtection])
     }
 
@@ -208,7 +189,6 @@ public final class Vault: BlobStore {
         guard let data = try? Data(contentsOf: directory.appendingPathComponent("index.json")),
               let index = try? JSONDecoder().decode(Index.self, from: data) else { return }
         frames = index.frames
-        accessLog = index.accessLog
         wrappedKeys = Dictionary(uniqueKeysWithValues: index.wrappedKeys.compactMap { key, value in Int64(key).map { ($0, value) } })
     }
 }

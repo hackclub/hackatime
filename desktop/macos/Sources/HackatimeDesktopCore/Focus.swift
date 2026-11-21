@@ -1,8 +1,8 @@
 import Foundation
 
-/// What the focused window was doing in a minute. Classified on the device:
-/// rules first, then an optional small on-device model. The title and URL
-/// used here never leave the machine; only the label does.
+/// What the focused window was doing in a minute. Classified on the device
+/// by rules. The title and URL used here never leave the machine; only the
+/// label does.
 public enum FocusLabel: String, Codable { case project, research, unrelated, unknown }
 
 public struct FocusSample: Equatable {
@@ -10,28 +10,18 @@ public struct FocusSample: Equatable {
     public var appName: String
     public var title: String
     public var url: String?
-    public var processPath: String?
-    public var workingDirectory: String?
 
-    public init(bundleID: String, appName: String, title: String, url: String? = nil, processPath: String? = nil, workingDirectory: String? = nil) {
+    public init(bundleID: String, appName: String, title: String, url: String? = nil) {
         self.bundleID = bundleID
         self.appName = appName
         self.title = title
         self.url = url
-        self.processPath = processPath
-        self.workingDirectory = workingDirectory
     }
 
     public var domain: String? {
         guard let url, let host = URL(string: url)?.host?.lowercased() else { return nil }
         return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
     }
-}
-
-/// A model for samples the rules cannot decide, e.g. a fastText or MiniLM
-/// classifier exported to ONNX/Core ML. Returns nil when unsure.
-public protocol FocusModel {
-    func classify(_ sample: FocusSample) -> (FocusLabel, confidence: Double)?
 }
 
 public struct FocusClassifier {
@@ -75,11 +65,9 @@ public struct FocusClassifier {
     static let localHosts = ["localhost", "127.0.0.1", "0.0.0.0", "[::1]"]
 
     public var projectNames: [String]
-    public var model: FocusModel?
 
-    public init(projectNames: [String], model: FocusModel? = nil) {
+    public init(projectNames: [String]) {
         self.projectNames = projectNames.map { $0.lowercased() }
-        self.model = model
     }
 
     public static func isNever(_ sample: FocusSample) -> Bool {
@@ -104,7 +92,7 @@ public struct FocusClassifier {
 
     public func classify(_ sample: FocusSample) -> (label: FocusLabel, project: String?) {
         if Self.isNever(sample) { return (.unrelated, nil) }
-        let haystack = [sample.title, sample.workingDirectory ?? "", sample.url ?? ""].joined(separator: " ").lowercased()
+        let haystack = [sample.title, sample.url ?? ""].joined(separator: " ").lowercased()
         let project = projectNames.first { haystack.contains($0) }
 
         if Self.editorBundleIDs.contains(sample.bundleID) || Self.terminalBundleIDs.contains(sample.bundleID) {
@@ -120,9 +108,6 @@ public struct FocusClassifier {
         }
         if let project, sample.bundleID == "com.apple.Preview" || sample.bundleID.hasPrefix("com.figma") {
             return (.project, project)
-        }
-        if let model, let (label, confidence) = model.classify(sample), confidence >= 0.7 {
-            return (label, label == .unrelated ? nil : project)
         }
         return (.unknown, project)
     }

@@ -67,34 +67,3 @@ public final class AIInbox {
         return any || ai.waiting ? ai : nil
     }
 }
-
-/// Metadata-only backfill from Claude Code's local transcripts: counts user
-/// prompts and token usage per session file, never reading text into memory
-/// beyond one line at a time and never storing it.
-public enum TranscriptBackfill {
-    public static func claudeCode(home: URL = FileManager.default.homeDirectoryForCurrentUser, since: Date) -> [AIEvent] {
-        let root = home.appendingPathComponent(".claude/projects")
-        guard let walker = FileManager.default.enumerator(at: root, includingPropertiesForKeys: [.contentModificationDateKey]) else { return [] }
-        var events: [AIEvent] = []
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        for case let file as URL in walker where file.pathExtension == "jsonl" {
-            guard let modified = try? file.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate, modified >= since,
-                  let text = try? String(contentsOf: file, encoding: .utf8) else { continue }
-            for line in text.split(separator: "\n") {
-                guard let object = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any],
-                      let stamp = (object["timestamp"] as? String).flatMap(iso.date(from:)), stamp >= since else { continue }
-                let session = object["sessionId"] as? String
-                let cwd = object["cwd"] as? String
-                let message = object["message"] as? [String: Any]
-                if object["type"] as? String == "user", message?["content"] is String {
-                    events.append(AIEvent(tool: "claude-code", event: "prompt", session: session, cwd: cwd, at: stamp.timeIntervalSince1970))
-                } else if object["type"] as? String == "assistant", let usage = message?["usage"] as? [String: Any] {
-                    events.append(AIEvent(tool: "claude-code", event: "turn_end", session: session, cwd: cwd, at: stamp.timeIntervalSince1970,
-                                          inTokens: usage["input_tokens"] as? Int, outTokens: usage["output_tokens"] as? Int))
-                }
-            }
-        }
-        return events.sorted { $0.at < $1.at }
-    }
-}
