@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_21_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_21_120100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -226,6 +226,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_21_120000) do
     t.index ["desktop_device_id", "seq"], name: "index_evidence_blocks_on_desktop_device_id_and_seq", unique: true
     t.index ["desktop_device_id"], name: "index_evidence_blocks_on_desktop_device_id"
     t.index ["evidence_beacon_id"], name: "index_evidence_blocks_on_evidence_beacon_id"
+    t.index ["received_at"], name: "index_evidence_blocks_with_network_metadata", where: "((ip_address IS NOT NULL) OR (ja4_id IS NOT NULL))"
     t.index ["user_id", "minute"], name: "index_evidence_blocks_on_user_id_and_minute"
     t.index ["user_id"], name: "index_evidence_blocks_on_user_id"
   end
