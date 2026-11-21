@@ -278,11 +278,11 @@ final class Agent: ObservableObject {
         for path in paths {
             if path.hasSuffix(".git/logs/HEAD") { commits += 1; continue }
             let components = path.split(separator: "/")
-            if components.contains(where: { ["build", "dist", ".build", "target", "out", ".next"].contains(String($0)) }) {
+            if components.contains(where: { TreeSnapshot.buildDirectories.contains(String($0)) }) {
                 builds = 1
                 continue
             }
-            if components.contains(where: { $0 == ".git" || $0 == "node_modules" }) { continue }
+            if components.contains(where: { TreeSnapshot.skippedDirectories.contains(String($0)) }) { continue }
             if TreeSnapshot.isNeverHashed(name: String(components.last ?? ""), relative: path) { continue }
             fileEdits += 1
         }

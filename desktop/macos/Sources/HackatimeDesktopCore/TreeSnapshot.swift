@@ -23,10 +23,13 @@ public struct TreeSnapshot: Codable, Equatable {
     /// disclosed in full.
     public static let maxFileBytes = ShipLimits.maxFileBytes
     public static let maxFiles = ShipLimits.maxFiles
-    static let skippedDirectories: Set<String> = [
-        ".git", "node_modules", "vendor", "dist", "build", "target", ".build", "out", ".next", ".nuxt",
-        ".cache", "__pycache__", ".venv", "venv", ".gradle", "DerivedData", "Pods", "coverage", ".turbo", "tmp",
-    ]
+    /// Build output. The agent counts a change in one as a build, not an edit.
+    public static let buildDirectories: Set<String> = ["dist", "build", "target", ".build", "out", ".next"]
+    /// Never hashed, and changes in them are not edits.
+    public static let skippedDirectories: Set<String> = buildDirectories.union([
+        ".git", "node_modules", "vendor", ".nuxt", ".cache", "__pycache__", ".venv", "venv", ".gradle", "DerivedData", "Pods",
+        "coverage", ".turbo", "tmp",
+    ])
     static let secretPatterns = [
         ".env", ".env.*", "*.pem", "*.key", "*.p12", "*.pfx", "id_rsa*", "id_ed25519*", "*.keystore", "*.jks",
         "credentials*", "secrets.*", "*.sqlite", "*.db", ".npmrc", ".pypirc", ".netrc",
