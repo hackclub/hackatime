@@ -41,7 +41,23 @@ final class CaptureTests: XCTestCase {
 
         XCTAssertFalse(changed(editorFrame(code), editorFrame(code, caretLine: 12)), "a caret blink")
         XCTAssertFalse(changed(editorFrame(code), editorFrame(code)))
-        XCTAssertNotEqual(WindowCapture.perceptualHash(editorFrame(code)), WindowCapture.perceptualHash(editorFrame(oneLine)))
+    }
+
+    func testPerceptualHashIsEachCellsBrightnessFromTheTopLeft() {
+        // A white top-left quarter on black.
+        let context = CGContext(data: nil, width: 800, height: 600, bitsPerComponent: 8, bytesPerRow: 0,
+                                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        context.setFillColor(CGColor(gray: 0, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 800, height: 600))
+        context.setFillColor(CGColor(gray: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 300, width: 400, height: 300))
+        let hash = WindowCapture.perceptualHash(context.makeImage()!)
+        XCTAssertEqual(hash.count, 128, "one byte for each of the 64 cells")
+        let cells = stride(from: 0, to: hash.count, by: 2).map { UInt8(hash.dropFirst($0).prefix(2), radix: 16) ?? 0 }
+        XCTAssertGreaterThan(cells[0], 240, "top left")
+        XCTAssertGreaterThan(cells[2 * 8 + 2], 240, "inside the quarter")
+        XCTAssertLessThan(cells[7], 16, "top right")
+        XCTAssertLessThan(cells[7 * 8], 16, "bottom left")
     }
 
     func testRedactionCatchesSecretsButNotOrdinaryCode() {

@@ -251,7 +251,7 @@ final class Agent: ObservableObject {
             return
         }
         guard let stored = try? vault.store(frame: prepared.heic, capturedAtMs: now) else { return }
-        let frame = MinutePayload.Frame(hash: stored.hash, atMs: now, phash: WindowCapture.perceptualHash(thumbnail))
+        let frame = MinutePayload.Frame(hash: stored.hash, atMs: now, phash: prepared.phash)
         framesThisMinute.append(frame)
         lastFrame = frame
         lastThumbnail = thumbnail

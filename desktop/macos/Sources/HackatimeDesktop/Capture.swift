@@ -167,10 +167,11 @@ enum WindowCapture {
 
     /// Redacts, fingerprints and encodes a frame off the main thread: text
     /// recognition alone takes about half a second.
-    static func prepare(_ image: CGImage) async -> (thumbnail: [UInt8], heic: Data)? {
+    static func prepare(_ image: CGImage) async -> (thumbnail: [UInt8], phash: String, heic: Data)? {
         await Task.detached(priority: .utility) {
             guard let (redacted, _) = redact(image), let heic = encode(redacted) else { return nil }
-            return (thumbnail(redacted), heic)
+            let thumbnail = thumbnail(redacted)
+            return (thumbnail, perceptualHash(thumbnail), heic)
         }.value
     }
 
@@ -181,10 +182,12 @@ enum WindowCapture {
         return CGImageDestinationFinalize(destination) ? data as Data : nil
     }
 
+    static let thumbnailWidth = 160, thumbnailHeight = 120
+
     /// A 160 by 120 greyscale copy of a frame, fine enough that a rewritten
     /// line of 13pt code changes many of its pixels.
     static func thumbnail(_ image: CGImage) -> [UInt8] {
-        let width = 160, height = 120
+        let width = thumbnailWidth, height = thumbnailHeight
         guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width,
                                       space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return [] }
         context.interpolationQuality = .high
@@ -201,11 +204,21 @@ enum WindowCapture {
         return zip(old, new).lazy.filter { abs(Int($0) - Int($1)) > 24 }.count > 8
     }
 
-    /// The `phash` sent for a frame: 64 bits of the thumbnail's SHA-256. The
-    /// agent reuses the previous one while `screenChanged` says nothing
-    /// changed, so equal values mean an unchanged screen.
+    /// The `phash` committed for a frame: the thumbnail averaged into an 8 by
+    /// 8 grid, one byte of brightness per cell, row by row from the top left,
+    /// as 128 hex digits. It is too coarse to read or to notice an edit; the
+    /// server uses it to check that a redacted copy is still this frame.
     static func perceptualHash(_ thumbnail: [UInt8]) -> String {
-        String(EvidenceProtocol.sha256Hex(Data(thumbnail)).prefix(16))
+        let grid = 8, cellWidth = thumbnailWidth / grid, cellHeight = thumbnailHeight / grid
+        guard thumbnail.count == thumbnailWidth * thumbnailHeight else { return "" }
+        return (0 ..< grid * grid).map { cell in
+            let left = cell % grid * cellWidth, top = cell / grid * cellHeight
+            var sum = 0
+            for y in top ..< top + cellHeight {
+                for x in left ..< left + cellWidth { sum += Int(thumbnail[y * thumbnailWidth + x]) }
+            }
+            return String(format: "%02x", sum / (cellWidth * cellHeight))
+        }.joined()
     }
 
     static func perceptualHash(_ image: CGImage) -> String { perceptualHash(thumbnail(image)) }

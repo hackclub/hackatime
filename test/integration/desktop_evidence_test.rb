@@ -224,8 +224,8 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     token = pair_device
     levels = Array.new(64) { |i| (i * 37 % 64) * 4 }
     original = blocky_png(levels)
-    expected = format("%016x", levels.each_with_index.sum { |level, i| level >= levels.sum / 64 ? 1 << i : 0 })
-    assert_equal expected, Evidence::RedactionCheck.perceptual_hash(Vips::Image.pngload_buffer(original)), "hash bits run row by row from the top left"
+    expected = levels.pack("C*").unpack1("H*")
+    assert_equal expected, Evidence::RedactionCheck.perceptual_hash(Vips::Image.pngload_buffer(original)), "cells run row by row from the top left"
 
     frame = encrypted_frame("original", png: original).merge(phash: expected)
     post_minute(token, 0, payload(0, frame:))
@@ -252,6 +252,11 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_equal "Send redacted frames as PNG or JPEG", response.parsed_body["error"]
 
+    upload.(Vips::Image.new_from_buffer(original, "").draw_rect(0, 0, 0, 60, 40, fill: true).write_to_buffer(".jpg[Q=80]"), [ region ])
+    assert_response :created
+    # Black boxes darken the whole picture; the cells left clear still match.
+    upload.(Vips::Image.new_from_buffer(original, "").draw_rect(0, 0, 0, 160, 30, fill: true).write_to_buffer(".jpg[Q=80]"), [ { x: 0, y: 0, w: 160, h: 30 } ])
+    assert_response :created
     upload.(Vips::Image.new_from_buffer(original, "").draw_rect(0, 0, 0, 60, 40, fill: true).write_to_buffer(".jpg[Q=80]"), [ region ])
     assert_response :created
     stored = EvidenceShip.find(ship_id).evidence_frames.sole
