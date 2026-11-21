@@ -39,6 +39,8 @@ final class NativeToastCenter: ObservableObject {
     private var panel: ToastPanel?
     /// The window toasts attach to while it is on screen.
     weak var host: NSWindow? { didSet { panel?.place(over: host) } }
+    /// Where the toast cards are, in the panel's coordinates (top-left origin).
+    var cardFrames: [CGRect] = [] { didSet { panel?.updateMouse() } }
 
     /// Shows a toast, or updates the one with the same id in place.
     func show(_ title: String, detail: String? = nil, style: NativeToast.Style = .info,
@@ -52,7 +54,7 @@ final class NativeToastCenter: ObservableObject {
             toasts.append(toast)
             if toasts.count > 3 { dismiss(toasts[0].id) }
         }
-        panel?.ignoresMouseEvents = false
+        panel?.trackMouse(true)
         schedule(toast)
         NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
                              userInfo: [.announcement: [title, detail].compactMap { $0 }.joined(separator: ". "),
@@ -62,7 +64,7 @@ final class NativeToastCenter: ObservableObject {
     func dismiss(_ id: String) {
         timers.removeValue(forKey: id)?.cancel()
         toasts.removeAll { $0.id == id }
-        if toasts.isEmpty { panel?.ignoresMouseEvents = true }
+        if toasts.isEmpty { panel?.trackMouse(false) }
     }
 
     /// Hovering holds a toast; leaving gives it a moment before it goes.
@@ -82,15 +84,19 @@ final class NativeToastCenter: ObservableObject {
     }
 }
 
-/// A borderless, see-through panel holding the stack. Transparent pixels let
-/// clicks through, so it never blocks the page underneath.
+/// A borderless, see-through panel holding the stack. The window server
+/// sends it every click inside its frame, transparent or not, so it ignores
+/// the mouse except while the pointer is over a toast card.
 @MainActor
 final class ToastPanel: NSPanel {
     static let size = NSSize(width: 440, height: 280)
     private let edge: EdgeBox
+    private weak var center: NativeToastCenter?
+    private var mouseTimer: Timer?
 
     init(center: NativeToastCenter) {
         edge = EdgeBox()
+        self.center = center
         super.init(contentRect: NSRect(origin: .zero, size: Self.size), styleMask: [.borderless, .nonactivatingPanel],
                    backing: .buffered, defer: false)
         isOpaque = false
@@ -100,10 +106,33 @@ final class ToastPanel: NSPanel {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         isReleasedWhenClosed = false
         contentView = NSHostingView(rootView: NativeToastStack(center: center, edge: edge))
+        ignoresMouseEvents = true
         orderFrontRegardless()
     }
 
     override var canBecomeKey: Bool { false }
+
+    /// Follows the pointer while toasts are shown. A timer, because plain
+    /// windows under the panel do not report mouse moves.
+    func trackMouse(_ on: Bool) {
+        mouseTimer?.invalidate()
+        mouseTimer = nil
+        if on {
+            let timer = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in MainActor.assumeIsolated { self?.updateMouse() } }
+            RunLoop.main.add(timer, forMode: .common)
+            mouseTimer = timer
+            updateMouse()
+        } else {
+            ignoresMouseEvents = true
+        }
+    }
+
+    func updateMouse() {
+        guard mouseTimer != nil else { return }
+        let mouse = NSEvent.mouseLocation
+        let point = CGPoint(x: mouse.x - frame.minX, y: frame.maxY - mouse.y)
+        ignoresMouseEvents = !(center?.cardFrames.contains { $0.contains(point) } ?? false)
+    }
 
     /// Bottom centre of the window when it is visible, else the top right of
     /// the screen below the menu bar.
@@ -147,6 +176,8 @@ struct NativeToastStack: View {
         .padding(16)
         .frame(width: ToastPanel.size.width, height: ToastPanel.size.height,
                alignment: edge.value == .top ? .topTrailing : .bottom)
+        .coordinateSpace(name: CardFrames.space)
+        .onPreferenceChange(CardFrames.self) { frames in MainActor.assumeIsolated { center.cardFrames = frames } }
         .animation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.38, dampingFraction: 0.82), value: center.toasts)
     }
 }
@@ -190,6 +221,7 @@ struct NativeToastView: View {
         .padding(.vertical, 14)
         .fixedSize(horizontal: true, vertical: false)
         .modifier(Glass())
+        .background(GeometryReader { Color.clear.preference(key: CardFrames.self, value: [$0.frame(in: .named(CardFrames.space))]) })
         .scaleEffect(hovering ? 1.015 : 1)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: hovering)
         .animation(.snappy(duration: 0.28), value: toast.title)
@@ -212,6 +244,13 @@ struct NativeToastView: View {
             Image(systemName: "info.circle.fill").foregroundStyle(.secondary)
         }
     }
+}
+
+/// The toast cards' frames, collected so the panel knows where to take clicks.
+private struct CardFrames: PreferenceKey {
+    static let space = "toast-panel"
+    static let defaultValue: [CGRect] = []
+    static func reduce(value: inout [CGRect], nextValue: () -> [CGRect]) { value += nextValue() }
 }
 
 /// Liquid Glass on macOS 26+, a material card before it.
