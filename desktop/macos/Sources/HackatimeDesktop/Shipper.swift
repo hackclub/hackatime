@@ -38,6 +38,7 @@ struct Shipper {
         var body: [String: Any] = ["hash": frameHash, "ciphertext": ciphertext.base64EncodedString(), "segment_key": key.base64EncodedString()]
         if redacted != nil { body["redacted"] = true; body["redactions"] = regions }
         _ = try await agent.api.request("POST", "api/desktop/v1/ships/\(shipID)/frames", body: body)
+        agent.vault.markShipped(frameHash)
     }
 
     func submit(plan: Plan, projectRoot: URL) async throws -> [String: Any] {

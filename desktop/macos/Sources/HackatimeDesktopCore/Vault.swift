@@ -5,7 +5,7 @@ import Foundation
 /// segment has its own random 256-bit key, which is stored only wrapped
 /// (ChaChaPoly) by a vault key kept in the Keychain. Only the SHA-256 of each
 /// encrypted frame goes into the chain. Destroying a segment's wrapped key
-/// crypto-shreds it; unshipped segments are shredded after 30 days.
+/// crypto-shreds it; every segment is shredded after 30 days.
 public protocol BlobStore {
     func put(_ content: Data, hash: String)
     func get(hash: String) -> Data?
@@ -69,8 +69,13 @@ public final class Vault: BlobStore {
 
     public func put(_ content: Data, hash: String) {
         let url = blobPath(hash)
-        guard !FileManager.default.fileExists(atPath: url.path),
-              let sealed = try? ChaChaPoly.seal(content, using: vaultKey).combined else { return }
+        // A blob seen again is still in use: refresh its date so pruning,
+        // which goes by that date, keeps it.
+        if FileManager.default.fileExists(atPath: url.path) {
+            try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: url.path)
+            return
+        }
+        guard let sealed = try? ChaChaPoly.seal(content, using: vaultKey).combined else { return }
         try? sealed.write(to: url, options: [.atomic, .completeFileProtection])
     }
 
@@ -97,13 +102,20 @@ public final class Vault: BlobStore {
     /// The raw segment key for one frame, released only when the user ships.
     public func releaseKey(for hash: String) throws -> Data {
         lock.lock(); defer { lock.unlock() }
-        guard let index = frames.firstIndex(where: { $0.hash == hash }), let key = try segmentKey(frames[index].segment, create: false) else {
+        guard let frame = frames.first(where: { $0.hash == hash }), let key = try segmentKey(frame.segment, create: false) else {
             throw CocoaError(.fileNoSuchFile)
         }
+        log("release_key", hash)
+        return key.withUnsafeBytes { Data($0) }
+    }
+
+    /// Records that the server accepted a frame, once the upload succeeded.
+    public func markShipped(_ hash: String) {
+        lock.lock(); defer { lock.unlock() }
+        guard let index = frames.firstIndex(where: { $0.hash == hash }) else { return }
         frames[index].shipped = true
         log("ship", hash)
         save()
-        return key.withUnsafeBytes { Data($0) }
     }
 
     /// Re-encrypts a user-redacted copy under the same segment key. The
@@ -116,14 +128,21 @@ public final class Vault: BlobStore {
         return try EvidenceProtocol.seal(plaintext, key: key)
     }
 
-    /// Crypto-shreds unshipped segments older than the retention period.
+    /// Crypto-shreds segments older than the retention period, shipped or
+    /// not (the server keeps its own copy of what was shipped), and deletes
+    /// snapshot blobs no snapshot has used for as long.
     @discardableResult
     public func shredExpired(now: Date = Date()) -> Int {
         lock.lock(); defer { lock.unlock() }
         let cutoff = Int64(now.timeIntervalSince1970) / Self.segmentSeconds - Int64(Self.retentionDays * 86_400) / Self.segmentSeconds
-        let shippedSegments = Set(frames.filter(\.shipped).map(\.segment))
-        let expired = Set(frames.map(\.segment).filter { $0 < cutoff && !shippedSegments.contains($0) })
+        let expired = Set(frames.map(\.segment).filter { $0 < cutoff })
         shred(segments: expired)
+        let blobCutoff = now.addingTimeInterval(-Double(Self.retentionDays * 86_400))
+        let blobs = directory.appendingPathComponent("blobs")
+        for url in (try? FileManager.default.contentsOfDirectory(at: blobs, includingPropertiesForKeys: [.contentModificationDateKey])) ?? [] {
+            guard let date = try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate, date < blobCutoff else { continue }
+            try? FileManager.default.removeItem(at: url)
+        }
         return expired.count
     }
 
