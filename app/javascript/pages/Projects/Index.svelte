@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { Deferred, Link, router } from "@inertiajs/svelte";
   import Search from "hcicons-svelte/search";
   import { WindowVirtualizer } from "virtua/svelte";
@@ -200,6 +201,24 @@
       { preserveScroll: true, onSuccess: closeStatusChangeModal },
     );
   };
+
+  onMount(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+        const el = document.getElementById("project-search") as HTMLInputElement | null;
+        if (el) {
+          event.preventDefault();
+          el.focus();
+          el.select();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  });
+
 </script>
 
 <svelte:head>
