@@ -113,6 +113,9 @@ struct ShipTimelineView: View {
     @State private var resize: Resize?
     /// How far the tracks are scrolled, so a clip's name stays in view while the clip does.
     @State private var scrolled: CGFloat = 0
+    @State private var scroller = TrackScroller()
+    /// Where in the overview's window a drag took hold of it.
+    @State private var panGrab: CGFloat?
 
     /// The tracks, stacked without gaps like the lanes of an editor.
     private enum Lane {
@@ -120,8 +123,8 @@ struct ShipTimelineView: View {
         static let ruler: CGFloat = 26, frames: CGFloat = 66, apps: CGFloat = 54, counts: CGFloat = 24
         static let framesTop = ruler, appsTop = ruler + frames, countsTop = ruler + frames + apps
         static let height = ruler + frames + apps + counts
-        /// Room for the scroll bar under the lanes.
-        static let scroller: CGFloat = 14
+        /// The strip under the lanes, which holds the overview while they are zoomed in.
+        static let overview: CGFloat = 20
         /// How far a clip sits inside its lane, and the height of its title strip.
         static let inset: CGFloat = 5, clipTitle: CGFloat = 18
     }
@@ -364,60 +367,120 @@ struct ShipTimelineView: View {
     /// editor's timeline does: raised lane headers on the left, and clips
     /// lying in recessed lanes under the ruler.
     private var tracks: some View {
-        HStack(alignment: .top, spacing: 0) {
-            VStack(spacing: 0) {
-                laneHeader("Time", symbol: "clock", height: Lane.ruler)
-                laneHeader("Frames", symbol: "film", height: Lane.frames)
-                laneHeader("Apps", symbol: "macwindow.on.rectangle", height: Lane.apps)
-                laneHeader("Counts", symbol: "checkmark.seal.fill", height: Lane.counts)
-                Color(white: 0.17).frame(height: Lane.scroller)
-            }
-            .frame(width: Lane.headerWidth)
-            // The header column stands above the lanes and shades their left edge.
-            .zIndex(1)
-            .shadow(color: .black.opacity(0.55), radius: 4, x: 2)
-            GeometryReader { geometry in
-                let count = max(1, model.timeline.minutes.count)
-                // Zooming stops where the canvas would get too wide to draw.
-                let fit = geometry.size.width / CGFloat(count)
-                let cell = max(fit, min(140, fit * model.zoom, 16_000 / CGFloat(count)))
-                let width = max(geometry.size.width, cell * CGFloat(count))
-                // Read here, not while drawing, so that scrolling redraws the canvas.
-                let visibleFrom = scrolled
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal) {
-                        Canvas { context, size in draw(&context, size: size, cell: cell, visibleFrom: visibleFrom) }
-                            .frame(width: width, height: Lane.height)
-                            .background(ScrollOffsetReader { scrolled = max(0, $0) })
-                            .contentShape(Rectangle())
-                            .gesture(DragGesture(minimumDistance: 0)
-                                .onChanged { value in drag(value, cell: cell, ended: false) }
-                                .onEnded { value in drag(value, cell: cell, ended: true) })
-                            .onContinuousHover { phase in
-                                if case let .active(point) = phase, handle(at: point, cell: cell) != nil {
-                                    NSCursor.resizeLeftRight.set()
-                                } else {
-                                    NSCursor.arrow.set()
-                                }
-                            }
-                            .accessibilityIdentifier("timeline-tracks")
-                            // Marks where the playhead is, for zooming to stay on it.
-                            .overlay(alignment: .topLeading) {
-                                Color.clear.frame(width: 1, height: 1).id(Self.playheadID).padding(.leading, CGFloat(model.playhead) * cell)
-                            }
+        GeometryReader { geometry in
+            let count = max(1, model.timeline.minutes.count)
+            let viewport = max(1, geometry.size.width - Lane.headerWidth)
+            // Zooming stops where the canvas would get too wide to draw.
+            let fit = viewport / CGFloat(count)
+            let cell = max(fit, min(140, fit * model.zoom, 16_000 / CGFloat(count)))
+            let width = max(viewport, cell * CGFloat(count))
+            let zoomed = width > viewport + 0.5
+            // Read here, not while drawing, so that scrolling redraws the canvas.
+            let visibleFrom = scrolled
+            HStack(alignment: .top, spacing: 0) {
+                VStack(spacing: 0) {
+                    laneHeader("Time", symbol: "clock", height: Lane.ruler)
+                    laneHeader("Frames", symbol: "film", height: Lane.frames)
+                    laneHeader("Apps", symbol: "macwindow.on.rectangle", height: Lane.apps)
+                    laneHeader("Counts", symbol: "checkmark.seal.fill", height: Lane.counts)
+                    if zoomed {
+                        laneHeader("Overview", symbol: "map", height: Lane.overview)
+                    } else {
+                        Color(white: 0.17).frame(height: Lane.overview)
                     }
-                    .onChange(of: model.zoom) {
-                        DispatchQueue.main.async { proxy.scrollTo(Self.playheadID, anchor: .center) }
+                }
+                .frame(width: Lane.headerWidth)
+                // The header column stands above the lanes and shades their left edge.
+                .zIndex(1)
+                .shadow(color: .black.opacity(0.55), radius: 4, x: 2)
+                VStack(spacing: 0) {
+                    ScrollViewReader { proxy in
+                        ScrollView(.horizontal) {
+                            Canvas { context, size in draw(&context, size: size, cell: cell, visibleFrom: visibleFrom) }
+                                .frame(width: width, height: Lane.height)
+                                .background(ScrollOffsetReader(scroller: scroller) { scrolled = max(0, $0) })
+                                .contentShape(Rectangle())
+                                .gesture(DragGesture(minimumDistance: 0)
+                                    .onChanged { value in drag(value, cell: cell, ended: false) }
+                                    .onEnded { value in drag(value, cell: cell, ended: true) })
+                                .onContinuousHover { phase in
+                                    if case let .active(point) = phase, handle(at: point, cell: cell) != nil {
+                                        NSCursor.resizeLeftRight.set()
+                                    } else {
+                                        NSCursor.arrow.set()
+                                    }
+                                }
+                                .accessibilityIdentifier("timeline-tracks")
+                                // Marks where the playhead is, for zooming to stay on it.
+                                .overlay(alignment: .topLeading) {
+                                    Color.clear.frame(width: 1, height: 1).id(Self.playheadID).padding(.leading, CGFloat(model.playhead) * cell)
+                                }
+                        }
+                        // The overview shows where the tracks are scrolled to, and scrolls them.
+                        .scrollIndicators(.never)
+                        .frame(height: Lane.height)
+                        .onChange(of: model.zoom) {
+                            DispatchQueue.main.async { proxy.scrollTo(Self.playheadID, anchor: .center) }
+                        }
+                    }
+                    if zoomed {
+                        overview(viewport: viewport, content: width)
                     }
                 }
             }
         }
-        .frame(height: Lane.height + Lane.scroller)
+        .frame(height: Lane.height + Lane.overview)
         .background(Color(white: 0.1))
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Color.black.opacity(0.6)))
         .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
         .environment(\.colorScheme, .dark)
+    }
+
+    /// The whole ship in one strip, shown while the tracks are zoomed in: the
+    /// apps that were in front, what is removed, the playhead, and a window
+    /// over the part the tracks show. Dragging it scrolls the tracks.
+    private func overview(viewport: CGFloat, content: CGFloat) -> some View {
+        let ratio = viewport / content
+        let window = CGRect(x: scrolled * ratio, y: 1.5, width: viewport * ratio, height: Lane.overview - 3)
+        return Canvas { context, size in
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Color(white: 0.06)))
+            context.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: 1)), with: .color(.black.opacity(0.75)))
+            let cell = size.width / CGFloat(max(1, model.timeline.minutes.count))
+            let band = CGRect(x: 0, y: 6, width: size.width, height: size.height - 12)
+            for clip in appClips(cell: cell) {
+                let rect = CGRect(x: clip.from, y: band.minY, width: max(1, clip.to - clip.from), height: band.height)
+                context.fill(Path(rect), with: .color(model.color(clip.bundleID).opacity(0.85)))
+            }
+            for run in model.timeline.removedRuns {
+                let rect = CGRect(x: CGFloat(run.lowerBound) * cell, y: band.minY - 2, width: max(1.5, CGFloat(run.count) * cell), height: band.height + 4)
+                context.fill(Path(rect), with: .color(Color(red: 1, green: 0.27, blue: 0.27)))
+            }
+            // Everything outside the window is dimmed, so the part in view stands out.
+            for side in [CGRect(x: 0, y: 1, width: window.minX, height: size.height - 1),
+                         CGRect(x: window.maxX, y: 1, width: max(0, size.width - window.maxX), height: size.height - 1)] {
+                context.fill(Path(side), with: .color(.black.opacity(0.5)))
+            }
+            let frame = Path(roundedRect: window.insetBy(dx: 0.75, dy: 0), cornerRadius: 3.5)
+            context.fill(frame, with: .color(.white.opacity(0.1)))
+            var raised = context
+            raised.addFilter(.shadow(color: .black.opacity(0.7), radius: 1.5, y: 1))
+            raised.stroke(frame, with: .color(.white.opacity(0.92)), lineWidth: 1.5)
+            let playhead = CGFloat(model.playhead) * cell
+            context.fill(Path(CGRect(x: playhead - 0.75, y: 1, width: 1.5, height: size.height - 1)), with: .color(.white))
+        }
+        .frame(height: Lane.overview)
+        .contentShape(Rectangle())
+        .gesture(DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                // A press on the window drags it from where it was taken; a press elsewhere centres it there.
+                let grab = panGrab ?? (window.minX ... window.maxX ~= value.startLocation.x ? value.startLocation.x - window.minX : window.width / 2)
+                panGrab = grab
+                scroller.scroll(to: min(max(0, value.location.x - grab), viewport - window.width) / ratio)
+            }
+            .onEnded { _ in panGrab = nil })
+        .help("The whole ship. Drag to move along it.")
+        .accessibilityIdentifier("timeline-overview")
     }
 
     /// A raised panel naming a lane: lit along its top edge, dark along its bottom.
@@ -748,13 +811,18 @@ struct ShipTimelineView: View {
 /// on macOS 14 does not say, and a view's frame there does not move with
 /// the scrolling, so this watches the AppKit scroll view underneath.
 private struct ScrollOffsetReader: NSViewRepresentable {
+    let scroller: TrackScroller
     let onChange: (CGFloat) -> Void
 
     func makeNSView(context: Context) -> Probe { Probe() }
-    func updateNSView(_ view: Probe, context: Context) { view.onChange = onChange }
+    func updateNSView(_ view: Probe, context: Context) {
+        view.onChange = onChange
+        view.scroller = scroller
+    }
 
     final class Probe: NSView {
         var onChange: (CGFloat) -> Void = { _ in }
+        var scroller: TrackScroller? { didSet { scroller?.clip = enclosingScrollView?.contentView } }
         private var observer: NSObjectProtocol?
 
         override func viewDidMoveToWindow() {
@@ -762,6 +830,7 @@ private struct ScrollOffsetReader: NSViewRepresentable {
             if let observer { NotificationCenter.default.removeObserver(observer) }
             observer = nil
             // Nil once the window has closed, which is when the watching ends.
+            scroller?.clip = window == nil ? nil : enclosingScrollView?.contentView
             guard window != nil, let clip = enclosingScrollView?.contentView else { return }
             clip.postsBoundsChangedNotifications = true
             observer = NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: clip, queue: nil) { [weak self, weak clip] _ in
@@ -769,6 +838,19 @@ private struct ScrollOffsetReader: NSViewRepresentable {
                 DispatchQueue.main.async { self?.onChange(clip?.bounds.minX ?? 0) }
             }
         }
+    }
+}
+
+/// Scrolls the tracks sideways from outside them, as the overview does.
+/// SwiftUI on macOS 14 can only scroll to a view, not to an offset.
+@MainActor
+final class TrackScroller {
+    fileprivate weak var clip: NSClipView?
+
+    func scroll(to x: CGFloat) {
+        guard let clip else { return }
+        clip.scroll(to: NSPoint(x: x, y: clip.bounds.minY))
+        clip.enclosingScrollView?.reflectScrolledClipView(clip)
     }
 }
 
