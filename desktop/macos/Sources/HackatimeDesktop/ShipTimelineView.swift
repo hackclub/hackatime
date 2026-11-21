@@ -333,14 +333,28 @@ struct ShipTimelineView: View {
     private var footer: some View {
         let timeline = model.timeline
         let counted = timeline.minutes.filter(\.counts).count
-        return HStack {
-            Text("\(timeline.minutes.count) minutes, \(counted) of them count towards \(timeline.project). \(timeline.removed.count) removed; \(timeline.keptCountedMinutes) counted minutes will be shipped.")
-                .font(.callout).foregroundStyle(.secondary).accessibilityIdentifier("timeline-summary")
+        let kept = timeline.keptCountedMinutes
+        return HStack(spacing: 10) {
+            Text("\(Self.duration(timeline.minutes.count * 60)) in the ship's range  ·  \(Self.duration(counted * 60)) count towards \(timeline.project)")
+                .font(.callout).foregroundStyle(.secondary).lineLimit(1)
             Spacer()
+            // What the ship holds now, kept up to date with every cut.
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(Self.duration(kept * 60)).font(.title3.weight(.semibold)).monospacedDigit()
+                Text("after cuts").font(.callout).foregroundStyle(.secondary)
+                if kept < counted {
+                    Text("−\(Self.duration((counted - kept) * 60))").font(.callout.weight(.semibold)).monospacedDigit()
+                        .foregroundStyle(Color(red: 0.86, green: 0.2, blue: 0.2))
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("timeline-summary")
+            .help("\(timeline.removed.count) of \(timeline.minutes.count) minutes removed. The time left is what counts towards \(timeline.project) and stays in the ship; the server decides what it earns.")
+            .padding(.trailing, 6)
             Button("Cancel") { model.finish(false) }.keyboardShortcut(.cancelAction)
             Button("Continue") { model.finish(true) }.keyboardShortcut(.defaultAction)
-                .disabled(timeline.keptCountedMinutes == 0)
-                .help(timeline.keptCountedMinutes == 0 ? "Nothing that counts is left in the ship" : "Ask the server which frames it needs")
+                .disabled(kept == 0)
+                .help(kept == 0 ? "Nothing that counts is left in the ship" : "Ask the server which frames it needs")
         }
     }
 
