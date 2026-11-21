@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         agent.start()
         rebuild()
         refresh = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in Task { @MainActor in self?.rebuild() } }
+        agent.onUnpaired = { [weak self] in self?.window.publishState(); self?.rebuild() }
         NSApp.mainMenu = mainMenu()
         window.onChange = { [weak self] in self?.rebuild() }
         if CommandLine.arguments.contains("--self-test") { Task { await SelfTest.run() } }

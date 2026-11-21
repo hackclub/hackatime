@@ -62,4 +62,28 @@ final class AgentTests: XCTestCase {
         XCTAssertTrue(agent.status.contains("mono_ms must increase"), agent.status)
         XCTAssertTrue(agent.chain.pending.isEmpty)
     }
+
+    func testDeviceUnpairedOnTheSiteStopsRecording() async {
+        StubServer.handler = { _ in (401, ["error": "Unauthorized"]) }
+        let agent = makeAgent()
+        await agent.tick()
+        XCTAssertFalse(agent.isPaired)
+        XCTAssertNil(store.read("device-token"))
+        XCTAssertTrue(agent.chain.pending.isEmpty, "nothing is queued for a revoked device")
+
+        StubServer.requests = []
+        await agent.tick()
+        XCTAssertEqual(StubServer.requests, [], "an unpaired Mac stops calling the server")
+        XCTAssertFalse(Agent(support: support, store: store, session: StubServer.session).isPaired, "stays unpaired after a relaunch")
+    }
+
+    func testRevokedTokenWhileSendingBlocksAlsoUnpairs() async {
+        StubServer.handler = { request in
+            request.url!.path.hasSuffix("/beacon") ? (200, StubServer.beacon()) : (401, ["error": "Unauthorized"])
+        }
+        let agent = makeAgent()
+        await agent.tick()
+        XCTAssertFalse(agent.isPaired)
+        XCTAssertFalse(agent.status.contains("Queued"), agent.status)
+    }
 }

@@ -135,10 +135,29 @@ final class Agent: ObservableObject {
 
     func unpair() async {
         try? await api.unpair()
+        forgetPairing()
+        status = "Not signed in"
+    }
+
+    /// Called when the pairing ends without the app asking, such as when the
+    /// device is removed on the site; the app uses it to refresh its window.
+    var onUnpaired: () -> Void = {}
+
+    private func forgetPairing() {
         store.delete("device-token")
         api.token = nil
         settings.keyEnrolled = false
-        status = "Not signed in"
+    }
+
+    /// The server no longer knows this token: the device was unpaired on the
+    /// site. Stop recording and say so, rather than queueing for ever.
+    private func pairingRevoked() {
+        forgetPairing()
+        focusSamples.removeAll(); framesThisMinute.removeAll()
+        status = "Unpaired on the site"
+        NativeToastCenter.shared.show("This Mac was unpaired", detail: "Tracking has stopped. Pair again to carry on.",
+                                      style: .error, id: "unpaired")
+        onUnpaired()
     }
 
     // MARK: Sampling
@@ -161,7 +180,7 @@ final class Agent: ObservableObject {
     }
 
     private func captureTimelapseFrame() async {
-        guard !settings.paused, WindowCapture.hasPermission, let sample = focus.sample(),
+        guard isPaired, !settings.paused, WindowCapture.hasPermission, let sample = focus.sample(),
               classifier.classify(sample).label != .unrelated, classifier.isCaptureAllowed(sample),
               let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
               let image = try? await WindowCapture.captureFocusedWindow(pid: pid),
@@ -187,8 +206,15 @@ final class Agent: ObservableObject {
         guard isPaired, !settings.paused else {
             _ = input.takeMinute(); focusSamples.removeAll(); return
         }
-        let beacon: Beacon? = (try? await api.beacon()) ?? lastBeacon
-        guard let beacon else { status = "Offline, waiting for the server"; return }
+        let fresh: Beacon?
+        do {
+            fresh = try await api.beacon()
+        } catch let failure as APIClient.Failure where failure.status == 401 {
+            pairingRevoked(); return
+        } catch {
+            fresh = nil
+        }
+        guard let beacon = fresh ?? lastBeacon else { status = "Offline, waiting for the server"; return }
         if beacon != lastBeacon { lastBeacon = beacon }
 
         scheduleTimelapse(beacon)
@@ -237,6 +263,8 @@ final class Agent: ObservableObject {
             status = "Server refused \(rejection.dropped) minute\(rejection.dropped == 1 ? "" : "s"): \(rejection.message)"
             NativeToastCenter.shared.show("The server refused \(rejection.dropped) minute\(rejection.dropped == 1 ? "" : "s")",
                                           detail: rejection.message, style: .error, id: "chain")
+        } catch let failure as APIClient.Failure where failure.status == 401 {
+            pairingRevoked()
         } catch {
             status = "Queued \(chain.pending.count) minutes (offline)"
         }
