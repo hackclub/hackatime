@@ -30,6 +30,18 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(chain.pending.map(\.seq), [2])
     }
 
+    func testMonoKeepsRisingAfterARebootAndAcrossLaunches() throws {
+        let chain = ChainState()
+        let t0 = Date(timeIntervalSince1970: 1_740_000_005)
+        let before = try XCTUnwrap(chain.append(payload: MinutePayload(), beacon: beacon, now: t0, monoMs: 3_600_000, key: nil))
+        // The Mac restarts: uptime begins again near zero and the app reloads its chain.
+        let relaunched = try JSONDecoder().decode(ChainState.self, from: JSONEncoder().encode(chain))
+        let rebooted = try XCTUnwrap(relaunched.append(payload: MinutePayload(), beacon: beacon, now: t0 + 600, monoMs: 30_000, key: nil))
+        let next = try XCTUnwrap(relaunched.append(payload: MinutePayload(), beacon: beacon, now: t0 + 660, monoMs: 90_000, key: nil))
+        XCTAssertGreaterThan(rebooted.monoMs, before.monoMs)
+        XCTAssertEqual(next.monoMs - rebooted.monoMs, 60_000, "time elapsed since the reboot is kept")
+    }
+
     func testDeviceKeyPersistsAcrossLaunches() throws {
         let store = MemoryStore()
         let a = try DeviceKey.loadOrCreate(store: store)

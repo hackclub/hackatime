@@ -103,6 +103,10 @@ public final class ChainState: Codable {
     public private(set) var head: String
     public private(set) var lastMinute: Int?
     public private(set) var pending: [Block] = []
+    /// The last `mono_ms` sent, and what is added to the system clock so that
+    /// it keeps rising after a reboot restarts uptime at zero.
+    public private(set) var lastMonoMs: Int64?
+    private var monoOffset: Int64?
 
     public init(seq: Int = 0, head: String = EvidenceProtocol.zeroHash) {
         self.seq = seq
@@ -110,12 +114,19 @@ public final class ChainState: Codable {
     }
 
     /// Builds, signs and queues the next block. Returns nil when this minute
-    /// already has a block (minutes must strictly increase).
+    /// already has a block (minutes must strictly increase). `monoMs` is the
+    /// system uptime; the block carries it shifted past the last block's.
     @discardableResult
     public func append(payload: MinutePayload, beacon: Beacon, now: Date, monoMs: Int64, key: DeviceKey?) throws -> Block? {
         let capturedAtMs = Int64(now.timeIntervalSince1970 * 1000)
         let minute = Int(capturedAtMs / 60_000)
         if let lastMinute, minute <= lastMinute { return nil }
+        var monoMs = monoMs + (monoOffset ?? 0)
+        if let lastMonoMs, monoMs <= lastMonoMs {
+            // Uptime went back, so the Mac restarted: carry on from the last block.
+            monoOffset = (monoOffset ?? 0) + lastMonoMs + 1 - monoMs
+            monoMs = lastMonoMs + 1
+        }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let json = String(decoding: try encoder.encode(payload), as: UTF8.self)
@@ -127,6 +138,7 @@ public final class ChainState: Codable {
         seq = block.seq
         head = hash
         lastMinute = minute
+        lastMonoMs = monoMs
         pending.append(block)
         return block
     }
