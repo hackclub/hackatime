@@ -22,6 +22,22 @@ public struct FocusSample: Equatable {
         guard let url, let host = URL(string: url)?.host?.lowercased() else { return nil }
         return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
     }
+
+    /// Whether the URL is covered by a domain rule. `x.com` covers x.com and
+    /// its subdomains but not dropbox.com; `reddit.com/r/all` also needs the
+    /// path; `docs.` covers any host starting with it; a rule with no dot,
+    /// such as `bank`, covers any host with it in a label.
+    public func matches(_ rule: String) -> Bool {
+        guard let domain else { return false }
+        if rule.hasSuffix(".") { return domain.hasPrefix(rule) }
+        if !rule.contains(".") { return domain.split(separator: ".").contains { $0.contains(rule) } }
+        let parts = rule.split(separator: "/", maxSplits: 1)
+        let host = String(parts[0])
+        guard domain == host || domain.hasSuffix("." + host) else { return false }
+        guard parts.count == 2, let url else { return true }
+        let path = (URL(string: url)?.path ?? "").lowercased()
+        return path == "/" + parts[1] || path.hasPrefix("/" + parts[1] + "/")
+    }
 }
 
 public struct FocusClassifier {
@@ -74,8 +90,7 @@ public struct FocusClassifier {
         if neverBundleIDs.contains(sample.bundleID) { return true }
         let lowerTitle = sample.title.lowercased()
         if lowerTitle.contains("private browsing") || lowerTitle.contains("incognito") || lowerTitle.contains("inprivate") { return true }
-        guard let url = sample.url?.lowercased() else { return false }
-        return neverDomains.contains { url.contains($0) }
+        return neverDomains.contains(where: sample.matches)
     }
 
     /// Whether a window may be screenshotted at all: never-list loses, then
@@ -84,8 +99,22 @@ public struct FocusClassifier {
         if Self.isNever(sample) { return false }
         let label = classify(sample, activeProject: activeProject).label
         if label == .project { return true }
-        if label == .research, let domain = sample.domain {
-            return Self.researchDomains.contains { domain.contains($0) } || Self.aiChatDomains.contains { domain.contains($0) }
+        if label == .research {
+            return Self.researchDomains.contains(where: sample.matches) || Self.aiChatDomains.contains(where: sample.matches)
+        }
+        return false
+    }
+
+    /// A project name as a whole word: "site" is in "index.html — site" and
+    /// "~/code/site/app" but not in "client-website-redesign".
+    static func containsName(_ name: String, in text: String) -> Bool {
+        let nameChar: (Character) -> Bool = { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" }
+        var start = text.startIndex
+        while let range = text.range(of: name, range: start ..< text.endIndex) {
+            let before = range.lowerBound == text.startIndex ? nil : text[text.index(before: range.lowerBound)]
+            let after = range.upperBound == text.endIndex ? nil : text[range.upperBound]
+            if !(before.map(nameChar) ?? false), !(after.map(nameChar) ?? false) { return true }
+            start = text.index(after: range.lowerBound)
         }
         return false
     }
@@ -96,7 +125,7 @@ public struct FocusClassifier {
     public func classify(_ sample: FocusSample, activeProject: String? = nil) -> (label: FocusLabel, project: String?) {
         if Self.isNever(sample) { return (.unrelated, nil) }
         let haystack = [sample.title, sample.url ?? ""].joined(separator: " ").lowercased()
-        let project = projectNames.first { haystack.contains($0) }
+        let project = projectNames.first { Self.containsName($0, in: haystack) }
 
         if Self.editorBundleIDs.contains(sample.bundleID) || Self.terminalBundleIDs.contains(sample.bundleID) {
             let project = project ?? (sample.title.isEmpty ? activeProject?.lowercased() : nil)
@@ -104,10 +133,10 @@ public struct FocusClassifier {
         }
         if Self.browserBundleIDs.contains(sample.bundleID), let domain = sample.domain {
             if Self.localHosts.contains(domain) { return (.project, project) }
-            if Self.unrelatedDomains.contains(where: { (sample.url ?? "").lowercased().contains($0) }) { return (.unrelated, nil) }
-            if Self.aiChatDomains.contains(where: { domain.contains($0) }) { return (.research, project) }
-            if Self.researchDomains.contains(where: { domain.contains($0) }) {
-                return (project != nil && domain.contains("github.com") ? .project : .research, project)
+            if Self.unrelatedDomains.contains(where: sample.matches) { return (.unrelated, nil) }
+            if Self.aiChatDomains.contains(where: sample.matches) { return (.research, project) }
+            if Self.researchDomains.contains(where: sample.matches) {
+                return (project != nil && sample.matches("github.com") ? .project : .research, project)
             }
         }
         if let project, sample.bundleID == "com.apple.Preview" || sample.bundleID.hasPrefix("com.figma") {

@@ -100,6 +100,30 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(classifier.classify(local).label, .project)
     }
 
+    func testDomainsAndProjectNamesMatchWholeNamesOnly() {
+        let classifier = FocusClassifier(projectNames: ["sync-app"])
+        func label(_ url: String) -> FocusLabel {
+            classifier.classify(FocusSample(bundleID: "com.google.Chrome", appName: "Chrome", title: "Page", url: url)).label
+        }
+        XCTAssertEqual(label("https://docs.dropbox.com/api/files"), .research, "docs., not x.com")
+        XCTAssertNotEqual(label("https://developer.box.com/reference"), .unrelated)
+        XCTAssertEqual(label("https://x.com/home"), .unrelated)
+        XCTAssertEqual(label("https://mobile.twitter.com/home"), .unrelated)
+        XCTAssertEqual(label("https://reddit.com/r/all"), .unrelated)
+        XCTAssertNotEqual(label("https://reddit.com/r/swift"), .unrelated)
+
+        let repo = FocusSample(bundleID: "com.google.Chrome", appName: "Chrome", title: "Repo", url: "https://github.com/me/bank-statement-parser")
+        XCTAssertFalse(FocusClassifier.isNever(repo), "bank in a path is not a bank")
+        XCTAssertTrue(FocusClassifier.isNever(FocusSample(bundleID: "com.google.Chrome", appName: "Chrome", title: "", url: "https://www.bankofamerica.com/")))
+        XCTAssertTrue(FocusClassifier.isNever(FocusSample(bundleID: "com.google.Chrome", appName: "Chrome", title: "", url: "https://stripe.com/dashboard/payments")))
+
+        let site = FocusClassifier(projectNames: ["site"])
+        let other = site.classify(FocusSample(bundleID: "com.microsoft.VSCode", appName: "Code", title: "index.html — client-website-redesign"))
+        XCTAssertNil(other.project)
+        XCTAssertEqual(site.classify(FocusSample(bundleID: "com.microsoft.VSCode", appName: "Code", title: "index.html — site")).project, "site")
+        XCTAssertEqual(site.classify(FocusSample(bundleID: "com.apple.Terminal", appName: "Terminal", title: "me@mac: ~/code/site/app")).project, "site")
+    }
+
     func testEditorWithoutAccessibilityUsesTheActiveProject() {
         let classifier = FocusClassifier(projectNames: ["sync-app", "Blog"])
         let untitled = FocusSample(bundleID: "com.microsoft.VSCode", appName: "Code", title: "")
