@@ -25,13 +25,14 @@ module Evidence
       blocks = @ship.blocks.includes(:evidence_beacon).to_a
       by_seq = blocks.index_by(&:seq)
       first_files = nil
+      fingerprint_cache = {}
       checks = @ship.spot_check_seqs.map do |seq|
         snapshot = @snapshots[seq]
         next { "seq" => seq, "root_ok" => false, "plausible" => false, "missing" => true } unless snapshot
 
         leaves, files = SnapshotCheck.decode_snapshot(snapshot["salt"].to_s, snapshot["entries"])
         first_files ||= files
-        SnapshotCheck.check(block: by_seq.fetch(seq), salt_hex: snapshot["salt"], leaves:, files:, final_files: @final_files)
+        SnapshotCheck.check(block: by_seq.fetch(seq), salt_hex: snapshot["salt"], leaves:, files:, final_files: @final_files, cache: fingerprint_cache)
       end
 
       research_ratio = blocks.empty? ? 0 : blocks.count { |block| block.focus == "research" }.fdiv(blocks.length)

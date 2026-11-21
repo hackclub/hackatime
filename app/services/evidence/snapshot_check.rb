@@ -53,12 +53,15 @@ module Evidence
       end
     end
 
-    def check(block:, salt_hex:, leaves:, files:, final_files:)
+    # cache: { content => fingerprints }, shared across the checks of one
+    # submission so each distinct file is fingerprinted once.
+    def check(block:, salt_hex:, leaves:, files:, final_files:, cache: {})
       config = Config.current[:plausibility]
       root_ok = salt_hex.to_s.match?(Crypto::HEX64) && Crypto.merkle_root(leaves) == block.tree_root
       shared = files.keys & final_files.keys
-      final_prints = fingerprints(final_files.slice(*shared).values.join("\n"), config)
-      snapshot_prints = fingerprints(files.slice(*shared).values.join("\n"), config)
+      prints = ->(contents) { contents.flat_map { |content| cache[content] ||= fingerprints(content, config) }.uniq }
+      final_prints = prints.(final_files.values_at(*shared))
+      snapshot_prints = prints.(files.values_at(*shared))
       overlap = snapshot_prints.empty? ? 0.0 : (snapshot_prints & final_prints).length.to_f / snapshot_prints.length
       {
         "seq" => block.seq, "root_ok" => root_ok, "files" => leaves.length, "shared_files" => shared.length,

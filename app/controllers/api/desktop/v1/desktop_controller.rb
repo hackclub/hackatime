@@ -10,6 +10,11 @@ class Api::Desktop::V1::DesktopController < ActionController::API
   before_action :authenticate_device!, except: :pair
   rate_limit to: 10, within: 10.minutes, only: :pair, by: -> { client_ip }
   rate_limit to: 30, within: 1.minute, only: :blocks, by: -> { @device&.id || client_ip }
+  # Shipping does real work per request (decrypting frames, fingerprinting
+  # snapshots), so it is paced per device well above what an honest ship needs.
+  rate_limit to: 20, within: 10.minutes, only: :create_ship, by: -> { @device.id }
+  rate_limit to: 300, within: 10.minutes, only: :upload_frame, by: -> { @device.id }
+  rate_limit to: 5, within: 10.minutes, only: :submit_ship, by: -> { @device.id }
 
   rescue_from ActiveRecord::RecordNotFound, with: -> { render json: { error: "Not found" }, status: :not_found }
   rescue_from ActionController::ParameterMissing, with: ->(e) { render json: { error: e.message }, status: :bad_request }
@@ -130,8 +135,8 @@ class Api::Desktop::V1::DesktopController < ActionController::API
     return render json: { error: "Frames can only be added to drafts" }, status: :conflict unless ship.draft?
 
     frame_hash = params.require(:hash).to_s
-    committed = ship.blocks.flat_map { |block| block.frames.map { |frame| frame.merge("seq" => block.seq, "captured_at_ms" => block.captured_at_ms) } }
-      .find { |frame| frame["hash"] == frame_hash }
+    block = ship.blocks.where("payload -> 'frames' @> ?", [ { hash: frame_hash } ].to_json).first
+    committed = block&.frames&.find { |frame| frame["hash"] == frame_hash }&.merge("seq" => block.seq, "captured_at_ms" => block.captured_at_ms)
     return render json: { error: "Frame hash is not committed in this range" }, status: :unprocessable_entity unless committed
 
     ciphertext = Base64.strict_decode64(params.require(:ciphertext).to_s)
