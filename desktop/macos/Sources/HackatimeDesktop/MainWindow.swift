@@ -53,6 +53,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKNavigationDelega
         let controller = webView.configuration.userContentController
         controller.removeAllUserScripts()
         controller.addUserScript(stateScript())
+        guard webView.url.map(isSite) == true else { return }
         webView.evaluateJavaScript("window.hackatimeDesktop = \(stateJSON()); window.dispatchEvent(new Event('hackatime-native'))")
     }
 
@@ -69,7 +70,9 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKNavigationDelega
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsMagnification = false
         webView.setValue(false, forKey: "drawsBackground")
+        #if DEBUG
         webView.isInspectable = true
+        #endif
 
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1120, height: 760),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -128,7 +131,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKNavigationDelega
     }
 
     private func send(_ event: [String: Any]) {
-        guard let webView, let data = try? JSONSerialization.data(withJSONObject: event) else { return }
+        guard let webView, webView.url.map(isSite) == true, let data = try? JSONSerialization.data(withJSONObject: event) else { return }
         webView.evaluateJavaScript("window.dispatchEvent(new CustomEvent('hackatime-native', { detail: \(String(decoding: data, as: UTF8.self)) }))")
     }
 
@@ -138,8 +141,23 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKNavigationDelega
         return (try? JSONSerialization.data(withJSONObject: state)).map { String(decoding: $0, as: UTF8.self) } ?? "{}"
     }
 
-    private func stateScript() -> WKUserScript {
-        WKUserScript(source: "window.hackatimeDesktop = \(stateJSON());", injectionTime: .atDocumentStart, forMainFrameOnly: true)
+    private func stateScript() -> WKUserScript { Self.stateScript(stateJSON(), site: agent.settings.site) }
+
+    /// The state, including this Mac's name, is only for the companion site:
+    /// the window also loads Hackatime's sign-in pages and whatever they
+    /// redirect to, so the script checks the page's origin before setting it.
+    static func stateScript(_ json: String, site: URL) -> WKUserScript {
+        let origin = (try? JSONSerialization.data(withJSONObject: origin(of: site), options: .fragmentsAllowed))
+            .map { String(decoding: $0, as: UTF8.self) } ?? "null"
+        return WKUserScript(source: "if (location.origin === \(origin)) { window.hackatimeDesktop = \(json); }",
+                            injectionTime: .atDocumentStart, forMainFrameOnly: true)
+    }
+
+    /// What `location.origin` reads on `url`'s pages (no default port).
+    static func origin(of url: URL) -> String {
+        let scheme = url.scheme?.lowercased() ?? ""
+        let port = url.port.flatMap { (scheme == "https" && $0 == 443) || (scheme == "http" && $0 == 80) ? nil : $0 }
+        return "\(scheme)://\(url.host?.lowercased() ?? "")" + (port.map { ":\($0)" } ?? "")
     }
 
     private func applyTheme(background: String, scheme: String, to window: NSWindow) {
@@ -153,6 +171,8 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKNavigationDelega
         let site = agent.settings.site
         return origin.protocol == site.scheme && origin.host == site.host && (origin.port == 0 ? nil : origin.port) == site.port
     }
+
+    private func isSite(_ url: URL) -> Bool { Self.origin(of: url) == Self.origin(of: agent.settings.site) }
 
     /// The site and Hackatime (for signing in) stay in the window.
     private func belongsInWindow(_ url: URL) -> Bool {
