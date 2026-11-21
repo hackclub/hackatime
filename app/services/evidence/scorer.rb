@@ -83,8 +83,8 @@ module Evidence
 
     def same_project?(name) = name.to_s.strip.casecmp?(@ship.project.to_s.strip)
 
-    # The same frame hash (or perceptual hash) several minutes running means
-    # a frozen or replayed screen, not work.
+    # The same frame hash several minutes running means a frozen or replayed
+    # screen, not work: the app repeats a hash while the screen is unchanged.
     def flag_duplicate_frames!(minutes)
       run = []
       last = nil
@@ -95,7 +95,7 @@ module Evidence
         run = []
       end
       minutes.each do |minute|
-        fingerprint = minute[:frames].map { |frame| frame["phash"] || frame["hash"] }.compact.last
+        fingerprint = minute[:frames].filter_map { |frame| frame["hash"] }.last
         if fingerprint.nil?
           next
         elsif fingerprint == last

@@ -392,10 +392,13 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     token = pair_device
     stuck = encrypted_frame("same screen")
     6.times { |i| post_minute(token, i, payload(i, frame: stuck.merge(phash: "aaaa"))) }
-    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 6 }, headers: auth(token), as: :json
+    # Steady editing: new frames whose coarse perceptual hash stays the same.
+    6.times { |i| post_minute(token, 6 + i, payload(6 + i, frame: encrypted_frame("edit #{i}").merge(phash: "aaaa"))) }
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 12 }, headers: auth(token), as: :json
     result = Evidence::Scorer.call(ship: EvidenceShip.find(response.parsed_body["id"]))
     assert_includes result.flags, "duplicate_frames"
-    assert_equal 0, result.scored_seconds
+    assert_equal 6, result.stretches.sum { |stretch| stretch.features["duplicate_frames"] }
+    assert_equal 6 * 45, result.claimed_seconds, "only the minutes after the frozen run count"
   end
 
   test "AI claims are summed the same way everywhere, and a stored block without an ai object is read as no claims" do
