@@ -168,16 +168,18 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKNavigationDelega
     // MARK: Navigation
 
     private func isSite(_ origin: WKSecurityOrigin) -> Bool {
-        let site = agent.settings.site
-        return origin.protocol == site.scheme && origin.host == site.host && (origin.port == 0 ? nil : origin.port) == site.port
+        var parts = URLComponents()
+        parts.scheme = origin.protocol
+        parts.host = origin.host
+        parts.port = origin.port == 0 ? nil : origin.port
+        return parts.url.map(isSite) == true
     }
 
     private func isSite(_ url: URL) -> Bool { Self.origin(of: url) == Self.origin(of: agent.settings.site) }
 
     /// The site and Hackatime (for signing in) stay in the window.
     private func belongsInWindow(_ url: URL) -> Bool {
-        [agent.settings.site, URL(string: agent.settings.baseURL)].compactMap { $0 }
-            .contains { $0.scheme == url.scheme && $0.host == url.host && $0.port == url.port }
+        isSite(url) || URL(string: agent.settings.baseURL).map { Self.origin(of: $0) == Self.origin(of: url) } == true
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
@@ -218,8 +220,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKNavigationDelega
     /// don't, so they sit below the titlebar instead of under it.
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
         guard let container = webView.superview, let url = webView.url else { return }
-        let site = agent.settings.site
-        let inset = url.host == site.host && url.port == site.port ? 0 : Self.titlebarHeight
+        let inset = isSite(url) ? 0 : Self.titlebarHeight
         webView.frame = NSRect(x: 0, y: 0, width: container.bounds.width, height: container.bounds.height - inset)
     }
 
