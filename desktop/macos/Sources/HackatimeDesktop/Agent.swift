@@ -237,7 +237,7 @@ final class Agent: ObservableObject {
         guard isPaired, !settings.paused, WindowCapture.hasPermission, let sample = focus.sample(),
               classifier.classify(sample).label != .unrelated, classifier.isCaptureAllowed(sample, activeProject: activeProject),
               let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
-              let image = try? await WindowCapture.captureFocusedWindow(pid: pid),
+              let image = try? await WindowCapture.captureFocusedWindow(pid: pid, expectedTitle: sample.title),
               let (redacted, _) = WindowCapture.redact(image) else { return }
         let now = Int64(Date().timeIntervalSince1970 * 1000)
         let thumbnail = WindowCapture.thumbnail(redacted)
