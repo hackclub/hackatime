@@ -13,7 +13,8 @@ module Evidence
       injected_ratio_threshold: 0.3,
       human_rhythm_floor: 0.35,
       duplicate_frame_run: 3,
-      timelapse_window_seconds: 30,
+      timelapse_interval_seconds: 20, # must divide 60
+      timelapse_window_seconds: 10,
       clock_skew_seconds: 300,
       offline_max_seconds: 86_400,
       offline_penalty: 0.7,

@@ -274,10 +274,39 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     4.times { |i| post_minute(token, 8 + i, payload(8 + i, frame: encrypted_frame("stale #{i}").merge(at_ms: stale.(8 + i)))) }
     post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 12 }, headers: auth(token), as: :json
     stretch = Evidence::Scorer.call(ship: EvidenceShip.find(response.parsed_body["id"])).stretches.sole
-    assert_equal 12, stretch.features["frames_due"]
+    assert_equal 36, stretch.features["frames_due"], "three frames a minute"
     assert_equal 4, stretch.features["frames_on_time"], "frames claimed after their block or long before it are not on time"
     assert_equal 0, stretch.features["hardware_tier"]
     assert_equal 0.0, @user.desktop_devices.sole.confidence_bonus, "secure_enclave was only claimed"
+  end
+
+  test "a timelapse frame is due every 20 seconds, and each due time is credited once" do
+    token = pair_device
+    first_due = lambda do |i|
+      travel_to START + i.minutes
+      beacon = beacon_for(token)
+      assert_equal 20, beacon["timelapse_interval_seconds"]
+      due = Time.iso8601(beacon["next_expected_at"])
+      assert_equal [ beacon["minute"], true ], [ due.to_i / 60, due.sec < 20 ], "the first frame is due in the beacon minute's first 20 seconds"
+      due.to_i * 1000
+    end
+    frames = ->(name, count) { count.times.map { |k| encrypted_frame("#{name} #{k}") } }
+
+    # A frame at each of the minute's three due times.
+    post_minute(token, 0, payload(0, frames: frames.("each", 3)))
+    # Three frames a second apart stand for one due time.
+    crowded = first_due.(1)
+    post_minute(token, 1, payload(1, frames: frames.("crowded", 3).each_with_index.map { |frame, k| frame.merge(at_ms: crowded + (k + 1) * 1000) }))
+    # One frame, which the next block then reports again.
+    once = first_due.(2)
+    post_minute(token, 2, payload(2, frames: frames.("once", 1)))
+    post_minute(token, 3, payload(3, frames: frames.("again", 1).map { |frame| frame.merge(at_ms: once) }))
+
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 4 }, headers: auth(token), as: :json
+    features = Evidence::Scorer.call(ship: EvidenceShip.find(response.parsed_body["id"])).stretches.sole.features
+    assert_equal 8, features["frames"]
+    assert_equal 12, features["frames_due"], "three for each of the four minutes"
+    assert_equal 5, features["frames_on_time"], "three, one and one: a due time is met once however many frames or blocks claim it"
   end
 
   test "pairing the same Mac again replaces the old pairing, but another account cannot take it" do
@@ -446,7 +475,7 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal [ 7 * 45, 2 * 45 ], after.stretches.map(&:counted_seconds), "a kept minute earns its 45 seconds and a removed one is never a grace minute"
     stretch = after.stretches.first
     assert_equal({ "removed" => 2 }, stretch.reasons)
-    assert_equal [ 9.0, 7, 0.0 ], stretch.features.values_at("minutes", "frames_due", "unrelated_ratio"), "removed minutes owe no frame"
+    assert_equal [ 9.0, 21, 0.0 ], stretch.features.values_at("minutes", "frames_due", "unrelated_ratio"), "removed minutes owe no frame"
     assert_in_delta 1 / 9.0, stretch.features["research_ratio"], 0.0001, "the stretch still describes what the chain recorded"
 
     post "/api/desktop/v1/ships/#{edited["id"]}/submit", headers: auth(token), as: :json,
@@ -759,12 +788,12 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     response.parsed_body
   end
 
-  def payload(i, tree: nil, frame: nil)
+  def payload(i, tree: nil, frame: nil, frames: [ frame ].compact)
     body = { focus: "project", project: "sync-app", category: "coding", active_s: 45, keys: 80, clicks: 4, moves: 30,
              injected: 0, rhythm: 0.7, jiggler: 0.05, edits: 3, commits: (i % 7).zero? ? 1 : 0, builds: 1,
              ai: { prompts: 1, in_tokens: 400, out_tokens: 900, ai_lines: 2, human_lines: 3 } }
     body[:tree] = { root: tree_root(tree) } if tree
-    body[:frames] = [ { hash: frame[:hash], kind: "timelapse", phash: frame[:phash], at_ms: frame[:at_ms] }.compact ] if frame
+    body[:frames] = frames.map { |f| { hash: f[:hash], kind: "timelapse", phash: f[:phash], at_ms: f[:at_ms] }.compact } if frames.any?
     body
   end
 
@@ -772,12 +801,12 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     travel_to START + i.minutes
     beacon = beacon_for(token)
     device = user.desktop_devices.sole
-    # The timelapse frame lands on the second the beacon asked for, and the
-    # block reporting it is sealed right after.
+    # The timelapse frames land on the seconds the beacon asked for, one
+    # every interval, and the block reporting them is sealed right after.
     if body[:frames]
-      due = Time.iso8601(beacon["next_expected_at"])
-      travel_to due
-      body[:frames].each { |frame| frame[:at_ms] ||= due.to_i * 1000 }
+      due = body[:frames].each_index.map { |k| Time.iso8601(beacon["next_expected_at"]) + k * beacon["timelapse_interval_seconds"] }
+      travel_to due.last
+      body[:frames].each_with_index { |frame, k| frame[:at_ms] ||= due[k].to_i * 1000 }
     end
     json = body.to_json
     hash = Evidence::Crypto.chain_hash(device.head_hash, beacon["value"], json)

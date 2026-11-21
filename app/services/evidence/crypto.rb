@@ -27,11 +27,13 @@ module Evidence
 
     def beacon_commitment(secret_hex) = sha256_hex(COMMIT_DOMAIN + unhex(secret_hex))
 
-    # Server-paced timelapse: one frame a minute, at a second that only the
-    # beacon decides, so the client cannot choose when it is watched or
-    # prepare footage ahead of time.
-    def timelapse_second(beacon_value_hex, device_uid)
-      sha256(TIMELAPSE_DOMAIN + unhex(beacon_value_hex) + device_uid.b).getbyte(0) % 60
+    # Server-paced timelapse: the seconds of a minute its frames are due, one
+    # every `interval` seconds. Only the beacon decides where they start, so
+    # the client cannot choose when it is watched or prepare footage ahead of
+    # time.
+    def timelapse_seconds(beacon_value_hex, device_uid, interval)
+      first = sha256(TIMELAPSE_DOMAIN + unhex(beacon_value_hex) + device_uid.b).getbyte(0) % interval
+      first.step(59, interval).to_a
     end
 
     # Each device gets its own secret for every beacon minute, so a ship

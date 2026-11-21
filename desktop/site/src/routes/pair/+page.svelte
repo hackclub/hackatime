@@ -107,7 +107,7 @@
 			<div class="flex flex-col gap-1 border-4 border-cream p-5">
 				<h2 class="text-2xl font-bold lowercase">what the timelapse records</h2>
 				<ul>
-					<Entry index={0}>{#snippet title()}A frame a minute of the window you're coding in: your editor, terminal, docs, AI chat or the app you're building.{/snippet}</Entry>
+					<Entry index={0}>{#snippet title()}A frame every 20 seconds of the window you're coding in: your editor, terminal, docs, AI chat or the app you're building.{/snippet}</Entry>
 					<Entry index={1}>{#snippet title()}Never password managers, banking, private windows, messages or notifications. Secrets on screen are blacked out on your Mac.{/snippet}</Entry>
 					<Entry index={2}>{#snippet title()}It stays locked on your Mac. Nobody else can see it, not even Hack Club.{/snippet}</Entry>
 					<Entry index={3}>{#snippet title()}When you ship a project, you preview the frames first and blur anything you like. Then Hack Club reviewers can watch them to approve your hours, and this site lists every time they look.{/snippet}</Entry>

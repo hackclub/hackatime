@@ -244,13 +244,14 @@ final class Agent: ObservableObject {
         try? sealed.write(to: activityURL, options: [.atomic, .completeFileProtection])
     }
 
-    /// The timelapse: one frame a minute, at the second the server's beacon
-    /// picked, of the focused window if it is on the allowlist.
+    /// The timelapse: a frame every 20 seconds, at the seconds the server's
+    /// beacon picked, of the focused window if it is on the allowlist.
     private func scheduleTimelapse(_ beacon: Beacon) {
-        guard let due = beacon.nextExpectedAt.flatMap({ ISO8601DateFormatter().date(from: $0) }) else { return }
-        let delay = max(0, due.timeIntervalSinceNow)
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            Task { @MainActor in await self?.captureTimelapseFrame() }
+        let now = Date()
+        for due in beacon.framesDue(now: now) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + due.timeIntervalSince(now)) { [weak self] in
+                Task { @MainActor in await self?.captureTimelapseFrame() }
+            }
         }
     }
 

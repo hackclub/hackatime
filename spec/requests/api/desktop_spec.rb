@@ -48,7 +48,8 @@ RSpec.describe 'Api::Desktop::V1', type: :request do
       tags 'Desktop'
       description 'The server beacon for this minute. Every block must mix in the newest beacon value. `commitment` is the hash of a secret ' \
                   'revealed only when the range is shipped; it picks which timelapse frames are required. `next_expected_at` is when ' \
-                  'this device should take this minute\'s timelapse frame; frames within `timelapse_window_seconds` of it are on time.'
+                  'this device should take this minute\'s first timelapse frame, and another is due every `timelapse_interval_seconds` ' \
+                  'after it until the minute ends; a frame within `timelapse_window_seconds` of a due time is on time.'
       security [ { Bearer: [] } ]
       produces 'application/json'
 
@@ -57,7 +58,7 @@ RSpec.describe 'Api::Desktop::V1', type: :request do
           minute: { type: :integer, description: 'Unix minute (seconds / 60)' },
           value: { type: :string, description: '32 random bytes, hex' }, commitment: { type: :string },
           next_expected_at: { type: :string, format: 'date-time' },
-          timelapse_window_seconds: { type: :integer }, head_seq: { type: :integer }, head_hash: { type: :string },
+          timelapse_interval_seconds: { type: :integer }, timelapse_window_seconds: { type: :integer }, head_seq: { type: :integer }, head_hash: { type: :string },
           server_time_ms: { type: :integer }, starts_at: { type: :string, format: 'date-time' }
         }
         run_test!

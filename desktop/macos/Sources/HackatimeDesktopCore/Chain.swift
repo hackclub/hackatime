@@ -8,11 +8,30 @@ public struct Beacon: Codable, Equatable {
     public let nextExpectedAt: String?
     public let headSeq: Int?
     public let headHash: String?
+    /// How far apart this minute's timelapse frames are; one frame a minute without it.
+    public var timelapseIntervalSeconds: Int?
 
     enum CodingKeys: String, CodingKey {
         case minute, value, commitment
         case nextExpectedAt = "next_expected_at"
         case headSeq = "head_seq", headHash = "head_hash"
+        case timelapseIntervalSeconds = "timelapse_interval_seconds"
+    }
+
+    /// When to take this minute's timelapse frames, seen from `now`: the
+    /// first at `next_expected_at`, then one every interval until that
+    /// minute ends. Times already past come down to one frame taken at
+    /// once, so a late tick never takes several in a burst. A beacon from
+    /// an earlier minute (the server could not be reached) keeps its
+    /// seconds for the minute `now` is in.
+    public func framesDue(now: Date) -> [Date] {
+        guard let first = nextExpectedAt.flatMap({ ISO8601DateFormatter().date(from: $0) })?.timeIntervalSince1970 else { return [] }
+        let minute: (Double) -> Double = { ($0 / 60).rounded(.down) * 60 }
+        let interval = Double(max(1, timelapseIntervalSeconds ?? 60))
+        let late = max(0, minute(now.timeIntervalSince1970) - minute(first))
+        let times = stride(from: first, to: minute(first) + 60, by: interval).map { Date(timeIntervalSince1970: $0 + late) }
+        let ahead = times.filter { $0 > now }
+        return (ahead.count < times.count ? [now] : []) + ahead
     }
 }
 

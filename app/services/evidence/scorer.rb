@@ -194,8 +194,9 @@ module Evidence
       sum = ->(key) { group.sum { |minute| minute[key].to_i } }
       inputs = sum.(:keys) + sum.(:clicks) + sum.(:moves)
       rhythms = group.filter_map { |minute| minute[:rhythm] }
-      frames_due = group.count { |minute| WORK_FOCUS.include?(minute[:focus]) && !minute[:unclaimed] }
-      frames_on_time = group.count { |minute| on_time?(minute) }
+      frames_due = (60 / @config[:timelapse_interval_seconds]) * group.count { |minute| WORK_FOCUS.include?(minute[:focus]) && !minute[:unclaimed] }
+      # Each due time counts once, however many frames or blocks claim it.
+      frames_on_time = group.flat_map { |minute| due_times_met(minute) }.uniq.length
       trees = group.filter_map { |minute| minute[:tree] }
       {
         "minutes" => count,
@@ -243,31 +244,36 @@ module Evidence
       score.clamp(0.0, 1.0)
     end
 
-    # The timelapse is server-paced: each work minute expects a frame near the
-    # second its beacon chose, and missing or late frames cost credit.
+    # The timelapse is server-paced: each work minute expects a frame near
+    # each of the seconds its beacon chose, and missing or late frames cost
+    # credit.
     def frame_coverage(features)
       return features["frames"].positive? ? 1.0 : 0.0 if features["frames_due"].zero?
 
       [ features["frames_on_time"].to_f / features["frames_due"], 1.0 ].min
     end
 
-    # A block reports the frames taken since the previous one, so each frame
-    # is judged against the beacon of the minute it claims it was taken in.
-    # at_ms is the client's word; it only counts when the server can bound
-    # it: the block reached the server on time and the frame is no later
-    # than the block and at most two minutes older.
-    def on_time?(minute)
-      return false if minute[:offline]
+    # The due times (in ms) this block's frames were taken on time for. A
+    # block reports the frames taken since the previous one, so each frame is
+    # judged against the beacon of the minute it claims it was taken in, and
+    # stands for the due time nearest to it. at_ms is the client's word; it
+    # only counts when the server can bound it: the block reached the server
+    # on time and the frame is no later than the block and at most two
+    # minutes older.
+    def due_times_met(minute)
+      return [] if minute[:offline]
 
       window_ms = @config[:timelapse_window_seconds] * 1000
       captured_ms = minute[:block].captured_at_ms
-      minute[:frames].any? do |frame|
+      minute[:frames].filter_map do |frame|
         at_ms = frame["at_ms"]
-        next false unless at_ms.is_a?(Integer) && at_ms <= captured_ms && captured_ms - at_ms <= FRAME_REPORT_MS
+        next unless at_ms.is_a?(Integer) && at_ms <= captured_ms && captured_ms - at_ms <= FRAME_REPORT_MS
 
         taken = at_ms / 60_000
-        value = beacon_values[taken] or next false
-        (at_ms - (taken * 60 + Crypto.timelapse_second(value, @ship.desktop_device.uid)) * 1000).abs <= window_ms
+        value = beacon_values[taken] or next
+        due_ms = Crypto.timelapse_seconds(value, @ship.desktop_device.uid, @config[:timelapse_interval_seconds])
+          .map { |second| (taken * 60 + second) * 1000 }.min_by { |due| (at_ms - due).abs }
+        due_ms if (at_ms - due_ms).abs <= window_ms
       end
     end
 

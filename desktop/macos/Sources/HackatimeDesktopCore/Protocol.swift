@@ -30,13 +30,14 @@ public enum EvidenceProtocol {
         return sha256Hex(input)
     }
 
-    /// The second of this minute when the timelapse frame is due. Only the
-    /// server's beacon decides it, so the client cannot pick when it is watched.
-    public static func timelapseSecond(beaconValue: String, deviceUID: String) -> Int {
+    /// The seconds of a minute its timelapse frames are due, one every
+    /// `interval` seconds. Only the server's beacon decides where they
+    /// start, so the client cannot pick when it is watched.
+    public static func timelapseSeconds(beaconValue: String, deviceUID: String, interval: Int) -> [Int] {
         var input = timelapseDomain
         input.append(Data(hex: beaconValue))
         input.append(Data(deviceUID.utf8))
-        return Int(sha256(input)[0]) % 60
+        return Array(stride(from: Int(sha256(input)[0]) % interval, through: 59, by: interval))
     }
 
     public static func merkleLeaf(salt: String, path: String, content: Data) -> String {

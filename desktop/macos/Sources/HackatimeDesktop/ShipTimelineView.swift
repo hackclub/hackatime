@@ -70,11 +70,13 @@ final class ShipTimelineModel: ObservableObject, ShipReviewStep {
 
     var playheadIndex: Int { min(max(0, Int(playhead)), max(0, timeline.minutes.count - 1)) }
 
-    /// The frame taken in the playhead's minute, if one was: a window that
-    /// is not on the capture list, or a screen that had not changed, leaves
-    /// a minute without one, and an older frame would misstate what it holds.
+    /// The frame on show at the playhead: the last one taken in its minute
+    /// up to there, else that minute's first. A window that is not on the
+    /// capture list, or a screen that had not changed, leaves a minute
+    /// without one, and an older frame would misstate what it holds.
     var frameAtPlayhead: FrameMark? {
-        frames.last { Int($0.position) == playheadIndex }
+        let taken = frames.filter { Int($0.position) == playheadIndex }
+        return taken.last { $0.position <= playhead } ?? taken.first
     }
 
     func image(for frame: FrameMark) -> CGImage? {

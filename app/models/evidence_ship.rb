@@ -5,7 +5,7 @@
 # shipping: `excluded_ranges` holds them as sorted, merged [from, to] seq
 # pairs. A removed minute earns nothing, reveals nothing and is never checked.
 class EvidenceShip < ApplicationRecord
-  REQUIRED_FRAME_RATIO = 0.08 # about five of the sixty timelapse frames an hour
+  REQUIRED_FRAME_RATIO = 0.028 # about five of the 180 timelapse frames an hour
   SPOT_CHECK_RATIO = 0.08 # about one of the twelve snapshots an hour, beyond the first and last
   APPEAL_WINDOW = 90.days
   MAX_EXCLUDED_RANGES = 200

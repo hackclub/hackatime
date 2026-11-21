@@ -92,8 +92,9 @@ paths:
       description: The server beacon for this minute. Every block must mix in the
         newest beacon value. `commitment` is the hash of a secret revealed only when
         the range is shipped; it picks which timelapse frames are required. `next_expected_at`
-        is when this device should take this minute's timelapse frame; frames within
-        `timelapse_window_seconds` of it are on time.
+        is when this device should take this minute's first timelapse frame, and another
+        is due every `timelapse_interval_seconds` after it until the minute ends;
+        a frame within `timelapse_window_seconds` of a due time is on time.
       security:
       - Bearer: []
       responses:
@@ -122,6 +123,8 @@ paths:
                   next_expected_at:
                     type: string
                     format: date-time
+                  timelapse_interval_seconds:
+                    type: integer
                   timelapse_window_seconds:
                     type: integer
                   head_seq:

@@ -7,6 +7,19 @@ final class CoreTests: XCTestCase {
     let beacon = Beacon(minute: 29_000_000, value: String(repeating: "ab", count: 32), commitment: String(repeating: "cd", count: 32),
                         nextExpectedAt: nil, headSeq: 0, headHash: nil)
 
+    func testTimelapseFramesAreDueEveryIntervalUntilTheMinuteEnds() {
+        func at(_ seconds: Double) -> Date { Date(timeIntervalSince1970: 29_000_000 * 60 + seconds) }
+        var beacon = Beacon(minute: 29_000_000, value: self.beacon.value, commitment: self.beacon.commitment,
+                            nextExpectedAt: ISO8601DateFormatter().string(from: at(7)), headSeq: 0, headHash: nil, timelapseIntervalSeconds: 20)
+        XCTAssertEqual(beacon.framesDue(now: at(1)), [at(7), at(27), at(47)])
+        XCTAssertEqual(beacon.framesDue(now: at(30)), [at(30), at(47)], "the two already past come down to one frame, taken now")
+        XCTAssertEqual(beacon.framesDue(now: at(59)), [at(59)])
+        XCTAssertEqual(beacon.framesDue(now: at(121)), [at(127), at(147), at(167)], "offline, the last beacon keeps its seconds for the next minutes")
+        beacon.timelapseIntervalSeconds = nil
+        XCTAssertEqual(beacon.framesDue(now: at(1)), [at(7)], "a server that names no interval gets one frame a minute")
+        XCTAssertEqual(self.beacon.framesDue(now: at(1)), [], "and one that names no time gets none")
+    }
+
     func testChainLinksBlocksAndSignsTheExactHash() throws {
         let key = try DeviceKey.loadOrCreate(store: MemoryStore())
         let chain = ChainState()

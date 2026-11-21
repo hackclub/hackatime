@@ -48,14 +48,17 @@ class Api::Desktop::V1::DesktopController < ActionController::API
   end
 
   # GET /api/desktop/v1/beacon
-  # Server-paced timelapse: the beacon tells the client the second this
-  # minute's frame is expected (credited within the timelapse window).
+  # Server-paced timelapse: the beacon tells the client when this minute's
+  # first frame is expected and how far apart the rest are (each is credited
+  # within the timelapse window).
   def beacon
     beacon = EvidenceBeacon.current!
-    second = Evidence::Crypto.timelapse_second(beacon.value, @device.uid)
+    config = Evidence::Config.current
+    second = Evidence::Crypto.timelapse_seconds(beacon.value, @device.uid, config[:timelapse_interval_seconds]).first
     render json: beacon.as_public_json(@device.uid).merge(
       next_expected_at: Time.at(beacon.minute * 60 + second).utc.iso8601,
-      timelapse_window_seconds: Evidence::Config.current[:timelapse_window_seconds],
+      timelapse_interval_seconds: config[:timelapse_interval_seconds],
+      timelapse_window_seconds: config[:timelapse_window_seconds],
       head_seq: @device.last_seq, head_hash: @device.head_hash
     )
   end

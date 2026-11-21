@@ -8,7 +8,7 @@ A Mac app that tracks your editor, terminal, browser and AI tools, and backs eve
 - **You edit a ship before it is sent:** shipping opens a timeline of the time it covers, with the timelapse frames and the apps and windows that were in front, like clips in a video editor. Drag over time, click a window's stretch or take an app out altogether; a removed minute earns nothing and nothing from it is sent. Minutes in which an editor or terminal had a secrets file such as `.env` in front start out removed, and you can put them back. After that you see each frame the server asks for and can black parts out.
 - **AI tools:** hooks for Claude Code, Codex and Amp send counts, tokens and line totals, never prompt text (`hooks/`).
 - **Proof of time:** one signed, beacon-linked hash chain block per minute, plus salted Merkle roots of your working tree. The Secure Enclave signs when available, and App Attest is used on macOS 27+.
-- **A timelapse, private until shipped:** pairing means agreeing to it. One frame a minute of the focused window, allowlisted windows only, with secrets blacked out, encrypted on your Mac and destroyed there after 30 days. Only the frames you ship ever leave it.
+- **A timelapse, private until shipped:** pairing means agreeing to it. One frame every 20 seconds of the focused window, allowlisted windows only, with secrets blacked out, encrypted on your Mac and destroyed there after 30 days. Only the frames you ship ever leave it.
 - **A native window onto the companion site:** pairing happens inside it, with native toasts for what the app does. Close it and tracking carries on from the menu bar.
 - **No** keylogging, camera, kernel driver, source upload while working, or required hardware.
 

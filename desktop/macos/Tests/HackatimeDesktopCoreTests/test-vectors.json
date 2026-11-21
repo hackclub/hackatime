@@ -13,17 +13,20 @@
     {
       "beacon_value": "3333333333333333333333333333333333333333333333333333333333333333",
       "device_uid": "device-a",
-      "second": 4
+      "interval": 20,
+      "seconds": [4, 24, 44]
     },
     {
       "beacon_value": "3333333333333333333333333333333333333333333333333333333333333333",
       "device_uid": "device-b",
-      "second": 21
+      "interval": 20,
+      "seconds": [1, 21, 41]
     },
     {
       "beacon_value": "3333333333333333333333333333333333333333333333333333333333333333",
       "device_uid": "device-c",
-      "second": 42
+      "interval": 20,
+      "seconds": [2, 22, 42]
     }
   ],
   "merkle": {

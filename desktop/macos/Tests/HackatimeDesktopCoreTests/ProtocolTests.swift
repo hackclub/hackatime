@@ -30,8 +30,9 @@ final class ProtocolTests: XCTestCase {
         let cases = try XCTUnwrap(vectors["timelapse"] as? [[String: Any]])
         XCTAssertEqual(cases.count, 3)
         for item in cases {
-            let second = EvidenceProtocol.timelapseSecond(beaconValue: item["beacon_value"] as! String, deviceUID: item["device_uid"] as! String)
-            XCTAssertEqual(second, item["second"] as? Int)
+            let seconds = EvidenceProtocol.timelapseSeconds(beaconValue: item["beacon_value"] as! String, deviceUID: item["device_uid"] as! String,
+                                                            interval: item["interval"] as! Int)
+            XCTAssertEqual(seconds, item["seconds"] as? [Int])
         }
     }
 
