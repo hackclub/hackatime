@@ -8,10 +8,10 @@ No primitive is hand-written. SHA-256, ChaCha20-Poly1305 and ECDSA P-256 come fr
 
 ## Pairing (PKCE)
 
-1. The app makes a random verifier and opens `/desktop/pair/new?challenge=BASE64URL(SHA256(verifier))`.
-2. The signed-in user picks a screenshot mode (Off by default; anything else needs an explicit consent tick) and approves.
-3. The page shows a one-time code (10 minutes) and opens `hackatime-desktop://pair?code=…`.
-4. The app calls `POST /api/desktop/v1/pair` with `code` and `code_verifier` and receives a device token. A code works once, and only with its verifier.
+1. The app makes a random verifier and opens the companion site's `/pair?challenge=BASE64URL(SHA256(verifier))&name=…` in its own window.
+2. The signed-in user ticks consent to the timelapse and approves. The app always records a timelapse, so there is no pairing without that consent.
+3. The site gets a one-time code (10 minutes) from `POST /api/v1/authenticated/desktop/pairings`. In the app's window the page hands the code straight to the app; in a browser it shows the code and opens `hackatime-desktop://pair?code=…`.
+4. The app calls `POST /api/desktop/v1/pair` with `code`, `code_verifier`, its name and version, and receives a device token. A code works once, and only with its verifier.
 
 Accounts can enrol at most 3 new devices in 30 days.
 
@@ -57,14 +57,14 @@ Accepted project and research minutes also become ordinary heartbeats, so deskto
 
 ## Working tree snapshots
 
-Every 5 project minutes the client takes a salted Merkle tree of the project:
+On a project minute, at most once every 5 minutes, the client takes a salted Merkle tree of the project:
 
 ```
 leaf = SHA256(0x00 || salt || path || 0x00 || SHA256(content))     # sorted by path bytes
 node = SHA256(0x01 || left || right)                               # an odd last node is promoted
 ```
 
-Never hashed: `.env*`, keys and certificates, credential files, databases, `.git`, `node_modules`, build and cache directories, files over 512 KB, symlinks and anything matching `.hackatimeignore`. Only `tree.root` is sent. The client keeps the leaf list and an encrypted copy of each file locally.
+Never hashed: `.env*`, keys and certificates, credential files, databases, `.git`, `node_modules`, build and cache directories, files over 512 KB, symlinks, files past the first 5,000 and anything matching `.hackatimeignore`. Only `tree.root` is sent. The client keeps the leaf list and an encrypted copy of each file locally.
 
 ## Screenshots
 
@@ -73,7 +73,7 @@ Only the focused window, only when it is allowlisted (project editor or terminal
 Frames are grouped into 5-minute segments. Each segment has its own random 256-bit key, stored only wrapped by a vault key in the Keychain:
 
 ```
-frame blob = nonce(12) || ChaCha20-Poly1305(segment_key, png, aad = "hkt-frame-v1") || tag(16)
+frame blob = nonce(12) || ChaCha20-Poly1305(segment_key, heic, aad = "hkt-frame-v1") || tag(16)
 frame hash = SHA256(frame blob)    # this goes into the block
 ```
 

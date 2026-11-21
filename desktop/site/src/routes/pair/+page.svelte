@@ -108,7 +108,7 @@
 				<h2 class="text-2xl font-bold lowercase">what the timelapse records</h2>
 				<ul>
 					<Entry index={0}>{#snippet title()}A frame a minute of the window you're coding in: your editor, terminal, docs, AI chat or the app you're building.{/snippet}</Entry>
-					<Entry index={1}>{#snippet title()}Never password managers, banking, private windows, messages or notifications. Secrets on screen are blurred on your Mac.{/snippet}</Entry>
+					<Entry index={1}>{#snippet title()}Never password managers, banking, private windows, messages or notifications. Secrets on screen are blacked out on your Mac.{/snippet}</Entry>
 					<Entry index={2}>{#snippet title()}It stays locked on your Mac. Nobody else can see it, not even Hack Club.{/snippet}</Entry>
 					<Entry index={3}>{#snippet title()}When you ship a project, you preview the frames first and blur anything you like. Then Hack Club reviewers can watch them to approve your hours, and this site lists every time they look.{/snippet}</Entry>
 					<Entry index={4}>{#snippet title()}Anything you don't ship is deleted from your Mac after 30 days. Pause from the menu bar or unpair whenever you like. To delete everything, including shipped frames, use your <a class="link" href="{data.hackatime}/my/settings/privacy" target="_blank" rel="noreferrer">Hackatime privacy settings</a>.{/snippet}</Entry>
