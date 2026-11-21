@@ -86,6 +86,12 @@ public struct FocusClassifier {
         self.projectNames = projectNames.map { $0.lowercased() }
     }
 
+    /// Browsers, including the site-specific apps Chromium browsers make
+    /// (`com.google.Chrome.app.<id>`).
+    public static func isBrowser(_ bundleID: String) -> Bool {
+        browserBundleIDs.contains(bundleID) || browserBundleIDs.contains { bundleID.hasPrefix($0 + ".app.") }
+    }
+
     public static func isNever(_ sample: FocusSample) -> Bool {
         if neverBundleIDs.contains(sample.bundleID) { return true }
         let lowerTitle = sample.title.lowercased()

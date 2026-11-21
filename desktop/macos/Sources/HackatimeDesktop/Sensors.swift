@@ -24,19 +24,39 @@ final class FocusSensor: Sendable {
 
     func sample() -> FocusSample? { sampleWithPID()?.0 }
 
+    /// System helpers that take the front for a moment (permission prompts,
+    /// the Dock, the login window). They are nobody's activity.
+    static let systemBundleIDs: Set<String> = [
+        "com.apple.loginwindow", "com.apple.screensaver.engine", "com.apple.usernotificationcenter", "com.apple.coreservices.uiagent",
+        "com.apple.securityagent", "com.apple.systemuiserver", "com.apple.dock", "com.apple.unmountassistantagent",
+        "com.apple.frameworks.diskimages.uiagent", "com.apple.netauthagent", "com.apple.followupui",
+    ]
+
+    /// How long one Accessibility call may wait on the focused app. A hung
+    /// app would otherwise hold each call for seconds.
+    static let messagingTimeout: Float = 0.35
+
     /// The sample and the process it came from.
     func sampleWithPID() -> (FocusSample, pid_t)? {
         guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
         let bundleID = app.bundleIdentifier ?? ""
+        guard !Self.systemBundleIDs.contains(bundleID.lowercased()) else { return nil }
         var title = ""
         var url: String?
         if Self.hasAccessibility {
             let element = AXUIElementCreateApplication(app.processIdentifier)
-            if let window: AXUIElement = attribute(element, kAXFocusedWindowAttribute) {
+            AXUIElementSetMessagingTimeout(element, Self.messagingTimeout)
+            // An app with no key window (a palette or sheet has focus) still has a main one.
+            if let window: AXUIElement = attribute(element, kAXFocusedWindowAttribute) ?? attribute(element, kAXMainWindowAttribute) {
                 title = attribute(window, kAXTitleAttribute) ?? ""
-                url = attribute(window, "AXDocument")
-                if url == nil, let web = findWebArea(window, depth: 0) {
-                    url = (attribute(web, "AXURL") as URL?)?.absoluteString
+                url = attribute(window, kAXDocumentAttribute)
+                // Safari names the page in AXDocument; Chromium browsers only
+                // in a web area deep in the window. Other apps get a shallow
+                // look, enough to find a web view showing a never-listed site.
+                let browser = FocusClassifier.isBrowser(bundleID)
+                if url == nil, let web = findWebArea(window, maxNodes: browser ? 600 : 150, maxDepth: browser ? 14 : 6) {
+                    url = (attribute(web, kAXURLAttribute) as URL?)?.absoluteString
+                    if title.isEmpty { title = attribute(web, kAXTitleAttribute) ?? "" }
                 }
             }
         }
@@ -49,11 +69,18 @@ final class FocusSensor: Sendable {
         return value as? T
     }
 
-    private func findWebArea(_ element: AXUIElement, depth: Int) -> AXUIElement? {
-        guard depth < 6 else { return nil }
-        if (attribute(element, kAXRoleAttribute) as String?) == "AXWebArea" { return element }
-        for child in (attribute(element, kAXChildrenAttribute) as [AXUIElement]?) ?? [] {
-            if let found = findWebArea(child, depth: depth + 1) { return found }
+    /// Breadth first, so a web area near the top is found before the node
+    /// budget runs out in a wide toolbar.
+    private func findWebArea(_ root: AXUIElement, maxNodes: Int, maxDepth: Int) -> AXUIElement? {
+        var queue: [(AXUIElement, Int)] = [(root, 0)]
+        var index = 0
+        while index < queue.count, index < maxNodes {
+            let (element, depth) = queue[index]
+            index += 1
+            if (attribute(element, kAXRoleAttribute) as String?) == "AXWebArea" { return element }
+            if depth < maxDepth {
+                queue.append(contentsOf: ((attribute(element, kAXChildrenAttribute) as [AXUIElement]?) ?? []).map { ($0, depth + 1) })
+            }
         }
         return nil
     }
