@@ -6,6 +6,7 @@
 	import { Toaster } from '#lib/components/ui/sonner/index.js';
 	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import SignOut from 'phosphor-svelte/lib/SignOut';
+	import { desktop, post } from '#lib/native.svelte.js';
 	import type { LayoutProps } from './$types';
 
 	let { children, data }: LayoutProps = $props();
@@ -19,6 +20,19 @@
 	// page itself can take a few seconds to arrive.
 	const path = $derived(navigating.to?.url.pathname ?? page.url.pathname);
 	const current = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
+
+	// In the Mac app the window's frame takes the page colour, and a paired
+	// Mac has nothing left to pair, so the pairing card goes away.
+	let mounted = $state(false);
+	$effect(() => {
+		mounted = true;
+	});
+	const paired = $derived(data.native && mounted && desktop.current?.paired);
+	$effect(() => {
+		if (!data.native) return;
+		const ink = data.theme.palette.darker;
+		post('theme', { background: ink, scheme: data.theme.color_scheme });
+	});
 
 	// Pages cross-fade in 120ms where the browser supports view transitions.
 	onNavigate((navigation) => {
@@ -38,8 +52,8 @@
 	<title>Hackatime Desktop</title>
 </svelte:head>
 
-<!-- On phones, toasts sit above the bottom nav instead of over it. -->
-<Toaster position="bottom-right" mobileOffset={{ bottom: 76 }} />
+<!-- On phones, toasts sit above the bottom nav instead of over it. In the Mac app toasts are native. -->
+{#if !data.native}<Toaster position="bottom-right" mobileOffset={{ bottom: 76 }} />{/if}
 {#if navigating.to}
 	<div class="nav-progress fixed inset-x-0 top-0 z-50 h-1 bg-link" aria-hidden="true"></div>
 {/if}
@@ -47,8 +61,8 @@
 
 <a href="#main" class="sr-only z-50 bg-cream px-3 py-2 text-ink focus:not-sr-only focus:fixed focus:top-2 focus:left-2">Skip to content</a>
 
-<div class="flex min-h-dvh w-full gap-9 px-5 pt-6 pb-24 md:px-6 md:pt-6 md:pb-6">
-	<aside class="sidebar sticky select-none top-6 hidden h-[calc(100dvh-48px)] w-[153px] shrink-0 flex-col gap-2 md:flex">
+<div class="flex min-h-dvh w-full gap-9 px-5 pb-24 md:px-6 md:pb-6 {data.native ? 'pt-[52px]' : 'pt-6'}">
+	<aside class="sidebar sticky select-none hidden {data.native ? 'top-[52px] h-[calc(100dvh-76px)]' : 'top-6 h-[calc(100dvh-48px)]'} w-[153px] shrink-0 flex-col gap-2 md:flex">
 		<a href="/" class="mb-4 block text-[22px] leading-none font-bold tracking-tight" aria-label="Hackatime Desktop, home">
 			hackatime<br /><span class="text-link">desktop</span>
 		</a>
@@ -71,10 +85,19 @@
 
 		<div class="flex flex-col gap-3">
 			{#if data.overview}
-				<a href="/pair" class="card block bg-cream p-3 text-ink">
-					<span class="block text-lg leading-tight font-bold">get the mac app</span>
-					<span class="block text-sm leading-snug">Download it, then pair from its menu bar.</span>
-				</a>
+				{#if data.native}
+					{#if !paired && page.url.pathname !== '/pair'}
+						<a href="/pair" class="card block bg-cream p-3 text-ink">
+							<span class="block text-lg leading-tight font-bold">pair this mac</span>
+							<span class="block text-sm leading-snug">Agree to the timelapse and tracking starts.</span>
+						</a>
+					{/if}
+				{:else}
+					<a href="/pair" class="card block bg-cream p-3 text-ink">
+						<span class="block text-lg leading-tight font-bold">get the mac app</span>
+						<span class="block text-sm leading-snug">Download it and pair inside the app.</span>
+					</a>
+				{/if}
 				<div class="flex items-center justify-between gap-2 text-sm">
 					<span class="truncate text-dim">{data.overview.user.username ?? data.overview.user.name}</span>
 					<form method="POST" action="/auth/logout">

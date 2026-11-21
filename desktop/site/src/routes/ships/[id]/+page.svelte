@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { toast } from 'svelte-sonner';
+	import { notify } from '#lib/native.svelte.js';
 	import { fly, slide } from 'svelte/transition';
 	import { ms, stagger } from '#lib/motion.js';
 	import ArrowLeft from 'phosphor-svelte/lib/ArrowLeft';
@@ -25,7 +25,7 @@
 			busy = false;
 			if (result.type === 'success') {
 				appealing = false;
-				toast(result.data?.sent === 'answer' ? 'Answer sent to your reviewer' : 'Appeal sent to a new reviewer');
+				notify(result.data?.sent === 'answer' ? 'Answer sent to your reviewer' : 'Appeal sent to a new reviewer', { style: 'success' });
 			}
 		};
 	};

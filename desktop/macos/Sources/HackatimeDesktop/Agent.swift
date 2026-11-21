@@ -83,14 +83,21 @@ final class Agent: ObservableObject {
 
     // MARK: Pairing
 
-    func beginPairing() {
+    /// The site's pairing page for a fresh PKCE challenge. The app's window
+    /// loads it, so the code comes straight back to this process.
+    func beginPairing() -> URL {
         let pkce = EvidenceProtocol.pkcePair()
         pendingVerifier = pkce.verifier
-        NSWorkspace.shared.open(api.pairingURL(site: settings.site, challenge: pkce.challenge, deviceName: Host.current().localizedName ?? "Mac"))
+        return api.pairingURL(site: settings.site, challenge: pkce.challenge, deviceName: Host.current().localizedName ?? "Mac")
     }
 
-    func completePairing(code: String) async {
-        guard let verifier = pendingVerifier else { status = "Start pairing from the menu first"; return }
+    /// Returns why pairing failed, or nil once this Mac is paired.
+    @discardableResult
+    func completePairing(code: String) async -> String? {
+        guard let verifier = pendingVerifier else {
+            status = "Start pairing from the app first"
+            return "This code was issued for another pairing. Start again from the app."
+        }
         do {
             let (token, device) = try await api.pair(code: code, verifier: verifier, name: Host.current().localizedName ?? "Mac", appVersion: APIClient.version)
             store.write("device-token", Data(token.utf8))
@@ -100,8 +107,13 @@ final class Agent: ObservableObject {
             pendingVerifier = nil
             await enrolKey()
             status = "Tracking"
+            return nil
         } catch {
             status = "Pairing failed: \(error)"
+            if let failure = error as? APIClient.Failure,
+               let body = try? JSONSerialization.jsonObject(with: Data(failure.body.utf8)) as? [String: Any],
+               let message = body["error"] as? String { return message }
+            return error.localizedDescription
         }
     }
 

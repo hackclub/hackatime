@@ -2,12 +2,16 @@ import AppKit
 import DeviceCheck
 import HackatimeDesktopCore
 import SwiftUI
+import WebKit
 
-/// Menu bar app. The tray dot shows whether tracking is on, whether
-/// screenshots are armed, and flashes when a frame is taken.
+/// Menu bar app with a window onto the companion site. The tray dot shows
+/// whether tracking is on, whether screenshots are armed, and flashes when a
+/// frame is taken. Tracking never depends on the window being open.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let agent = Agent()
+    lazy var window = MainWindowController(agent: agent)
+    let toasts = NativeToastCenter.shared
     var statusItem: NSStatusItem!
     var refresh: Timer?
 
@@ -18,7 +22,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         agent.start()
         rebuild()
         refresh = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in Task { @MainActor in self?.rebuild() } }
+        NSApp.mainMenu = mainMenu()
+        window.onChange = { [weak self] in self?.rebuild() }
         if CommandLine.arguments.contains("--self-test") { Task { await selfTest() } }
+        else if !CommandLine.arguments.contains("--e2e") {
+            if agent.isPaired { window.show() } else { window.startPairing() }
+        }
         if let index = CommandLine.arguments.firstIndex(of: "--e2e"), CommandLine.arguments.count >= index + 5 {
             let args = Array(CommandLine.arguments[(index + 1)...])
             Task { await endToEnd(baseURL: args[0], code: args[1], verifier: args[2], minutes: Int(args[3]) ?? 2) }
@@ -30,8 +39,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let string = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
               let components = URLComponents(string: string), components.host == "pair",
               let code = components.queryItems?.first(where: { $0.name == "code" })?.value else { return }
-        Task { await agent.completePairing(code: code); rebuild() }
+        Task { await window.pair(code: code) }
     }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { window.show() }
+        return true
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     func rebuild() {
         let flashing = agent.lastFrameAt.map { Date().timeIntervalSince($0) < 3 } ?? false
@@ -45,17 +61,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Today: \(agent.todayMinutes / 60)h \(agent.todayMinutes % 60)m tracked", action: nil, keyEquivalent: "")
         menu.addItem(withTitle: "Timelapse: kept on this Mac until you ship", action: nil, keyEquivalent: "")
         menu.addItem(.separator())
+        add(menu, "Open Hackatime Desktop", #selector(openWindow), "o")
+        menu.addItem(.separator())
         if agent.isPaired {
             add(menu, agent.settings.paused ? "Resume tracking" : "Pause tracking", #selector(togglePause), "p")
             add(menu, "Add project folder…", #selector(addProject), "")
             add(menu, "Ship work…", #selector(ship), "")
             add(menu, "Open vault folder", #selector(openVault), "")
-            add(menu, "Open Hackatime Desktop site…", #selector(openSettings), ",")
             menu.addItem(.separator())
             add(menu, "Delete all local evidence…", #selector(deleteEverything), "")
             add(menu, "Unpair this Mac", #selector(unpair), "")
         } else {
-            add(menu, "Sign in with Hackatime…", #selector(signIn), "")
+            add(menu, "Pair this Mac…", #selector(signIn), "")
             add(menu, "Enter pairing code…", #selector(enterCode), "")
         }
         menu.addItem(.separator())
@@ -72,20 +89,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(item)
     }
 
-    @objc func signIn() { agent.beginPairing() }
+    @objc func openWindow() { window.show() }
+    @objc func signIn() { window.startPairing() }
 
     @objc func enterCode() {
         guard let code = prompt("Enter the code shown on hackatime.hackclub.com") else { return }
-        Task { await agent.completePairing(code: code); rebuild() }
+        Task { await window.pair(code: code) }
     }
 
-    @objc func togglePause() { agent.settings.paused.toggle(); rebuild() }
+    @objc func togglePause() {
+        agent.settings.paused.toggle()
+        toasts.show(agent.settings.paused ? "Tracking paused" : "Tracking resumed",
+                    detail: agent.settings.paused ? "Nothing is recorded until you resume." : nil,
+                    style: agent.settings.paused ? .info : .success, id: "pause")
+        window.publishState()
+        rebuild()
+    }
 
     @objc func addProject() {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
-        if panel.runModal() == .OK, let url = panel.url { agent.addProject(url) }
+        NSApp.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        agent.addProject(url)
+        toasts.show("Watching \(url.lastPathComponent)", detail: "Edits, commits and builds there now count.", style: .success)
     }
 
     @objc func ship() {
@@ -94,21 +122,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
               let count = Double(hours), count > 0 else { return }
         let toSeq = agent.chain.seq
         let fromSeq = max(1, toSeq - Int(count * 60) + 1)
+        toasts.show("Shipping \(project.lastPathComponent)…", style: .loading, id: "ship")
         Task {
             do {
                 let shipper = Shipper(agent: agent)
                 let plan = try await shipper.open(project: project.lastPathComponent, fromSeq: fromSeq, toSeq: toSeq)
                 for hash in plan.requiredFrames { try await shipper.upload(frameHash: hash, shipID: plan.shipID) }
                 let result = try await shipper.submit(plan: plan, projectRoot: project)
-                alert("Shipped for review", "Suggested credit: \((result["credited_seconds"] as? Int ?? 0) / 60) minutes. Flags: \((result["flags"] as? [String] ?? []).joined(separator: ", "))")
+                let flags = (result["flags"] as? [String] ?? []).joined(separator: ", ")
+                toasts.show("Shipped for review",
+                            detail: "Suggested credit: \((result["credited_seconds"] as? Int ?? 0) / 60) minutes." + (flags.isEmpty ? "" : " Flags: \(flags)"),
+                            style: .success, id: "ship")
             } catch {
-                alert("Ship failed", "\(error)")
+                toasts.show("Ship failed", detail: "\(error)", style: .error, id: "ship")
             }
         }
     }
 
     @objc func openVault() { NSWorkspace.shared.open(agent.support.appendingPathComponent("vault")) }
-    @objc func openSettings() { NSWorkspace.shared.open(agent.settings.site) }
 
     @objc func deleteEverything() {
         let confirm = NSAlert()
@@ -116,10 +147,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         confirm.informativeText = "Every screenshot key is destroyed at once. Nothing unshipped can be recovered."
         confirm.addButton(withTitle: "Delete everything")
         confirm.addButton(withTitle: "Cancel")
-        if confirm.runModal() == .alertFirstButtonReturn { agent.vault.deleteEverything() }
+        NSApp.activate(ignoringOtherApps: true)
+        guard confirm.runModal() == .alertFirstButtonReturn else { return }
+        agent.vault.deleteEverything()
+        toasts.show("Local evidence deleted", detail: "Every screenshot key on this Mac is gone.", style: .success)
     }
 
-    @objc func unpair() { Task { await agent.unpair(); rebuild() } }
+    @objc func unpair() {
+        Task {
+            await agent.unpair()
+            toasts.show("This Mac is unpaired", detail: "Tracking has stopped. Pair again from the window.", style: .info)
+            window.publishState()
+            rebuild()
+        }
+    }
     @objc func askAccessibility() { FocusSensor.requestAccessibility() }
     @objc func askInput() { InputSensor.requestInputMonitoring() }
     @objc func askScreen() { WindowCapture.requestPermission() }
@@ -136,12 +177,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return alert.runModal() == .alertFirstButtonReturn ? field.stringValue.trimmingCharacters(in: .whitespaces) : nil
     }
 
-    private func alert(_ title: String, _ text: String) {
-        let alert = NSAlert()
-        alert.messageText = title
-        alert.informativeText = text
-        NSApp.activate(ignoringOtherApps: true)
-        alert.runModal()
+    /// Shown while the window is open: the app, Edit (for the page's text
+    /// fields), View and Window menus.
+    private func mainMenu() -> NSMenu {
+        let main = NSMenu()
+        func submenu(_ title: String, _ items: [NSMenuItem]) -> NSMenu {
+            let menu = NSMenu(title: title)
+            items.forEach(menu.addItem)
+            let holder = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            holder.submenu = menu
+            main.addItem(holder)
+            return menu
+        }
+        func item(_ title: String, _ action: Selector?, _ key: String = "", _ modifiers: NSEvent.ModifierFlags = .command) -> NSMenuItem {
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
+            item.keyEquivalentModifierMask = modifiers
+            return item
+        }
+        _ = submenu("Hackatime Desktop", [
+            item("About Hackatime Desktop", #selector(NSApplication.orderFrontStandardAboutPanel(_:))), .separator(),
+            item("Hide Hackatime Desktop", #selector(NSApplication.hide(_:)), "h"),
+            item("Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]), .separator(),
+            item("Close Window, Keep Tracking", #selector(NSWindow.performClose(_:)), "w"),
+            item("Quit Hackatime Desktop", #selector(NSApplication.terminate(_:)), "q"),
+        ])
+        _ = submenu("Edit", [
+            item("Undo", Selector(("undo:")), "z"), item("Redo", Selector(("redo:")), "z", [.command, .shift]), .separator(),
+            item("Cut", #selector(NSText.cut(_:)), "x"), item("Copy", #selector(NSText.copy(_:)), "c"),
+            item("Paste", #selector(NSText.paste(_:)), "v"), item("Select All", #selector(NSText.selectAll(_:)), "a"),
+        ])
+        _ = submenu("View", [item("Reload Page", #selector(WKWebView.reload(_:)), "r")])
+        let windowMenu = submenu("Window", [
+            item("Minimize", #selector(NSWindow.performMiniaturize(_:)), "m"),
+            item("Zoom", #selector(NSWindow.performZoom(_:))),
+        ])
+        NSApp.windowsMenu = windowMenu
+        return main
     }
 
     /// `--e2e BASE CODE VERIFIER MINUTES`: pairs with a server using a code

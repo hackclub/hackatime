@@ -2,12 +2,13 @@
 
 # Hackatime Desktop
 
-A menu bar app that tracks your editor, terminal, browser and AI tools, and backs every minute with evidence the server can check. Faking it costs more than doing the work.
+A Mac app that tracks your editor, terminal, browser and AI tools, and backs every minute with evidence the server can check. Faking it costs more than doing the work.
 
 - **Passive tracking:** the focused window is classified on your Mac as project, research, unrelated or unknown. Titles and URLs never leave it.
 - **AI tools:** hooks for Claude Code, Codex, Cursor and Amp send counts, tokens and line totals, never prompt text (`hooks/`).
 - **Proof of time:** one signed, beacon-linked hash chain block per minute, plus salted Merkle roots of your working tree. The Secure Enclave signs when available, and App Attest is used on macOS 27+.
 - **Screenshots, private until shipped:** off by default. When on, frames of allowlisted windows only, with secrets blacked out, encrypted on your Mac and destroyed after 30 days unless you ship them.
+- **A native window onto the companion site:** pairing happens inside it, with native toasts for what the app does. Close it and tracking carries on from the menu bar.
 - **No** keylogging, camera, kernel driver, source upload while working, or required hardware.
 
 The full protocol is in [PROTOCOL.md](PROTOCOL.md).

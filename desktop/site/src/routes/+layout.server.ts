@@ -17,5 +17,5 @@ export const load: LayoutServerLoad = async ({ locals, cookies, depends }) => {
 			offline = true;
 		}
 	}
-	return { overview, offline, theme: locals.theme };
+	return { overview, offline, theme: locals.theme, native: locals.native };
 };

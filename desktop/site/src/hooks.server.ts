@@ -4,13 +4,15 @@ import { DEFAULT_THEME, themeStyle, type Theme } from '#lib/theme.js';
 
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.token = readToken(event.cookies);
+	// The Mac app's window adds this to its user agent.
+	event.locals.native = event.request.headers.get('user-agent')?.includes('HackatimeDesktop/') ?? false;
 	event.locals.theme = (readTheme(event.cookies) as Theme | null) ?? DEFAULT_THEME;
 	// Pages that load a fresher theme from Hackatime set it on locals before render.
 	return resolve(event, {
 		transformPageChunk: ({ html }) => {
 			const theme = event.locals.theme;
 			return html
-				.replace('%theme.attrs%', `data-theme="${theme.value.replace(/[^a-z_]/g, '')}" style="${themeStyle(theme)}"`)
+				.replace('%theme.attrs%', `data-theme="${theme.value.replace(/[^a-z_]/g, '')}" style="${themeStyle(theme)}"${event.locals.native ? ' data-native="mac"' : ''}`)
 				.replace('%theme.scheme%', theme.color_scheme === 'light' ? 'light' : 'dark');
 		}
 	});

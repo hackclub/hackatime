@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { toast } from 'svelte-sonner';
+	import { notify } from '#lib/native.svelte.js';
 	import { fly } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
 	import { ms, stagger } from '#lib/motion.js';
@@ -61,8 +61,8 @@
 									return async ({ result, update }) => {
 										await update();
 										pending = null;
-										if (result.type === 'success') toast(`${device.name} unpaired`);
-										else if (result.type === 'failure') toast(String(result.data?.error ?? "Couldn't unpair. Try again."));
+										if (result.type === 'success') notify(`${device.name} unpaired`, { style: 'success' });
+										else if (result.type === 'failure') notify(String(result.data?.error ?? "Couldn't unpair. Try again."), { style: 'error' });
 									};
 								}}
 							>

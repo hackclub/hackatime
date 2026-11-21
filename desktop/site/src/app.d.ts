@@ -5,6 +5,8 @@ declare global {
 		interface Locals {
 			token: string | null;
 			theme: Theme;
+			/** Loaded in Hackatime Desktop's Mac window. */
+			native: boolean;
 		}
 	}
 }
