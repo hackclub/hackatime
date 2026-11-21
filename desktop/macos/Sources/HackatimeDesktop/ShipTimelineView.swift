@@ -156,7 +156,7 @@ struct ShipTimelineView: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Review \(model.timeline.project) before shipping").font(.title2.weight(.semibold))
-                Text("This is the time the ship covers. Remove anything you do not want in it: a removed minute earns no time and nothing from it is sent. Nothing has been sent yet.")
+                Text("Removed minutes earn no time and are never sent.")
                     .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             secretsNote
@@ -184,8 +184,8 @@ struct ShipTimelineView: View {
             HStack(spacing: 10) {
                 Image(systemName: removed ? "lock.fill" : "lock.open.fill").foregroundStyle(removed ? Color.green : Color.orange)
                 Text(removed
-                    ? "Hackatime already removed \(count): a secrets file (\(files)) was in front, and a frame could show what is in it."
-                    : "\(count.prefix(1).uppercased() + count.dropFirst()) with a secrets file (\(files)) in front \(minutes.count == 1 ? "is" : "are") back in the ship. Check the frames in the next step.")
+                    ? "Removed \(count) with a secrets file (\(files)) in front."
+                    : "\(count.prefix(1).uppercased() + count.dropFirst()) with a secrets file (\(files)) in front \(minutes.count == 1 ? "is" : "are") back in the ship.")
                     .font(.callout).fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
                 Button(removed ? "Put back" : "Remove again") { model.timeline.setRemoved(!removed, positions: minutes) }
@@ -209,10 +209,10 @@ struct ShipTimelineView: View {
                 if let frame, let image = model.image(for: frame) {
                     Image(decorative: image, scale: 1).resizable().aspectRatio(contentMode: .fit).opacity(removed ? 0.25 : 1)
                 } else if !removed {
-                    Text("No new frame was taken in this minute.").foregroundStyle(.white.opacity(0.7))
+                    Text("No frame in this minute").foregroundStyle(.white.opacity(0.7))
                 }
                 if removed {
-                    Label("Removed: not in the ship", systemImage: "scissors")
+                    Label("Removed", systemImage: "scissors")
                         .font(.headline).padding(.horizontal, 12).padding(.vertical, 8)
                         .background(Color.red.opacity(0.85), in: Capsule()).foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
@@ -231,7 +231,7 @@ struct ShipTimelineView: View {
         guard model.timeline.minutes.indices.contains(model.playheadIndex) else { return Text(" ") }
         let time = Text(Self.time(model.timeline.minutes[model.playheadIndex].startMs)).monospacedDigit()
         let divider = Text("  ·  ").foregroundStyle(.tertiary)
-        guard let window = model.windowAtPlayhead else { return time + divider + Text("nothing recorded in front").foregroundStyle(.secondary) }
+        guard let window = model.windowAtPlayhead else { return time + divider + Text("nothing recorded").foregroundStyle(.secondary) }
         var text = time + divider + Text(window.app).fontWeight(.bold)
         text = text + divider + Text(Self.windowName(title: window.title, site: nil)).foregroundStyle(window.title.isEmpty ? .secondary : .primary)
         if let site = window.site { text = text + divider + Text(site).foregroundStyle(.secondary) }
@@ -240,7 +240,7 @@ struct ShipTimelineView: View {
 
     /// What to call a window: its title, else its site, else that it was not recorded.
     static func windowName(title: String, site: String?) -> String {
-        !title.isEmpty ? title : site ?? "window title not recorded"
+        !title.isEmpty ? title : site ?? "title not recorded"
     }
 
     // MARK: Apps
@@ -248,9 +248,9 @@ struct ShipTimelineView: View {
     private var appList: some View {
         let apps = model.timeline.apps
         return VStack(alignment: .leading, spacing: 6) {
-            Text("Apps in this time").font(.headline)
+            Text("Apps").font(.headline)
             if apps.isEmpty {
-                Text("No app history was recorded for this time. You can still drag over the timeline to remove minutes.")
+                Text("No app history was recorded for this time.")
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 Spacer()
             } else {
@@ -272,8 +272,7 @@ struct ShipTimelineView: View {
                 .shadow(color: .black.opacity(0.25), radius: 1.5, y: 1)
             VStack(alignment: .leading, spacing: 1) {
                 Text(app.app).fontWeight(.bold).lineLimit(1).strikethrough(gone)
-                Text("\(Self.duration(app.seconds)) in \(app.minutes.count) minute\(app.minutes.count == 1 ? "" : "s")")
-                    .font(.caption).foregroundStyle(.secondary)
+                Text(Self.duration(app.seconds)).font(.caption).foregroundStyle(.secondary)
                 // Its windows, the longest in front first.
                 ForEach(Array(app.windows.prefix(3).enumerated()), id: \.offset) { _, window in
                     HStack(spacing: 4) {
@@ -286,7 +285,7 @@ struct ShipTimelineView: View {
                 }
                 .padding(.top, 1)
                 if app.windows.count > 3 {
-                    Text("and \(app.windows.count - 3) more window\(app.windows.count == 4 ? "" : "s")").font(.caption).foregroundStyle(.tertiary)
+                    Text("+\(app.windows.count - 3) more").font(.caption).foregroundStyle(.tertiary)
                 }
             }
             Button(gone ? "Put back" : "Remove") { model.timeline.setRemoved(!gone, bundleID: app.bundleID) }
@@ -312,7 +311,7 @@ struct ShipTimelineView: View {
 
     private var toolbar: some View {
         HStack(spacing: 10) {
-            Button { model.setSelectionRemoved(true) } label: { Label("Remove from ship", systemImage: "scissors") }
+            Button { model.setSelectionRemoved(true) } label: { Label("Remove", systemImage: "scissors") }
                 .disabled(model.selection == nil || model.selectionIsRemoved)
                 .keyboardShortcut(.delete, modifiers: [])
             Button { model.setSelectionRemoved(false) } label: { Label("Put back", systemImage: "arrow.uturn.backward") }
@@ -327,10 +326,10 @@ struct ShipTimelineView: View {
 
     private var selectionText: String {
         guard let selection = model.selection, model.timeline.minutes.indices.contains(selection.upperBound) else {
-            return "Drag to select time, click a window, or drag the ends of a removed stretch."
+            return "Drag to select time, or click a window."
         }
         let minutes = model.timeline.minutes
-        return "\(Self.time(minutes[selection.lowerBound].startMs)) to \(Self.time(minutes[selection.upperBound].startMs + 60_000))  ·  \(selection.count) min selected"
+        return "\(Self.time(minutes[selection.lowerBound].startMs)) to \(Self.time(minutes[selection.upperBound].startMs + 60_000))  ·  \(selection.count) min"
     }
 
     private var footer: some View {
@@ -338,8 +337,6 @@ struct ShipTimelineView: View {
         let counted = timeline.minutes.filter(\.counts).count
         let kept = timeline.keptCountedMinutes
         return HStack(spacing: 10) {
-            Text("\(Self.duration(timeline.minutes.count * 60)) in the ship's range  ·  \(Self.duration(counted * 60)) count towards \(timeline.project)")
-                .font(.callout).foregroundStyle(.secondary).lineLimit(1)
             Spacer()
             // What the ship holds now, kept up to date with every cut.
             HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -352,7 +349,7 @@ struct ShipTimelineView: View {
             }
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("timeline-summary")
-            .help("\(timeline.removed.count) of \(timeline.minutes.count) minutes removed. The time left is what counts towards \(timeline.project) and stays in the ship; the server decides what it earns.")
+            .help("Time on \(timeline.project) left in the ship. The server decides what it earns.")
             .padding(.trailing, 6)
             Button("Cancel") { model.finish(false) }.keyboardShortcut(.cancelAction)
             Button("Continue") { model.finish(true) }.keyboardShortcut(.defaultAction)
@@ -479,7 +476,7 @@ struct ShipTimelineView: View {
                 scroller.scroll(to: min(max(0, value.location.x - grab), viewport - window.width) / ratio)
             }
             .onEnded { _ in panGrab = nil })
-        .help("The whole ship. Drag to move along it.")
+        .help("Drag to move along the ship")
         .accessibilityIdentifier("timeline-overview")
     }
 
