@@ -38,6 +38,7 @@ final class Agent: ObservableObject {
     private var lastBeacon: Beacon?
     private var focusSamples: [(FocusLabel, String?, pid_t)] = []
     private var fileEdits = 0, commits = 0, builds = 0
+    private var lastActivity: [String: Date] = [:]   // project folder → last file change seen
     private var fsStream: FSEventStreamRef?
     private var snapshots: [Int: TreeSnapshot] = [:]   // seq → snapshot, kept locally for shipping
     private var lastSnapshotMinute = 0
@@ -69,6 +70,13 @@ final class Agent: ObservableObject {
 
     var isPaired: Bool { api.token != nil }
     var classifier: FocusClassifier { FocusClassifier(projectNames: settings.projects.map { URL(fileURLWithPath: $0).lastPathComponent }) }
+
+    /// The project whose files changed most recently, in the last 10 minutes,
+    /// or the only project. Names the project when window titles are unknown.
+    var activeProject: String? {
+        let recent = lastActivity.filter { Date().timeIntervalSince($0.value) < 600 }.max { $0.value < $1.value }?.key
+        return (recent ?? (settings.projects.count == 1 ? settings.projects[0] : nil)).map { URL(fileURLWithPath: $0).lastPathComponent }
+    }
 
     func start() {
         key = try? DeviceKey.loadOrCreate(store: store)
@@ -165,7 +173,7 @@ final class Agent: ObservableObject {
 
     private func sampleFocus() {
         guard !settings.paused, let sample = focus.sample() else { return }
-        let (label, project) = classifier.classify(sample)
+        let (label, project) = classifier.classify(sample, activeProject: activeProject)
         let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
         focusSamples.append((label, project, pid))
     }
@@ -182,7 +190,7 @@ final class Agent: ObservableObject {
 
     private func captureTimelapseFrame() async {
         guard isPaired, !settings.paused, WindowCapture.hasPermission, let sample = focus.sample(),
-              classifier.classify(sample).label != .unrelated, classifier.isCaptureAllowed(sample),
+              classifier.classify(sample).label != .unrelated, classifier.isCaptureAllowed(sample, activeProject: activeProject),
               let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
               let image = try? await WindowCapture.captureFocusedWindow(pid: pid),
               let (redacted, _) = WindowCapture.redact(image) else { return }
@@ -323,6 +331,7 @@ final class Agent: ObservableObject {
 
     func recordFileEvents(_ paths: [String]) {
         for path in paths {
+            if let project = settings.projects.first(where: { path.hasPrefix($0 + "/") }) { lastActivity[project] = Date() }
             if path.hasSuffix(".git/logs/HEAD") { commits += 1; continue }
             let components = path.split(separator: "/")
             if components.contains(where: { TreeSnapshot.buildDirectories.contains(String($0)) }) {

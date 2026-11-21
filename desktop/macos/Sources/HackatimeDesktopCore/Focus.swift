@@ -80,9 +80,9 @@ public struct FocusClassifier {
 
     /// Whether a window may be screenshotted at all: never-list loses, then
     /// only editors, terminals, localhost, docs, repos and matched AI chats.
-    public func isCaptureAllowed(_ sample: FocusSample) -> Bool {
+    public func isCaptureAllowed(_ sample: FocusSample, activeProject: String? = nil) -> Bool {
         if Self.isNever(sample) { return false }
-        let label = classify(sample).label
+        let label = classify(sample, activeProject: activeProject).label
         if label == .project { return true }
         if label == .research, let domain = sample.domain {
             return Self.researchDomains.contains { domain.contains($0) } || Self.aiChatDomains.contains { domain.contains($0) }
@@ -90,12 +90,16 @@ public struct FocusClassifier {
         return false
     }
 
-    public func classify(_ sample: FocusSample) -> (label: FocusLabel, project: String?) {
+    /// `activeProject` is the project the device saw files change in lately.
+    /// It names the project of an editor or terminal whose window title is
+    /// unknown (no Accessibility permission), so that minute still counts.
+    public func classify(_ sample: FocusSample, activeProject: String? = nil) -> (label: FocusLabel, project: String?) {
         if Self.isNever(sample) { return (.unrelated, nil) }
         let haystack = [sample.title, sample.url ?? ""].joined(separator: " ").lowercased()
         let project = projectNames.first { haystack.contains($0) }
 
         if Self.editorBundleIDs.contains(sample.bundleID) || Self.terminalBundleIDs.contains(sample.bundleID) {
+            let project = project ?? (sample.title.isEmpty ? activeProject?.lowercased() : nil)
             return (project == nil ? .unknown : .project, project)
         }
         if Self.browserBundleIDs.contains(sample.bundleID), let domain = sample.domain {

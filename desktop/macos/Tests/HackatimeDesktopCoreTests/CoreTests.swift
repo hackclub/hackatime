@@ -85,6 +85,19 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(classifier.classify(local).label, .project)
     }
 
+    func testEditorWithoutAccessibilityUsesTheActiveProject() {
+        let classifier = FocusClassifier(projectNames: ["sync-app", "Blog"])
+        let untitled = FocusSample(bundleID: "com.microsoft.VSCode", appName: "Code", title: "")
+        XCTAssertEqual(classifier.classify(untitled).label, .unknown)
+        XCTAssertTrue(classifier.classify(untitled, activeProject: "Blog") == (.project, "blog"))
+        XCTAssertTrue(classifier.isCaptureAllowed(untitled, activeProject: "Blog"))
+        let terminal = FocusSample(bundleID: "com.apple.Terminal", appName: "Terminal", title: "")
+        XCTAssertEqual(classifier.classify(terminal, activeProject: "sync-app").label, .project)
+        // A readable title that names no project is not overridden.
+        let other = FocusSample(bundleID: "com.microsoft.VSCode", appName: "Code", title: "notes.txt — scratch")
+        XCTAssertEqual(classifier.classify(other, activeProject: "sync-app").label, .unknown)
+    }
+
     func testJigglerScoresHighAndHumanTypingScoresLow() {
         var jiggle = InputMinute()
         for i in 0 ..< 60 { jiggle.recordMove(x: i.isMultiple(of: 2) ? 100 : 101, y: 200, at: Double(i), injected: false) }

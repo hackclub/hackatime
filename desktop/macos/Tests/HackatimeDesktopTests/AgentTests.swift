@@ -77,6 +77,17 @@ final class AgentTests: XCTestCase {
         XCTAssertFalse(Agent(support: support, store: store, session: StubServer.session).isPaired, "stays unpaired after a relaunch")
     }
 
+    func testActiveProjectIsWhereFilesLastChanged() {
+        let agent = makeAgent()
+        XCTAssertNil(agent.activeProject)
+        agent.settings.projects = ["/Users/me/code/sync-app"]
+        XCTAssertEqual(agent.activeProject, "sync-app", "the only project")
+        agent.settings.projects.append("/Users/me/code/blog")
+        XCTAssertNil(agent.activeProject, "no edits yet, two projects")
+        agent.recordFileEvents(["/Users/me/code/blog/posts/hello.md"])
+        XCTAssertEqual(agent.activeProject, "blog")
+    }
+
     func testRevokedTokenWhileSendingBlocksAlsoUnpairs() async {
         StubServer.handler = { request in
             request.url!.path.hasSuffix("/beacon") ? (200, StubServer.beacon()) : (401, ["error": "Unauthorized"])
