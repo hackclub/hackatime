@@ -15,6 +15,7 @@ module Evidence
     Result = Data.define(:stretches, :claimed_seconds, :scored_seconds, :ceiling_seconds, :credited_seconds, :confidence, :flags, :scorer)
 
     WORK_FOCUS = %w[project research].freeze
+    FRAME_REPORT_MS = 120_000
 
     def self.call(...) = new(...).call
 
@@ -197,7 +198,7 @@ module Evidence
         "offline_ratio" => group.count { |minute| minute[:offline] } / count,
         "signed_ratio" => group.count { |minute| minute[:signed] } / count,
         "duplicate_frames" => group.count { |minute| minute[:reasons].include?("duplicate_frames") },
-        "hardware_tier" => DesktopDevice.key_tiers.fetch(@ship.desktop_device.key_tier)
+        "hardware_tier" => @ship.desktop_device.key_app_attest? ? DesktopDevice.key_tiers.fetch("app_attest") : 0
       }
     end
 
@@ -226,11 +227,17 @@ module Evidence
 
     # A block reports the frames taken since the previous one, so each frame
     # is judged against the beacon of the minute it claims it was taken in.
+    # at_ms is the client's word; it only counts when the server can bound
+    # it: the block reached the server on time and the frame is no later
+    # than the block and at most two minutes older.
     def on_time?(minute)
+      return false if minute[:offline]
+
       window_ms = @config[:timelapse_window_seconds] * 1000
+      captured_ms = minute[:block].captured_at_ms
       minute[:frames].any? do |frame|
         at_ms = frame["at_ms"]
-        next false unless at_ms.is_a?(Integer)
+        next false unless at_ms.is_a?(Integer) && at_ms <= captured_ms && captured_ms - at_ms <= FRAME_REPORT_MS
 
         taken = at_ms / 60_000
         value = beacon_values[taken] or next false

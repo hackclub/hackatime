@@ -259,6 +259,22 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal [ { "x" => "0", "y" => "0", "w" => "60", "h" => "40" } ], stored.redactions.map { |r| r.transform_values(&:to_s) }
   end
 
+  test "only frames the server can bound in time count as on time, and claimed hardware keys earn nothing" do
+    token = pair_device
+    enrol_key(token)
+    late = ->(i) { (START + i.minutes).to_i * 1000 + 3.minutes.in_milliseconds }
+    stale = ->(i) { (START + i.minutes).to_i * 1000 - 10.minutes.in_milliseconds }
+    4.times { |i| post_minute(token, i, payload(i, frame: encrypted_frame("honest #{i}"))) }
+    4.times { |i| post_minute(token, 4 + i, payload(4 + i, frame: encrypted_frame("late #{i}").merge(at_ms: late.(4 + i)))) }
+    4.times { |i| post_minute(token, 8 + i, payload(8 + i, frame: encrypted_frame("stale #{i}").merge(at_ms: stale.(8 + i)))) }
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 12 }, headers: auth(token), as: :json
+    stretch = Evidence::Scorer.call(ship: EvidenceShip.find(response.parsed_body["id"])).stretches.sole
+    assert_equal 12, stretch.features["frames_due"]
+    assert_equal 4, stretch.features["frames_on_time"], "frames claimed after their block or long before it are not on time"
+    assert_equal 0, stretch.features["hardware_tier"]
+    assert_equal 0.0, @user.desktop_devices.sole.confidence_bonus, "secure_enclave was only claimed"
+  end
+
   test "a pairing code works once and only with its verifier" do
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)
@@ -372,7 +388,7 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
              injected: 0, rhythm: 0.7, jiggler: 0.05, edits: 3, commits: (i % 7).zero? ? 1 : 0, builds: 1,
              ai: { prompts: 1, in_tokens: 400, out_tokens: 900, ai_lines: 2, human_lines: 3 } }
     body[:tree] = { root: tree_root(tree) } if tree
-    body[:frames] = [ { hash: frame[:hash], kind: "timelapse", phash: frame[:phash] }.compact ] if frame
+    body[:frames] = [ { hash: frame[:hash], kind: "timelapse", phash: frame[:phash], at_ms: frame[:at_ms] }.compact ] if frame
     body
   end
 
@@ -380,8 +396,13 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     travel_to START + i.minutes
     beacon = beacon_for(token)
     device = user.desktop_devices.sole
-    # The timelapse frame lands on the second the beacon asked for.
-    body[:frames]&.each { |frame| frame[:at_ms] = Time.iso8601(beacon["next_expected_at"]).to_i * 1000 }
+    # The timelapse frame lands on the second the beacon asked for, and the
+    # block reporting it is sealed right after.
+    if body[:frames]
+      due = Time.iso8601(beacon["next_expected_at"])
+      travel_to due
+      body[:frames].each { |frame| frame[:at_ms] ||= due.to_i * 1000 }
+    end
     json = body.to_json
     hash = Evidence::Crypto.chain_hash(device.head_hash, beacon["value"], json)
     block = { seq: device.last_seq + 1, minute: beacon["minute"], beacon_minute: beacon["minute"], prev_hash: device.head_hash,

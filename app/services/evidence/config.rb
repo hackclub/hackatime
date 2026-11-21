@@ -25,7 +25,6 @@ module Evidence
         build_changed: 0.15,
         human_input: 0.15,
         frames_present: 0.15,
-        hardware_key: 0.05,
         attested: 0.1
       },
       ceiling: {

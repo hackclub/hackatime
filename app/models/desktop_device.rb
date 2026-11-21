@@ -55,14 +55,9 @@ class DesktopDevice < ApplicationRecord
     false
   end
 
-  def confidence_bonus
-    config = Evidence::Config.current
-    case key_tier
-    when "app_attest" then config.dig(:weights, :attested)
-    when "secure_enclave", "tpm" then config.dig(:weights, :hardware_key)
-    else 0.0
-    end
-  end
+  # Only an Apple-attested key is verified; secure_enclave and tpm are what
+  # the client said, so they are recorded but earn nothing.
+  def confidence_bonus = key_app_attest? ? Evidence::Config.current.dig(:weights, :attested) : 0.0
 
   def revoke! = update!(revoked_at: Time.current)
   def revoked? = revoked_at.present?

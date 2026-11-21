@@ -62,7 +62,7 @@ class Api::Desktop::V1::DesktopController < ActionController::API
   # POST /api/desktop/v1/key
   # Enrols the device's hardware key once. App Attest is verified when
   # present; otherwise the key is recorded at the tier the client claims,
-  # which only ever adds a small bonus.
+  # which earns no confidence because nothing verified it.
   def key
     return render json: { error: "A key is already enrolled; pair again to change it" }, status: :conflict if @device.public_key.present?
 
