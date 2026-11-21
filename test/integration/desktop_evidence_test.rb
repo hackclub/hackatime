@@ -220,6 +220,45 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_includes summary, "2 disclosed no shipped file"
   end
 
+  test "a redacted copy of a frame must be that frame with parts covered" do
+    token = pair_device
+    levels = Array.new(64) { |i| (i * 37 % 64) * 4 }
+    original = blocky_png(levels)
+    expected = format("%016x", levels.each_with_index.sum { |level, i| level >= levels.sum / 64 ? 1 << i : 0 })
+    assert_equal expected, Evidence::RedactionCheck.perceptual_hash(Vips::Image.pngload_buffer(original)), "hash bits run row by row from the top left"
+
+    frame = encrypted_frame("original", png: original).merge(phash: expected)
+    post_minute(token, 0, payload(0, frame:))
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 1 }, headers: auth(token), as: :json
+    ship_id = response.parsed_body["id"]
+    upload = ->(png, regions) do
+      key = Base64.strict_decode64(frame[:segment_key])
+      post "/api/desktop/v1/ships/#{ship_id}/frames", headers: auth(token), as: :json, params: {
+        hash: frame[:hash], ciphertext: Base64.strict_encode64(Evidence::Crypto.aead_seal(key, png)), segment_key: frame[:segment_key],
+        redacted: true, redactions: regions
+      }
+    end
+    region = { x: 0, y: 0, w: 60, h: 40 }
+
+    upload.(blocky_png(levels.map { |level| 252 - level }), [ region ])
+    assert_response :unprocessable_entity, "a different picture is refused"
+    upload.(Vips::Image.new_from_buffer(original, "").draw_rect(0, 0, 0, 60, 40, fill: true).write_to_buffer(".png"), [])
+    assert_response :unprocessable_entity, "a redaction must list its regions"
+    upload.(Vips::Image.new_from_buffer(original, "").draw_rect(0, 0, 0, 160, 60, fill: true).write_to_buffer(".png"), [ { x: 0, y: 0, w: 160, h: 60 } ])
+    assert_response :unprocessable_entity, "most of the frame cannot be redacted"
+    assert_empty EvidenceShip.find(ship_id).evidence_frames
+
+    upload.("not an image at all, just bytes", [ region ])
+    assert_response :unprocessable_entity
+    assert_equal "Send redacted frames as PNG or JPEG", response.parsed_body["error"]
+
+    upload.(Vips::Image.new_from_buffer(original, "").draw_rect(0, 0, 0, 60, 40, fill: true).write_to_buffer(".jpg[Q=80]"), [ region ])
+    assert_response :created
+    stored = EvidenceShip.find(ship_id).evidence_frames.sole
+    assert stored.redacted
+    assert_equal [ { "x" => "0", "y" => "0", "w" => "60", "h" => "40" } ], stored.redactions.map { |r| r.transform_values(&:to_s) }
+  end
+
   test "a pairing code works once and only with its verifier" do
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)
@@ -347,6 +386,12 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_response :created
   end
 
+  # A 160x80 PNG of 8x8 flat grey cells, row by row from the top left.
+  def blocky_png(levels)
+    require "vips"
+    Vips::Image.new_from_array(levels.each_slice(8).to_a).cast(:uchar).zoom(20, 10).write_to_buffer(".png")
+  end
+
   def post_block(token, block) = post("/api/desktop/v1/blocks", params: { blocks: [ block ] }, headers: auth(token), as: :json)
 
   def sign(hash_hex) = Base64.strict_encode64(@key.sign("SHA256", [ hash_hex ].pack("H*")))
@@ -363,9 +408,9 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     { seq:, salt: @salt, entries: }
   end
 
-  def encrypted_frame(text)
+  def encrypted_frame(text, png: nil)
     require "vips"
-    png = Vips::Image.black(64, 32).add(40).cast(:uchar).draw_rect(255, text.sum % 50, 4, 10, 10, fill: true).write_to_buffer(".png")
+    png ||= Vips::Image.black(64, 32).add(40).cast(:uchar).draw_rect(255, text.sum % 50, 4, 10, 10, fill: true).write_to_buffer(".png")
     key = SecureRandom.random_bytes(32)
     ciphertext = Evidence::Crypto.aead_seal(key, png)
     { hash: Evidence::Crypto.sha256_hex(ciphertext), ciphertext: Base64.strict_encode64(ciphertext), segment_key: Base64.strict_encode64(key) }

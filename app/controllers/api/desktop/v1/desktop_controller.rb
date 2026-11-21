@@ -122,8 +122,9 @@ class Api::Desktop::V1::DesktopController < ActionController::API
   # POST /api/desktop/v1/ships/:id/frames
   # Uploads one encrypted frame and its segment key. An unredacted frame
   # must match a hash committed in the shipped range. A redacted copy keeps
-  # the committed hash it replaces, is marked redacted for reviewers, and
-  # lists the redacted regions.
+  # the committed hash it replaces, is marked redacted for reviewers, lists
+  # the redacted regions, and must match the committed perceptual hash
+  # outside them.
   def upload_frame
     ship = find_ship
     return render json: { error: "Frames can only be added to drafts" }, status: :conflict unless ship.draft?
@@ -140,13 +141,20 @@ class Api::Desktop::V1::DesktopController < ActionController::API
     if !redacted && Evidence::Crypto.sha256_hex(ciphertext) != frame_hash
       return render json: { error: "Ciphertext does not match its committed hash" }, status: :unprocessable_entity
     end
-    Evidence::Crypto.aead_open(key, ciphertext)
+    plaintext = Evidence::Crypto.aead_open(key, ciphertext)
+    redactions = redacted ? Array(params[:redactions]).map { |region| region.permit(:x, :y, :w, :h).to_h } : []
+    if redacted
+      begin
+        Evidence::RedactionCheck.check!(image_data: plaintext, committed_phash: committed["phash"], regions: redactions)
+      rescue Evidence::RedactionCheck::Invalid => e
+        return render json: { error: e.message }, status: :unprocessable_entity
+      end
+    end
 
     frame = ship.evidence_frames.find_or_initialize_by(frame_hash:)
     frame.assign_attributes(
       seq: committed["seq"], captured_at_ms: committed["captured_at_ms"], kind: "timelapse",
-      trigger: committed["trigger"], required: ship.required_frames.include?(frame_hash), redacted:,
-      redactions: redacted ? Array(params[:redactions]).map { |region| region.permit(:x, :y, :w, :h).to_h } : [],
+      trigger: committed["trigger"], required: ship.required_frames.include?(frame_hash), redacted:, redactions:,
       segment_key: Base64.strict_encode64(key)
     )
     frame.ciphertext.attach(io: StringIO.new(ciphertext), filename: "#{frame_hash}.bin", content_type: "application/octet-stream")
