@@ -19,8 +19,9 @@ The full protocol is in [PROTOCOL.md](PROTOCOL.md).
 cd desktop/macos
 swift test                 # protocol vectors shared with the server, chain, vault, classifier
 ./scripts/bundle.sh        # build/Hackatime Desktop.app (ad-hoc signed)
-"build/Hackatime Desktop.app/Contents/MacOS/HackatimeDesktop" --self-test
 ```
+
+To see which platform features work on a Mac (device key, App Attest, permissions, capture), run `"build/Hackatime Desktop.app/Contents/MacOS/HackatimeDesktop" --self-test`. It checks locally and sends nothing to Hackatime.
 
 For App Attest, sign with Developer ID: `SIGN_IDENTITY=… TEAM_ID=… PROFILE=…/profile.provisionprofile ./scripts/bundle.sh`, then notarise. The server needs `DESKTOP_APP_ATTEST_APP_ID=TEAMID.com.hackclub.hackatime.desktop`.
 
