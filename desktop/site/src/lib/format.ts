@@ -2,7 +2,8 @@ export function duration(seconds: number | null | undefined): string {
 	if (seconds == null) return '–';
 	const h = Math.floor(seconds / 3600);
 	const m = Math.floor((seconds % 3600) / 60);
-	return h ? `${h}h ${String(m).padStart(2, '0')}m` : `${m}m`;
+	// A no-break space, so "5h 20m" never splits across lines.
+	return h ? `${h}h\u00a0${String(m).padStart(2, '0')}m` : `${m}m`;
 }
 
 const units: [Intl.RelativeTimeFormatUnit, number][] = [

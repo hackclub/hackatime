@@ -18,15 +18,22 @@
 	let hovered = $state<number | null>(null);
 	let tipHeight = $state(0);
 	const shown = $derived(hovered == null ? null : stats.days[hovered]);
+	const empty = $derived(stats.days.every((d) => !d.seconds));
+	// A mouse shows a day while it hovers; touch has no hover, so a tap
+	// toggles the day and a tap anywhere else closes it.
+	const isMouse = (e: PointerEvent) => e.pointerType === 'mouse';
 </script>
+
+<svelte:window onpointerdown={(e) => { if (!isMouse(e) && !(e.target as Element).closest?.('[data-chart]')) hovered = null; }} />
 
 <section aria-labelledby="stats-heading" class="flex flex-col gap-6">
 	<h2 id="stats-heading" class="sr-only">Your stats</h2>
 	<dl class="grid grid-cols-2 border-4 border-cream sm:grid-cols-4">
 		{#each [{ k: 'today', v: duration(today) }, { k: 'this week', v: duration(stats.week_seconds) }, { k: 'approved', v: duration(stats.approved_seconds) }, { k: 'written by you', v: yours == null ? '–' : `${yours}%` }] as stat, i (stat.k)}
-			<div class="flex flex-col gap-1 p-4 {i % 2 ? 'border-l-4 border-cream' : ''} {i >= 2 ? 'max-sm:border-t-4 sm:border-l-4' : ''} border-cream">
+			<div class="flex min-w-0 flex-col gap-1 p-3 sm:p-4 {i % 2 ? 'border-l-4 border-cream' : ''} {i >= 2 ? 'max-sm:border-t-4 sm:border-l-4' : ''} border-cream">
 				<dt class="text-sm text-dim">{stat.k}</dt>
-				<dd class="text-3xl leading-none font-bold tabular-nums">{stat.v}</dd>
+				<!-- Four columns get narrow beside the sidebar until xl, so the figures step down there. -->
+				<dd class="text-2xl leading-none font-bold tabular-nums sm:text-3xl md:text-2xl xl:text-3xl">{stat.v}</dd>
 			</div>
 		{/each}
 	</dl>
@@ -34,12 +41,19 @@
 	<div class="flex flex-col gap-2">
 		<div class="flex items-baseline justify-between gap-4">
 			<h3 class="text-xl font-bold lowercase">last two weeks</h3>
-			<p class="text-sm text-dim tabular-nums">peak {duration(Math.max(...stats.days.map((d) => d.seconds)))}</p>
+			{#if !empty}<p class="text-sm text-dim tabular-nums">peak {duration(Math.max(...stats.days.map((d) => d.seconds)))}</p>{/if}
 		</div>
-		<div class="relative">
-		<ol class="flex h-40 items-end border-b-4 border-cream" aria-label="Time recorded per day" onpointerleave={() => (hovered = null)}>
+		<div class="relative" data-chart>
+		{#if empty}
+			<p class="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-dim">Nothing recorded yet. Your Mac's time shows up here.</p>
+		{/if}
+		<ol class="flex h-40 items-end border-b-4 border-cream" aria-label="Time recorded per day" onpointerleave={(e) => { if (isMouse(e)) hovered = null; }}>
 			{#each stats.days as day, i (day.date)}
-				<li class="group flex h-full flex-1 flex-col justify-end px-0.5" onpointerenter={() => (hovered = i)}>
+				<li
+					class="group flex h-full flex-1 flex-col justify-end px-0.5"
+					onpointerenter={(e) => { if (isMouse(e)) hovered = i; }}
+					onpointerdown={(e) => { if (!isMouse(e)) hovered = hovered === i ? null : i; }}
+				>
 					<span class="sr-only">{label(day.date)}: {duration(day.seconds)}{#each day.projects as p (p.project)}, {p.project || 'other'} {duration(p.seconds)}{/each}</span>
 					<span
 						class="bar block w-full {i === stats.days.length - 1 ? 'bg-link' : 'bg-cream'} {hovered != null && hovered !== i ? 'opacity-40' : ''}"

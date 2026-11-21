@@ -1,8 +1,7 @@
 <script lang="ts">
 	import '../app.css';
-	import favicon from '#lib/assets/favicon.svg';
 	import { onNavigate } from '$app/navigation';
-	import { page } from '$app/state';
+	import { navigating, page } from '$app/state';
 	import Stripes from '#lib/components/site/Stripes.svelte';
 	import { Toaster } from '#lib/components/ui/sonner/index.js';
 	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
@@ -16,8 +15,10 @@
 		{ href: '/devices', label: 'devices' },
 		{ href: '/ships', label: 'shipped' }
 	];
-	const current = (href: string) =>
-		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
+	// Highlight where a tap is going straight away; on a slow connection the
+	// page itself can take a few seconds to arrive.
+	const path = $derived(navigating.to?.url.pathname ?? page.url.pathname);
+	const current = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 
 	// Pages cross-fade in 120ms where the browser supports view transitions.
 	onNavigate((navigation) => {
@@ -32,11 +33,16 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<link rel="icon" href="/favicon.png" type="image/png" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 	<title>Hackatime Desktop</title>
 </svelte:head>
 
-<Toaster position="bottom-right" />
+<!-- On phones, toasts sit above the bottom nav instead of over it. -->
+<Toaster position="bottom-right" mobileOffset={{ bottom: 76 }} />
+{#if navigating.to}
+	<div class="nav-progress fixed inset-x-0 top-0 z-50 h-1 bg-link" aria-hidden="true"></div>
+{/if}
 <Tooltip.Provider>
 
 <a href="#main" class="sr-only z-50 bg-cream px-3 py-2 text-ink focus:not-sr-only focus:fixed focus:top-2 focus:left-2">Skip to content</a>
@@ -87,6 +93,11 @@
 	</aside>
 
 	<main id="main" class="min-w-0 flex-1">
+		<!-- The sidebar is hidden on small screens, so the name and sign-in live up here. -->
+		<header class="mb-6 flex items-center justify-between gap-4 select-none md:hidden">
+			<a href="/" class="text-lg leading-none font-bold tracking-tight" aria-label="Hackatime Desktop, home">hackatime <span class="text-link">desktop</span></a>
+			{#if !data.overview}<a href="/auth/login" class="link text-base">sign in</a>{/if}
+		</header>
 		{#if data.offline}
 			<p role="status" class="mb-6 w-fit bg-cream px-3 py-1.5 text-ink">Hackatime isn't answering right now. Try again in a minute.</p>
 		{/if}
@@ -100,12 +111,12 @@
 			<a
 				href={item.href}
 				aria-current={current(item.href) ? 'page' : undefined}
-				class="flex-1 py-3 text-center text-lg lowercase {current(item.href) ? 'bg-cream font-bold text-ink' : ''}"
+				class="flex-1 py-3 text-center text-base lowercase sm:text-lg {current(item.href) ? 'bg-cream font-bold text-ink' : ''}"
 			>
 				{item.label}
 			</a>
 		{/each}
-		<a href="/pair" class="flex-1 py-3 text-center text-lg lowercase {page.url.pathname === '/pair' ? 'bg-cream font-bold text-ink' : ''}">app</a>
+		<a href="/pair" class="flex-1 py-3 text-center text-base lowercase sm:text-lg {path === '/pair' ? 'bg-cream font-bold text-ink' : ''}">app</a>
 		<form method="POST" action="/auth/logout" class="flex">
 			<button class="px-4 text-dim hover:text-cream" aria-label="Sign out"><SignOut class="size-5" /></button>
 		</form>
@@ -115,6 +126,19 @@
 </Tooltip.Provider>
 
 <style>
+	/* Shows only when a page takes longer than 150ms, then creeps towards the end. */
+	.nav-progress {
+		transform-origin: left;
+		animation: nav-progress 8s cubic-bezier(0.1, 0.7, 0.2, 1) 150ms both;
+	}
+	@keyframes nav-progress {
+		from {
+			transform: scaleX(0);
+		}
+		to {
+			transform: scaleX(0.9);
+		}
+	}
 	/* Hover sweeps a faint fill in from the left, like manitej.com. */
 	.nav-link::before {
 		content: '';

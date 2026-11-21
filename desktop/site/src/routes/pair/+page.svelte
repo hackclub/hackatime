@@ -32,7 +32,7 @@
 			<p class="text-sm text-dim" id="code-label">pairing code</p>
 			<p class="-mt-3 w-fit bg-cream px-5 py-3 font-mono text-4xl font-bold tracking-[0.2em] text-ink" aria-labelledby="code-label">{pairing.code}</p>
 			<p class="text-dim">The code works once and runs out at {clock(pairing.expires_at)}.</p>
-			<div class="flex gap-3">
+			<div class="flex flex-wrap gap-3">
 				<Button href={pairing.deep_link} size="lg">open hackatime desktop</Button>
 				<Button href="/devices" size="lg" variant="outline">see your macs</Button>
 			</div>

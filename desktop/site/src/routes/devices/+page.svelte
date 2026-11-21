@@ -13,6 +13,8 @@
 	let { data }: PageProps = $props();
 	const devices = $derived(data.overview?.devices ?? []);
 	const zone = $derived(data.overview?.user.timezone);
+	// The device being unpaired, so its button can say so on a slow connection.
+	let pending = $state<number | null>(null);
 </script>
 
 <svelte:head><title>Devices · Hackatime Desktop</title></svelte:head>
@@ -27,13 +29,13 @@
 		<ul class="grid gap-4 md:grid-cols-2">
 			{#each devices as device, i (device.id)}
 				<li
-					class="flex flex-col gap-3 border-4 border-cream p-5"
+					class="flex min-w-0 flex-col gap-3 border-4 border-cream p-5"
 					in:fly={{ y: 8, duration: ms(140), delay: stagger(i) }}
 					out:fly={{ x: -16, duration: ms(120) }}
 					animate:flip={{ duration: ms(160) }}
 				>
 					<div class="flex items-baseline justify-between gap-3">
-						<h2 class="truncate text-2xl font-bold">{device.name}</h2>
+						<h2 class="min-w-0 text-2xl font-bold break-words">{device.name}</h2>
 						<span class="shrink-0 text-sm text-dim">{device.platform}{device.app_version ? ` · ${device.app_version}` : ''}</span>
 					</div>
 					<dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-base">
@@ -54,17 +56,20 @@
 							<form
 								method="POST"
 								action="?/unpair"
-								use:enhance={() =>
-									async ({ result, update }) => {
+								use:enhance={() => {
+									pending = device.id;
+									return async ({ result, update }) => {
 										await update();
+										pending = null;
 										if (result.type === 'success') toast(`${device.name} unpaired`);
 										else if (result.type === 'failure') toast(String(result.data?.error ?? "Couldn't unpair. Try again."));
-									}}
+									};
+								}}
 							>
 								<input type="hidden" name="id" value={device.id} />
 								<AlertDialog.Footer>
 									<AlertDialog.Cancel>keep it</AlertDialog.Cancel>
-									<AlertDialog.Action type="submit" class="border-2 border-warn bg-warn text-ink hover:bg-warn/80">unpair</AlertDialog.Action>
+									<AlertDialog.Action type="submit" disabled={pending === device.id} class="border-2 border-warn bg-warn text-ink hover:bg-warn/80">{pending === device.id ? 'unpairing…' : 'unpair'}</AlertDialog.Action>
 								</AlertDialog.Footer>
 							</form>
 						</AlertDialog.Content>

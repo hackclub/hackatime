@@ -9,6 +9,6 @@
 </script>
 
 <svg viewBox="0 0 64 36" class="h-[35px] w-[63px] {className}" role="img" aria-label={label}>
-	<polygon {points} fill="var(--ink)" />
-	<text x="32" y="22.5" text-anchor="middle" font-size="11" font-weight="700" font-style="italic" fill="var(--cream)">{label}</text>
+	<polygon {points} fill="var(--cream)" />
+	<text x="32" y="22.5" text-anchor="middle" font-size="11" font-weight="700" font-style="italic" fill="var(--ink)">{label}</text>
 </svg>
