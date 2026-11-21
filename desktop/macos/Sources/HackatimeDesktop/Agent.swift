@@ -39,9 +39,11 @@ final class Agent: ObservableObject {
     private var key: DeviceKey?
     private var lastBeacon: Beacon?
     private var focusSamples: [(FocusLabel, String?, pid_t)] = []
-    private var fileEdits = 0, commits = 0, builds = 0
+    private var fileEdits = 0, builds = 0
+    private(set) var commits = 0
     private var lastActivity: [String: Date] = [:]   // project folder → last file change seen
     private var fsStream: FSEventStreamRef?
+    private var reflogOffsets: [String: UInt64] = [:]   // .git/logs/HEAD path → bytes already read
     private var snapshots: [Int: TreeSnapshot] = [:]   // seq → snapshot, kept locally for shipping
     private var lastSnapshotMinute = 0
     private var framesThisMinute: [MinutePayload.Frame] = []
@@ -370,6 +372,10 @@ final class Agent: ObservableObject {
     func watchProjects() {
         if let fsStream { FSEventStreamStop(fsStream); FSEventStreamInvalidate(fsStream); FSEventStreamRelease(fsStream) }
         guard !settings.projects.isEmpty else { return }
+        for project in settings.projects {
+            let reflog = project + "/.git/logs/HEAD"
+            if reflogOffsets[reflog] == nil { reflogOffsets[reflog] = Self.fileSize(reflog) }
+        }
         var context = FSEventStreamContext(version: 0, info: Unmanaged.passUnretained(self).toOpaque(), retain: nil, release: nil, copyDescription: nil)
         let callback: FSEventStreamCallback = { _, info, count, paths, _, _ in
             guard let info else { return }
@@ -388,7 +394,7 @@ final class Agent: ObservableObject {
     func recordFileEvents(_ paths: [String]) {
         for path in paths {
             if let project = settings.projects.first(where: { path.hasPrefix($0 + "/") }) { lastActivity[project] = Date() }
-            if path.hasSuffix(".git/logs/HEAD") { commits += 1; continue }
+            if path.hasSuffix(".git/logs/HEAD") { commits += newCommits(inReflog: path); continue }
             let components = path.split(separator: "/")
             if components.contains(where: { TreeSnapshot.buildDirectories.contains(String($0)) }) {
                 builds = 1
@@ -398,6 +404,27 @@ final class Agent: ObservableObject {
             if TreeSnapshot.isNeverHashed(name: String(components.last ?? ""), relative: path) { continue }
             fileEdits += 1
         }
+    }
+
+    static func fileSize(_ path: String) -> UInt64 {
+        ((try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? NSNumber)?.uint64Value ?? 0
+    }
+
+    /// HEAD's reflog gains a line for every checkout, reset, rebase step and
+    /// commit. Counts only the new lines whose message says a commit was
+    /// made ("commit", "commit (amend)", "commit (merge)", ...).
+    private func newCommits(inReflog path: String) -> Int {
+        guard let handle = FileHandle(forReadingAtPath: path) else { return 0 }
+        defer { try? handle.close() }
+        var offset = reflogOffsets[path] ?? 0
+        if Self.fileSize(path) < offset { offset = 0 }   // the reflog was expired or rewritten
+        try? handle.seek(toOffset: offset)
+        let data = handle.readDataToEndOfFile()
+        let complete = data.lastIndex(of: UInt8(ascii: "\n")).map { data[...$0] } ?? Data()
+        reflogOffsets[path] = offset + UInt64(complete.count)
+        return String(decoding: complete, as: UTF8.self).split(separator: "\n").filter { line in
+            line.split(separator: "\t", maxSplits: 1).last?.hasPrefix("commit") ?? false
+        }.count
     }
 
     // MARK: Persistence

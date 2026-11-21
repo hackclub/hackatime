@@ -156,6 +156,28 @@ final class AgentTests: XCTestCase {
         XCTAssertEqual(StubServer.requests.filter { $0.hasSuffix("/beacon") }.count, 1, "\(StubServer.requests)")
     }
 
+    func testOnlyNewCommitsInTheReflogCount() throws {
+        let project = support.appendingPathComponent("proj")
+        let logs = project.appendingPathComponent(".git/logs")
+        try FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)
+        let reflog = logs.appendingPathComponent("HEAD")
+        func line(_ message: String) -> String { "\(String(repeating: "a", count: 40)) \(String(repeating: "b", count: 40)) Me <me@example.com> 1740000000 +0000\t\(message)\n" }
+        try line("commit (initial): Start").write(to: reflog, atomically: true, encoding: .utf8)
+
+        let agent = makeAgent()
+        agent.settings.projects = [project.path]
+        agent.watchProjects()
+        func append(_ text: String) throws {
+            let handle = try FileHandle(forWritingTo: reflog)
+            handle.seekToEndOfFile(); handle.write(Data(text.utf8)); try handle.close()
+            agent.recordFileEvents([reflog.path])
+        }
+        try append(line("checkout: moving from main to feature"))
+        try append(line("reset: moving to HEAD~1") + line("commit: Add parser") + line("commit (amend): Add parser"))
+        agent.recordFileEvents([reflog.path])
+        XCTAssertEqual(agent.commits, 2, "the existing commit, a checkout and a reset do not count")
+    }
+
     func testRevokedTokenWhileSendingBlocksAlsoUnpairs() async {
         StubServer.handler = { request in
             request.url!.path.hasSuffix("/beacon") ? (200, StubServer.beacon()) : (401, ["error": "Unauthorized"])
