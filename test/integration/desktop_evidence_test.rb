@@ -422,9 +422,313 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_match(/about 3 lines yourself and accepted about 2 from AI/, Evidence::Summary.reflection(EvidenceShip.find(ship["id"])))
   end
 
+  test "minutes removed from a ship earn nothing, and the kept minutes earn what they did before" do
+    token = pair_device
+    # Seq 5 is a look at something unrelated and seq 6 is research; the rest is project work.
+    14.times { |i| post_minute(token, i, payload(i).merge(focus: { 4 => "unrelated", 5 => "research" }.fetch(i, "project"))) }
+
+    whole = open_ship(token, 1, 14)
+    assert_equal [], whole["excluded_ranges"]
+    before = Evidence::Scorer.call(ship: EvidenceShip.find(whole["id"]))
+    assert_equal 14 * 45, before.claimed_seconds
+    assert_equal 13 * 45 + 60, before.stretches.sole.counted_seconds, "the unrelated minute is a short switch away and counts in full"
+    assert_no_match(/removed/, Evidence::Summary.plain(Evidence::Summary.facts(EvidenceShip.find(whole["id"]))))
+
+    # Sent out of order, with two ranges that touch: seq 5..6 and 10..12 are removed.
+    edited = open_ship(token, 1, 14, [ { from_seq: 11, to_seq: 12 }, { from_seq: 5, to_seq: 6 }, { from_seq: 10, to_seq: 10 } ])
+    assert_equal whole["id"], edited["id"], "opening the same range again updates the draft"
+    assert_equal [ [ 5, 6 ], [ 10, 12 ] ], edited["excluded_ranges"]
+    after = Evidence::Scorer.call(ship: EvidenceShip.find(edited["id"]))
+    assert_equal 9 * 45, after.claimed_seconds
+    # Two removed minutes are no longer than the grace period, so the stretch
+    # runs on across them; three end it.
+    assert_equal [ [ 1, 9 ], [ 13, 14 ] ], after.stretches.map { |stretch| [ stretch.from_seq, stretch.to_seq ] }
+    assert_equal [ 7 * 45, 2 * 45 ], after.stretches.map(&:counted_seconds), "a kept minute earns its 45 seconds and a removed one is never a grace minute"
+    stretch = after.stretches.first
+    assert_equal({ "removed" => 2 }, stretch.reasons)
+    assert_equal [ 9.0, 7, 0.0 ], stretch.features.values_at("minutes", "frames_due", "unrelated_ratio"), "removed minutes owe no frame"
+    assert_in_delta 1 / 9.0, stretch.features["research_ratio"], 0.0001, "the stretch still describes what the chain recorded"
+
+    post "/api/desktop/v1/ships/#{edited["id"]}/submit", headers: auth(token), as: :json,
+      params: { final_files: [ { path: "a.rb", content: Base64.strict_encode64("x = 1\n" * 30) } ] }
+    assert_response :success
+    assert_equal 9 * 45, response.parsed_body["claimed_seconds"]
+    record = EvidenceShip.find(edited["id"])
+    # One new file of 31 lines; the nine kept minutes claim 18 AI lines, which leaves 13 human
+    # lines, and none of them is research: 1800 + 13 * 150 + 18 * 20 + 300.
+    assert_equal 4410, record.ceiling_seconds
+    assert_empty record.flags & %w[removed_checks unshipped_gaps]
+    facts = Evidence::Summary.facts(record)
+    assert_equal [ 9, 5, 0 ], facts.values_at(:minutes, :removed_minutes, :removed_checks)
+    assert_equal [ 9, 18, 27, 0, 0 ], facts.values_at(:prompts, :ai_lines, :human_lines, :research_minutes, :unrelated_minutes)
+    plain = Evidence::Summary.plain(facts)
+    assert_includes plain, "9 chained minutes on sync-app"
+    assert_includes plain, "The user removed 5 minutes of the range before shipping"
+    assert_no_match(/already asked for/, plain)
+    assert_match(/You spent 9 focused minutes on sync-app/, Evidence::Summary.reflection(record))
+  end
+
+  test "required frames, spot-checks and revealed secrets come only from the minutes a ship keeps" do
+    token = pair_device
+    device = @user.desktop_devices.sole
+    frames = {}
+    12.times do |i|
+      seq = i + 1
+      # Seq 6 will be removed and seq 9 kept. Both get a frame their own
+      # secret makes required, and seq 6 a tree its secret spot-checks.
+      frames[seq] = [ 6, 9 ].include?(seq) ? frame_with_requirement(i, true) : encrypted_frame("minute #{i}")
+      tree = { "app.rb" => "puts #{i}\n" }
+      tree["pad.rb"] = SecureRandom.hex(4) until seq != 6 || Evidence::Crypto.spot_check?(secret_for_minute(i), tree_root(tree), EvidenceShip::SPOT_CHECK_RATIO)
+      post_minute(token, i, payload(i, tree:, frame: frames[seq]))
+    end
+    removed = [ 1, 2, 6, 7, 12 ]
+    kept = (1..12).to_a - removed
+
+    ship = open_ship(token, 1, 12, [ { from_seq: 1, to_seq: 2 }, { from_seq: 6, to_seq: 7 }, { from_seq: 12, to_seq: 12 } ])
+    assert_equal [ [ 1, 2 ], [ 6, 7 ], [ 12, 12 ] ], ship["excluded_ranges"]
+
+    required = kept.select { |seq| Evidence::Crypto.required_frame?(secret_for_minute(seq - 1), frames[seq][:hash], EvidenceShip::REQUIRED_FRAME_RATIO) }
+    assert_includes required, 9
+    assert_equal frames.values_at(*required).pluck(:hash).sort, ship["required_frames"].sort
+    assert_not_includes ship["required_frames"], frames[6][:hash], "a removed minute's frame is never asked for"
+    assert_equal [ 3, 11 ], ship["spot_check_seqs"].values_at(0, -1), "the first and last kept snapshots are always checked"
+    assert_empty ship["spot_check_seqs"] - kept, "a removed minute's snapshot is never checked"
+
+    beacon_minute = ->(seq) { (START + (seq - 1).minutes).to_i / 60 }
+    assert_equal kept.map(&beacon_minute), ship["revealed"].pluck("minute").sort, "the secrets of removed minutes stay secret"
+    ship["revealed"].each { |revealed| assert_equal Evidence::Crypto.beacon_commitment(revealed["secret"]), revealed["commitment"] }
+    assert_equal kept, device.evidence_blocks.where.not(revealed_at: nil).order(:seq).pluck(:seq)
+    assert_equal beacon_minute.(11), device.reload.revealed_through_minute, "the removed last minute's beacon is not closed"
+  end
+
+  test "a frame can be uploaded only when a minute the ship keeps commits it" do
+    token = pair_device
+    first, still, gone = encrypted_frame("first"), encrypted_frame("an unchanged screen"), encrypted_frame("gone")
+    # Seq 2 and 3 repeat one hash, as the app does while the screen does not change.
+    [ first, still, still, gone ].each_with_index { |frame, i| post_minute(token, i, payload(i, frame:)) }
+    ship = open_ship(token, 1, 4, [ { from_seq: 2, to_seq: 2 }, { from_seq: 4, to_seq: 4 } ])
+
+    upload_frame(token, ship, gone)
+    assert_response :unprocessable_entity
+    assert_equal "That minute was removed from this ship", response.parsed_body["error"]
+    upload_frame(token, ship, encrypted_frame("never committed"))
+    assert_response :unprocessable_entity
+    assert_equal "Frame hash is not committed in this range", response.parsed_body["error"]
+    upload_frame(token, ship, first)
+    assert_response :created
+    upload_frame(token, ship, still)
+    assert_response :created, "the removed seq 2 commits this hash, but so does the kept seq 3"
+    assert_equal({ first[:hash] => 1, still[:hash] => 3 }, EvidenceShip.find(ship["id"]).evidence_frames.pluck(:frame_hash, :seq).to_h)
+  end
+
+  test "a ship refuses removed ranges that are malformed, outside it or leave nothing" do
+    token = pair_device
+    6.times { |i| post_minute(token, i, payload(i)) }
+    draft = open_ship(token, 2, 5, [ { from_seq: 3, to_seq: 3 } ])
+    malformed = "Each excluded range needs an integer from_seq and to_seq, with from_seq not after to_seq"
+    outside = "Excluded ranges must lie inside the ship's range"
+    nothing_left = "A ship must keep at least one minute"
+    [
+      [ [ { from_seq: 1, to_seq: 2 } ], outside ],
+      [ [ { from_seq: 5, to_seq: 6 } ], outside ],
+      [ [ { from_seq: 4, to_seq: 3 } ], malformed ],
+      [ [ { from_seq: "3", to_seq: 3 } ], malformed ],
+      [ [ { from_seq: 3.5, to_seq: 4 } ], malformed ],
+      [ [ { from_seq: 3 } ], malformed ],
+      [ [ 3 ], malformed ],
+      [ [ { from_seq: 2, to_seq: 5 } ], nothing_left ],
+      [ [ { from_seq: 4, to_seq: 5 }, { from_seq: 2, to_seq: 3 } ], nothing_left ]
+    ].each do |excluded, error|
+      post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 2, to_seq: 5, excluded: }, headers: auth(token), as: :json
+      assert_response :unprocessable_entity, "excluded=#{excluded.inspect} should be refused"
+      assert_equal error, response.parsed_body["error"]
+    end
+    assert_equal [ [ 3, 3 ] ], EvidenceShip.sole.excluded_ranges, "a refused request leaves the draft as it was"
+    assert_equal draft["id"], EvidenceShip.sole.id
+
+    # 201 separate ranges need a longer chain than a test can post a minute at a
+    # time, so the limit is checked on a ship the device's head is set to cover.
+    device = @user.desktop_devices.sole
+    device.update_columns(last_seq: 500)
+    every_other = ->(count) { Array.new(count) { |n| [ 2 * n + 1, 2 * n + 1 ] } }
+    long = device.evidence_ships.new(user: @user, project: "sync-app", from_seq: 1, to_seq: 500, excluded_ranges: every_other.(201))
+    assert_not long.valid?
+    assert_equal [ "A ship can have at most 200 excluded ranges" ], long.errors.full_messages
+    long.excluded_ranges = every_other.(201) + [ [ 2, 2 ] ]
+    assert_equal [ 1, 3 ], long.excluded_ranges.first, "ranges that touch are merged before they are counted"
+    assert long.valid?, long.errors.full_messages.to_sentence
+  end
+
+  test "opening a draft again with a minute removed deletes the frame already uploaded for it" do
+    token = pair_device
+    first, still, gone = encrypted_frame("first"), encrypted_frame("an unchanged screen"), encrypted_frame("gone")
+    [ first, still, still, gone ].each_with_index { |frame, i| post_minute(token, i, payload(i, frame:)) }
+    ship = open_ship(token, 1, 4)
+    [ first, still, gone ].each do |frame|
+      upload_frame(token, ship, frame)
+      assert_response :created
+    end
+    uploaded = -> { EvidenceShip.find(ship["id"]).evidence_frames.pluck(:frame_hash, :seq).to_h }
+    assert_equal({ first[:hash] => 1, still[:hash] => 2, gone[:hash] => 4 }, uploaded.call)
+
+    edited = open_ship(token, 1, 4, [ { from_seq: 2, to_seq: 2 }, { from_seq: 4, to_seq: 4 } ])
+    assert_equal ship["id"], edited["id"]
+    assert_equal({ first[:hash] => 1, still[:hash] => 3 }, uploaded.call, "only the frame no kept minute commits is deleted; the repeated one moves to the kept minute")
+    assert_empty edited["missing_required_frames"]
+    upload_frame(token, ship, gone)
+    assert_response :unprocessable_entity
+  end
+
+  test "removing a minute after a draft asked for its frame is flagged, and removing it before any draft is not" do
+    token = pair_device
+    # Seq 4 and seq 12 each have a frame their secret makes required; no other frame is.
+    frames = 16.times.map { |i| frame_with_requirement(i, [ 3, 11 ].include?(i)) }
+    frames.each_with_index { |frame, i| post_minute(token, i, payload(i, frame:)) }
+    dodged = -> { EvidenceShip.find(response.parsed_body["id"]).removed_checks }
+    submit = lambda do |ship|
+      post "/api/desktop/v1/ships/#{ship["id"]}/submit", headers: auth(token), as: :json, params: { final_files: [ { path: "a.rb", content: "" } ] }
+      assert_response :success
+      EvidenceShip.find(ship["id"])
+    end
+
+    # Seq 12 is removed before any draft revealed its secret, twice over.
+    2.times do
+      early = open_ship(token, 9, 16, [ { from_seq: 12, to_seq: 12 } ])
+      assert_empty early["required_frames"]
+      assert_equal 0, dodged.call
+    end
+    early = submit.(response.parsed_body)
+    assert_not_includes early.flags, "removed_checks"
+    facts = Evidence::Summary.facts(early)
+    assert_equal [ 7, 1, 0 ], facts.values_at(:minutes, :removed_minutes, :removed_checks)
+    assert_includes Evidence::Summary.plain(facts), "The user removed 1 minute of the range before shipping"
+    assert_no_match(/already asked for/, Evidence::Summary.plain(facts))
+
+    # The first draft over seq 1..8 asks for seq 4's frame; the second removes that minute.
+    asked = open_ship(token, 1, 8)
+    assert_equal [ frames[3][:hash] ], asked["required_frames"]
+    assert_equal 0, dodged.call
+    late = open_ship(token, 1, 8, [ { from_seq: 4, to_seq: 4 } ])
+    assert_empty late["required_frames"]
+    assert_equal 1, dodged.call
+    assert_equal [ frames[3][:hash] ], open_ship(token, 1, 8)["required_frames"], "putting the minute back asks for its frame again"
+    assert_equal 0, dodged.call
+    late = submit.(open_ship(token, 1, 8, [ { from_seq: 4, to_seq: 4 } ]))
+    assert_includes late.flags, "removed_checks"
+    facts = Evidence::Summary.facts(late)
+    assert_equal [ 7, 1, 1 ], facts.values_at(:minutes, :removed_minutes, :removed_checks)
+    assert_includes Evidence::Summary.plain(facts), "That took out 1 check the server had already asked for (required frames or code snapshots)."
+  end
+
+  test "removing a minute after a draft said it would check its code snapshot is flagged, and removing it in the first open is not" do
+    token = pair_device
+    # Three ranges of six minutes, each with three snapshots: one at its start,
+    # one in the middle that its own secret picks for a spot-check, and one
+    # near its end that no secret picks. No minute has a frame.
+    picked = [ 3, 9, 15 ]
+    trees = [ 1, 3, 5, 7, 9, 12, 13, 15, 18 ].index_with { |seq| tree_with_spot_check(seq - 1, picked.include?(seq)) }
+    18.times { |i| post_minute(token, i, payload(i, tree: trees[i + 1])) }
+    dodged = -> { EvidenceShip.find(response.parsed_body["id"]).removed_checks }
+    removing = ->(*seqs) { seqs.map { |seq| { from_seq: seq, to_seq: seq } } }
+    submit = lambda do |ship|
+      post "/api/desktop/v1/ships/#{ship["id"]}/submit", headers: auth(token), as: :json, params: {
+        final_files: [ { path: "app.rb", content: Base64.strict_encode64("puts 1\n") } ],
+        snapshots: ship["spot_check_seqs"].map { |seq| snapshot(seq, trees[seq]) }
+      }
+      assert_response :success
+      EvidenceShip.find(ship["id"])
+    end
+
+    # Seq 7..12: the first snapshot and the one the secret picks are removed in the very first open, twice over.
+    2.times do
+      assert_equal [ 12 ], open_ship(token, 7, 12, removing.(7, 9))["spot_check_seqs"]
+      assert_equal 0, dodged.call
+    end
+    early = submit.(response.parsed_body)
+    assert_not_includes early.flags, "removed_checks"
+    assert_equal [ 4, 2, 0 ], Evidence::Summary.facts(early).values_at(:minutes, :removed_minutes, :removed_checks)
+    assert_no_match(/already asked for/, Evidence::Summary.plain(Evidence::Summary.facts(early)))
+
+    # Seq 1..6: the first draft says it will check all three snapshots.
+    assert_equal [ 1, 3, 5 ], open_ship(token, 1, 6)["spot_check_seqs"]
+    assert_equal 0, dodged.call
+    2.times do
+      assert_equal [ 3, 5 ], open_ship(token, 1, 6, removing.(1))["spot_check_seqs"]
+      assert_equal 1, dodged.call, "the first snapshot was asked for, and stays dodged however often the draft is opened"
+    end
+    assert_equal [ 5 ], open_ship(token, 1, 6, removing.(1, 2, 3))["spot_check_seqs"]
+    assert_equal 2, dodged.call, "seq 2 has no snapshot and dodges nothing"
+    assert_equal [ 1, 3, 5 ], open_ship(token, 1, 6)["spot_check_seqs"]
+    assert_equal 0, dodged.call, "putting the minutes back asks for their snapshots again"
+    # Removing until no kept minute has a snapshot at all.
+    assert_empty open_ship(token, 1, 6, [ { from_seq: 1, to_seq: 5 } ])["spot_check_seqs"]
+    assert_equal 3, dodged.call
+    late = submit.(response.parsed_body)
+    assert_includes late.flags, "removed_checks"
+    facts = Evidence::Summary.facts(late)
+    assert_equal [ 1, 5, 3 ], facts.values_at(:minutes, :removed_minutes, :removed_checks)
+    assert_includes Evidence::Summary.plain(facts), "That took out 3 checks the server had already asked for (required frames or code snapshots)."
+
+    # Seq 13..18: another draft reveals seq 15's secret, which picks its snapshot. Removing it from
+    # this range's first open is a dodge; removing seq 13, which no draft kept, is not.
+    assert_equal [ 15 ], open_ship(token, 15, 15)["spot_check_seqs"]
+    assert_equal [ 18 ], open_ship(token, 13, 18, removing.(13, 15))["spot_check_seqs"]
+    assert_equal 1, dodged.call
+  end
+
+  test "a gap in the chain is flagged only when kept minutes lie on both sides of it" do
+    token = pair_device
+    # Seq 1..3, then seq 4..6 forty minutes later, then seq 7..8 after another gap.
+    [ 0, 1, 2, 40, 41, 42, 80, 81 ].each { |i| post_minute(token, i, payload(i)) }
+    flags = lambda do |from, to, excluded|
+      ship = open_ship(token, from, to, excluded)
+      post "/api/desktop/v1/ships/#{ship["id"]}/submit", headers: auth(token), as: :json, params: { final_files: [ { path: "a.rb", content: "" } ] }
+      assert_response :success
+      EvidenceShip.find(ship["id"]).flags
+    end
+    assert_not_includes flags.(1, 5, [ { from_seq: 4, to_seq: 5 } ]), "unshipped_gaps", "every minute after the gap was removed"
+    assert_includes flags.(6, 8, [ { from_seq: 8, to_seq: 8 } ]), "unshipped_gaps", "seq 6 and 7 are kept and 38 minutes apart"
+  end
+
   private
 
   def auth(token) = { "Authorization" => "Bearer #{token}" }
+
+  # Opens (or updates) the draft over a range; `excluded` is left out of the
+  # request unless given, as an app without the timeline editor would.
+  def open_ship(token, from_seq, to_seq, excluded = nil)
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq:, to_seq:, excluded: }.compact, headers: auth(token), as: :json
+    assert_response :created
+    response.parsed_body
+  end
+
+  def upload_frame(token, ship, frame)
+    post "/api/desktop/v1/ships/#{ship["id"]}/frames", params: frame.slice(:hash, :ciphertext, :segment_key), headers: auth(token), as: :json
+  end
+
+  # The secret this device's block for minute i is judged by. Only the server
+  # knows it before a ship reveals it, so the test reads it from the database.
+  def secret_for_minute(i)
+    EvidenceBeacon.for_minute!((START + i.minutes).to_i / 60).device_secret(@user.desktop_devices.sole.uid)
+  end
+
+  # A frame for minute i that its secret certainly makes required, or certainly does not.
+  def frame_with_requirement(i, required)
+    secret = secret_for_minute(i)
+    loop do
+      frame = encrypted_frame("minute #{i}")
+      return frame if Evidence::Crypto.required_frame?(secret, frame[:hash], EvidenceShip::REQUIRED_FRAME_RATIO) == required
+    end
+  end
+
+  # A working tree for minute i whose snapshot its secret certainly picks for a spot-check, or certainly does not.
+  def tree_with_spot_check(i, picked)
+    secret = secret_for_minute(i)
+    loop do
+      files = { "app.rb" => "puts 1\n", "pad.rb" => SecureRandom.hex(4) }
+      return files if Evidence::Crypto.spot_check?(secret, tree_root(files), EvidenceShip::SPOT_CHECK_RATIO) == picked
+    end
+  end
 
   # The companion site's OAuth token for the student.
   def site_auth = auth(@site_token ||= desktop_token(@user))

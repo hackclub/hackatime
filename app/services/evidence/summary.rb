@@ -3,11 +3,14 @@ module Evidence
   module Summary
     module_function
 
+    # Counts describe the minutes the ship keeps; the ones the user removed
+    # before shipping are only counted, in removed_minutes.
     def facts(ship)
-      blocks = ship.blocks.to_a
+      blocks = ship.kept_blocks.to_a
       {
         project: ship.project,
         minutes: blocks.length,
+        removed_minutes: ship.removed_minutes, removed_checks: ship.removed_checks,
         claimed: ship.claimed_seconds, scored: ship.scored_seconds, ceiling: ship.ceiling_seconds, credited: ship.credited_seconds,
         confidence: ship.confidence, scorer: ship.scorer,
         prompts: EvidenceBlock.ai_total(blocks, "prompts"),
@@ -33,6 +36,14 @@ module Evidence
                "confidence (#{facts[:scorer]}), output ceiling #{hours.(facts[:ceiling])}, suggested credit #{hours.(facts[:credited])}."
       lines << "#{facts[:research_minutes]} research and #{facts[:unrelated_minutes]} unrelated minutes; " \
                "#{facts[:frames]} frames revealed, #{facts[:redacted_frames]} redacted."
+      if facts[:removed_minutes].positive?
+        checks = facts[:removed_checks]
+        line = "The user removed #{facts[:removed_minutes]} #{"minute".pluralize(facts[:removed_minutes])} of the range before shipping; " \
+               "they earn nothing and are not counted above."
+        # Minutes taken out after a draft had told the device what it would check in them.
+        line += " That took out #{checks} #{"check".pluralize(checks)} the server had already asked for (required frames or code snapshots)." if checks.positive?
+        lines << line
+      end
       checks = facts[:spot_checks]
       rooted = checks.select { |check| check["root_ok"] }
       led = rooted.count { |check| check["plausible"] && check["compared"] }
@@ -45,9 +56,10 @@ module Evidence
     end
 
     # What the student sees: their own week in plain words. Never flags,
-    # confidence, scorer internals or how the evidence is checked.
+    # confidence, scorer internals or how the evidence is checked. Minutes
+    # they removed before shipping are not part of it.
     def reflection(ship)
-      blocks = ship.blocks.to_a
+      blocks = ship.kept_blocks.to_a
       minutes = blocks.count { |block| %w[project research].include?(block.focus) && block.payload["active_s"].to_i.positive? }
       prompts = EvidenceBlock.ai_total(blocks, "prompts")
       commits = blocks.sum { |block| block.payload["commits"].to_i }

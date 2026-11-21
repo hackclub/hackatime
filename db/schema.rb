@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_21_120100) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_21_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -223,6 +223,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_21_120100) do
     t.datetime "received_at", null: false
     t.inet "ip_address"
     t.integer "ja4_id"
+    t.datetime "revealed_at"
     t.index ["desktop_device_id", "seq"], name: "index_evidence_blocks_on_desktop_device_id_and_seq", unique: true
     t.index ["desktop_device_id"], name: "index_evidence_blocks_on_desktop_device_id"
     t.index ["evidence_beacon_id"], name: "index_evidence_blocks_on_evidence_beacon_id"
@@ -277,6 +278,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_21_120100) do
     t.datetime "decided_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "excluded_ranges", default: [], null: false
+    t.jsonb "asked_spot_check_seqs", default: [], null: false
+    t.integer "removed_checks", default: 0, null: false
     t.index ["desktop_device_id"], name: "index_evidence_ships_on_desktop_device_id"
     t.index ["reviewer_id"], name: "index_evidence_ships_on_reviewer_id"
     t.index ["status", "submitted_at"], name: "index_evidence_ships_on_status_and_submitted_at"

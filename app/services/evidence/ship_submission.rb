@@ -35,8 +35,11 @@ module Evidence
         SnapshotCheck.check(block: by_seq.fetch(seq), salt_hex: snapshot["salt"], leaves:, files:, final_files: @final_files, cache: fingerprint_cache)
       end
 
-      research_ratio = blocks.empty? ? 0 : blocks.count { |block| block.focus == "research" }.fdiv(blocks.length)
-      ai_lines = EvidenceBlock.ai_total(blocks, "ai_lines")
+      # The scorer sees every block of the range; what the ship claims is
+      # described by the minutes the user kept.
+      kept = blocks.select { |block| @ship.kept?(block.seq) }
+      research_ratio = kept.empty? ? 0 : kept.count { |block| block.focus == "research" }.fdiv(kept.length)
+      ai_lines = EvidenceBlock.ai_total(kept, "ai_lines")
       ceiling = SnapshotCheck.ceiling_seconds(first_files: first_files || {}, final_files: @final_files, ai_lines:, research_ratio:)
       result = Scorer.call(ship: @ship, blocks:, ceiling_seconds: ceiling)
 
@@ -48,7 +51,9 @@ module Evidence
       # ceiling counts every shipped line as written in this range.
       flags << "undisclosed_snapshot" if checks.any? { |check| check["root_ok"] && check["shared_files"].zero? }
       flags << "redacted_frames" if @ship.evidence_frames.where(redacted: true).exists?
-      flags << "unshipped_gaps" if blocks.each_cons(2).any? { |a, b| b.minute - a.minute > 30 }
+      flags << "unshipped_gaps" if kept.each_cons(2).any? { |a, b| b.minute - a.minute > 30 }
+      # The user took out minutes after a draft had asked for their required frames or code snapshots.
+      flags << "removed_checks" if @ship.removed_checks.positive?
       flags << "offline_blocks" if blocks.any?(&:offline)
       # A snapshot that does not match its root is a broken claim: no credit.
       credited = flags.include?("snapshot_mismatch") ? 0 : result.credited_seconds

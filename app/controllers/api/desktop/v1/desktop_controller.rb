@@ -117,9 +117,13 @@ class Api::Desktop::V1::DesktopController < ActionController::API
   end
 
   # POST /api/desktop/v1/ships
+  # Opening a range that already has a draft updates that draft, so the
+  # minutes removed from it (`excluded`) can change until it is submitted.
   def create_ship
     ship = @device.evidence_ships.draft.find_or_initialize_by(from_seq: params.require(:from_seq), to_seq: params.require(:to_seq))
-    ship.assign_attributes(user: @device.user, project: params.require(:project).to_s)
+    # Anything that is not a { from_seq, to_seq } object becomes nil, which the ship refuses.
+    excluded = Array.wrap(params[:excluded]).map { |range| range.values_at(:from_seq, :to_seq) if range.is_a?(ActionController::Parameters) }
+    ship.assign_attributes(user: @device.user, project: params.require(:project).to_s, excluded_ranges: excluded)
     return render json: { error: ship.errors.full_messages.to_sentence }, status: :unprocessable_entity unless ship.save
 
     ship.reveal!
@@ -131,7 +135,9 @@ class Api::Desktop::V1::DesktopController < ActionController::API
 
   # POST /api/desktop/v1/ships/:id/frames
   # Uploads one encrypted frame and its segment key. An unredacted frame
-  # must match a hash committed in the shipped range. A redacted copy keeps
+  # must match a hash committed by a kept minute of the shipped range; an
+  # unchanged screen repeats its hash, so a frame of a removed minute is
+  # still accepted when a kept minute commits it too. A redacted copy keeps
   # the committed hash it replaces, is marked redacted for reviewers, lists
   # the redacted regions, and must match the committed perceptual hash
   # outside them.
@@ -140,9 +146,13 @@ class Api::Desktop::V1::DesktopController < ActionController::API
     return render json: { error: "Frames can only be added to drafts" }, status: :conflict unless ship.draft?
 
     frame_hash = params.require(:hash).to_s
-    block = ship.blocks.where("payload -> 'frames' @> ?", [ { hash: frame_hash } ].to_json).first
+    commits_frame = [ "payload -> 'frames' @> ?", [ { hash: frame_hash } ].to_json ]
+    block = ship.kept_blocks.where(*commits_frame).first
     committed = block&.frames&.find { |frame| frame["hash"] == frame_hash }&.merge("seq" => block.seq, "captured_at_ms" => block.captured_at_ms)
-    return render json: { error: "Frame hash is not committed in this range" }, status: :unprocessable_entity unless committed
+    unless committed
+      error = ship.blocks.where(*commits_frame).exists? ? "That minute was removed from this ship" : "Frame hash is not committed in this range"
+      return render json: { error: }, status: :unprocessable_entity
+    end
 
     ciphertext = Base64.strict_decode64(params.require(:ciphertext).to_s)
     key = Base64.strict_decode64(params.require(:segment_key).to_s)
@@ -205,15 +215,16 @@ class Api::Desktop::V1::DesktopController < ActionController::API
 
   # Flags, confidence and scoring internals are for reviewers only.
   def ship_json(ship)
-    ship.slice(:id, :project, :from_seq, :to_seq, :status, :required_frames, :spot_check_seqs, :claimed_seconds,
+    ship.slice(:id, :project, :from_seq, :to_seq, :excluded_ranges, :status, :required_frames, :spot_check_seqs, :claimed_seconds,
       :credited_seconds, :approved_seconds, :reviewer_question)
       .merge(missing_required_frames: ship.missing_required_frames)
   end
 
-  # Reveals this device's secrets for the beacons of a closed range so the
-  # client can check them against the commitments it was given.
+  # Reveals this device's secrets for the beacons of the kept minutes of a
+  # closed range so the client can check them against the commitments it was
+  # given. A removed minute's secret stays secret unless a kept one shares its beacon.
   def revealed_secrets(ship)
-    ship.blocks.includes(:evidence_beacon).map(&:evidence_beacon).uniq.map do |beacon|
+    ship.kept_blocks.includes(:evidence_beacon).map(&:evidence_beacon).uniq.map do |beacon|
       { minute: beacon.minute, secret: beacon.device_secret(@device.uid), commitment: beacon.device_commitment(@device.uid) }
     end
   end

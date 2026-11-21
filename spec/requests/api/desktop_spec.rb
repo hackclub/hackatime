@@ -123,13 +123,23 @@ RSpec.describe 'Api::Desktop::V1', type: :request do
     post('Open a ship over a chain range') do
       tags 'Desktop'
       description 'Opens a draft ship over a closed range and reveals the beacon secrets for it, which pick the required timelapse frames ' \
-                  'and the code snapshots the server will spot-check. Clients must check each secret against its published commitment.'
+                  'and the code snapshots the server will spot-check. Clients must check each secret against its published commitment. ' \
+                  '`excluded` lists minutes inside the range that the user removed before shipping: they earn nothing, their secrets ' \
+                  'are not revealed and none of their frames or snapshots is asked for. Opening a range that already has a draft ' \
+                  'updates that draft, and deletes frames uploaded for minutes that are now removed.'
       security [ { Bearer: [] } ]
       consumes 'application/json'
       produces 'application/json'
       parameter name: :body, in: :body, schema: {
         type: :object, required: %w[project from_seq to_seq],
-        properties: { project: { type: :string }, from_seq: { type: :integer }, to_seq: { type: :integer } }
+        properties: {
+          project: { type: :string }, from_seq: { type: :integer }, to_seq: { type: :integer },
+          excluded: {
+            type: :array, description: 'Removed seq ranges, both ends inclusive, in any order. Omitted or empty removes nothing. ' \
+                                       'Each must lie inside the ship, at most 200 remain after merging and at least one minute must be kept.',
+            items: { type: :object, required: %w[from_seq to_seq], properties: { from_seq: { type: :integer, example: 12 }, to_seq: { type: :integer, example: 15 } } }
+          }
+        }
       }
 
       response(201, 'draft ship with what must be revealed') do
@@ -139,18 +149,24 @@ RSpec.describe 'Api::Desktop::V1', type: :request do
           hash = Evidence::Crypto.chain_hash(device.head_hash, beacon.value, payload)
           device.evidence_blocks.create!(user:, evidence_beacon: beacon, seq: 1, minute: beacon.minute, prev_hash: device.head_hash,
             block_hash: hash, payload: JSON.parse(payload), captured_at_ms: beacon.minute * 60_000, received_at: Time.current)
-          device.update!(last_seq: 1, head_hash: hash)
-          { project: 'demo', from_seq: 1, to_seq: 1 }
+          device.evidence_blocks.create!(user:, evidence_beacon: beacon, seq: 2, minute: beacon.minute + 1, prev_hash: hash,
+            block_hash: 'a' * 64, payload: JSON.parse(payload), captured_at_ms: (beacon.minute + 1) * 60_000, received_at: Time.current)
+          device.update!(last_seq: 2, head_hash: 'a' * 64)
+          { project: 'demo', from_seq: 1, to_seq: 2, excluded: [ { from_seq: 2, to_seq: 2 } ] }
         end
-        schema type: :object, required: %w[id status required_frames spot_check_seqs revealed], properties: {
-          id: { type: :integer }, status: { type: :string }, required_frames: { type: :array, items: { type: :string } },
+        schema type: :object, required: %w[id status excluded_ranges required_frames spot_check_seqs revealed], properties: {
+          id: { type: :integer }, status: { type: :string },
+          excluded_ranges: { type: :array, description: 'The removed seq ranges as [from, to] pairs, sorted, with overlapping or adjacent ranges merged',
+                             items: { type: :array, items: { type: :integer }, minItems: 2, maxItems: 2 } },
+          required_frames: { type: :array, items: { type: :string } },
           spot_check_seqs: { type: :array, items: { type: :integer } },
-          revealed: { type: :array, items: { type: :object, properties: { minute: { type: :integer }, secret: { type: :string }, commitment: { type: :string } } } }
+          revealed: { type: :array, description: 'Secrets of the beacons of kept minutes only',
+                      items: { type: :object, properties: { minute: { type: :integer }, secret: { type: :string }, commitment: { type: :string } } } }
         }
-        run_test!
+        run_test! { |response| expect(JSON.parse(response.body)['excluded_ranges']).to eq([ [ 2, 2 ] ]) }
       end
 
-      response(422, 'range is invalid, beyond the chain or overlaps a submitted ship') do
+      response(422, 'range is invalid, beyond the chain or overlaps a submitted ship, or an excluded range is malformed, outside the ship or leaves no minute') do
         let(:body) { { project: 'demo', from_seq: 1, to_seq: 5 } }
         run_test!
       end
