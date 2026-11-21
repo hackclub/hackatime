@@ -93,5 +93,6 @@ public final class APIClient {
         return (body, (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
 
-    public static let version = "0.1.0"
+    /// The app's version from Info.plist; "dev" when run outside the app bundle.
+    public static let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
 }
