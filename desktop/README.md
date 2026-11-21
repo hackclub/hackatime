@@ -7,7 +7,7 @@ A Mac app that tracks your editor, terminal, browser and AI tools, and backs eve
 - **Passive tracking:** the focused window is classified on your Mac as project, research, unrelated or unknown. Titles and URLs never leave it.
 - **AI tools:** hooks for Claude Code, Codex and Amp send counts, tokens and line totals, never prompt text (`hooks/`).
 - **Proof of time:** one signed, beacon-linked hash chain block per minute, plus salted Merkle roots of your working tree. The Secure Enclave signs when available, and App Attest is used on macOS 27+.
-- **A timelapse, private until shipped:** pairing means agreeing to it. One frame a minute of the focused window, allowlisted windows only, with secrets blacked out, encrypted on your Mac and destroyed after 30 days unless you ship it.
+- **A timelapse, private until shipped:** pairing means agreeing to it. One frame a minute of the focused window, allowlisted windows only, with secrets blacked out, encrypted on your Mac and destroyed there after 30 days. Only the frames you ship ever leave it.
 - **A native window onto the companion site:** pairing happens inside it, with native toasts for what the app does. Close it and tracking carries on from the menu bar.
 - **No** keylogging, camera, kernel driver, source upload while working, or required hardware.
 

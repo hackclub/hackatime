@@ -64,7 +64,7 @@ leaf = SHA256(0x00 || salt || path || 0x00 || SHA256(content))     # sorted by p
 node = SHA256(0x01 || left || right)                               # an odd last node is promoted
 ```
 
-Never hashed: `.env*`, keys and certificates, credential files, databases, `.git`, `node_modules`, build and cache directories, files over 512 KB, symlinks, files past the first 5,000 and anything matching `.hackatimeignore`. Only `tree.root` is sent. The client keeps the leaf list and an encrypted copy of each file locally.
+Never hashed: `.env*`, keys and certificates, credential files, databases, `.git`, `node_modules`, build and cache directories, files over 512 KB, symlinks, files past the first 2,000 and anything matching `.hackatimeignore`. Only `tree.root` is sent. The client keeps the leaf list and an encrypted copy of each file locally.
 
 ## Screenshots
 
@@ -77,7 +77,7 @@ frame blob = nonce(12) || ChaCha20-Poly1305(segment_key, heic, aad = "hkt-frame-
 frame hash = SHA256(frame blob)    # this goes into the block
 ```
 
-Each segment key seals a few dozen frames, so random 96-bit nonces stay far inside their safety margin. Unshipped segments are crypto-shredded after 30 days by deleting their wrapped keys. "Delete everything" destroys all keys at once.
+Each segment key seals a few dozen frames, so random 96-bit nonces stay far inside their safety margin. Segments are crypto-shredded after 30 days by deleting their wrapped keys, shipped or not, because the server keeps its own copy of shipped frames. "Delete everything" replaces the vault key in the Keychain, so no copy of the vault can be decrypted, and removes every frame and snapshot file.
 
 ## Shipping
 
