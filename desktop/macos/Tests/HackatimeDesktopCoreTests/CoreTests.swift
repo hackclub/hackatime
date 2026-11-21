@@ -57,6 +57,15 @@ final class CoreTests: XCTestCase {
         XCTAssertTrue(idle.payload.contains(#""keys":0"#), idle.payload)
     }
 
+    func testADeviceKeyThatCannotBeSavedIsAnError() {
+        final class ReadOnlyStore: SecretStore {
+            func read(_ name: String) -> Data? { nil }
+            func write(_ name: String, _ data: Data) -> Bool { false }
+            func delete(_ name: String) {}
+        }
+        XCTAssertThrowsError(try DeviceKey.loadOrCreate(store: ReadOnlyStore()), "a new key every launch would break signatures")
+    }
+
     func testDeviceKeyPersistsAcrossLaunches() throws {
         let store = MemoryStore()
         let a = try DeviceKey.loadOrCreate(store: store)

@@ -178,6 +178,20 @@ final class AgentTests: XCTestCase {
         XCTAssertEqual(agent.commits, 2, "the existing commit, a checkout and a reset do not count")
     }
 
+    func testPairingFailsWhenTheTokenCannotBeSaved() async {
+        final class ReadOnlyStore: SecretStore {
+            func read(_ name: String) -> Data? { nil }
+            func write(_ name: String, _ data: Data) -> Bool { false }
+            func delete(_ name: String) {}
+        }
+        StubServer.handler = { _ in (201, ["token": "t0k3n", "device": ["uid": "dev_1"]]) }
+        let agent = Agent(support: support, store: ReadOnlyStore(), session: StubServer.session)
+        _ = agent.beginPairing()
+        let error = await agent.completePairing(code: "ABCD")
+        XCTAssertEqual(error, "Could not save the pairing token to the Keychain")
+        XCTAssertFalse(agent.isPaired, "a token that is not saved would be gone after a relaunch")
+    }
+
     func testRevokedTokenWhileSendingBlocksAlsoUnpairs() async {
         StubServer.handler = { request in
             request.url!.path.hasSuffix("/beacon") ? (200, StubServer.beacon()) : (401, ["error": "Unauthorized"])

@@ -28,12 +28,14 @@ public final class DeviceKey {
     /// blob (a Secure Enclave key reference, or software key bytes).
     public static func loadOrCreate(store: SecretStore) throws -> DeviceKey {
         if let blob = store.read("device-key"), let key = try? restore(blob) { return key }
+        // A key that cannot be stored would be replaced on the next launch,
+        // and the server would reject its signatures.
         if SecureEnclave.isAvailable, let key = try? SecureEnclave.P256.Signing.PrivateKey() {
-            store.write("device-key", Data("se:".utf8) + key.dataRepresentation)
+            guard store.write("device-key", Data("se:".utf8) + key.dataRepresentation) else { throw StoreError.writeFailed("device-key") }
             return wrap(key)
         }
         let key = P256.Signing.PrivateKey()
-        store.write("device-key", Data("sw:".utf8) + key.rawRepresentation)
+        guard store.write("device-key", Data("sw:".utf8) + key.rawRepresentation) else { throw StoreError.writeFailed("device-key") }
         return wrap(key)
     }
 
@@ -63,8 +65,17 @@ public final class DeviceKey {
 /// Small Keychain wrapper (generic passwords, this device only).
 public protocol SecretStore {
     func read(_ name: String) -> Data?
-    func write(_ name: String, _ data: Data)
+    /// Returns whether the value was saved.
+    @discardableResult func write(_ name: String, _ data: Data) -> Bool
     func delete(_ name: String)
+}
+
+public enum StoreError: LocalizedError, CustomStringConvertible {
+    case writeFailed(String)
+    public var description: String {
+        switch self { case .writeFailed(let name): "Could not save \(name) to the Keychain" }
+    }
+    public var errorDescription: String? { description }
 }
 
 public final class KeychainStore: SecretStore {
@@ -82,12 +93,18 @@ public final class KeychainStore: SecretStore {
         return SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess ? result as? Data : nil
     }
 
-    public func write(_ name: String, _ data: Data) {
-        delete(name)
-        var query = query(name)
-        query[kSecValueData as String] = data
-        query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        SecItemAdd(query as CFDictionary, nil)
+    /// Updates the item in place, so a failed write keeps the old value
+    /// rather than deleting it first.
+    @discardableResult
+    public func write(_ name: String, _ data: Data) -> Bool {
+        let attributes: [String: Any] = [kSecValueData as String: data,
+                                         kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly]
+        var status = SecItemUpdate(query(name) as CFDictionary, attributes as CFDictionary)
+        if status == errSecItemNotFound {
+            status = SecItemAdd(query(name).merging(attributes) { $1 } as CFDictionary, nil)
+        }
+        if status != errSecSuccess { NSLog("Keychain write of \(name) failed: \(status)") }
+        return status == errSecSuccess
     }
 
     public func delete(_ name: String) { SecItemDelete(query(name) as CFDictionary) }
@@ -98,6 +115,6 @@ public final class MemoryStore: SecretStore {
     var values: [String: Data] = [:]
     public init() {}
     public func read(_ name: String) -> Data? { values[name] }
-    public func write(_ name: String, _ data: Data) { values[name] = data }
+    @discardableResult public func write(_ name: String, _ data: Data) -> Bool { values[name] = data; return true }
     public func delete(_ name: String) { values[name] = nil }
 }

@@ -137,7 +137,7 @@ final class Agent: ObservableObject {
         }
         do {
             let (token, device) = try await api.pair(code: code, verifier: verifier, name: Host.current().localizedName ?? "Mac", appVersion: APIClient.version)
-            store.write("device-token", Data(token.utf8))
+            guard store.write("device-token", Data(token.utf8)) else { throw StoreError.writeFailed("the pairing token") }
             api.token = token
             settings.deviceUID = device["uid"] as? String
             settings.keyEnrolled = false
