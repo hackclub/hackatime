@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import HackatimeDesktopCore
 import SwiftUI
 import WebKit
@@ -7,20 +8,26 @@ import WebKit
 /// whether tracking is on, whether screenshots are armed, and flashes when a
 /// frame is taken. Tracking never depends on the window being open.
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let agent = Agent()
     lazy var window = MainWindowController(agent: agent)
     let toasts = NativeToastCenter.shared
     var statusItem: NSStatusItem!
-    var refresh: Timer?
+    private var agentChanges: AnyCancellable?
+    private var flashEnd: DispatchWorkItem?
+    private var shownSymbol: String?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(handleURL(_:reply:)),
                                                      forEventClass: AEEventClass(kInternetEventClass), andEventID: AEEventID(kAEGetURL))
         agent.start()
+        let menu = NSMenu()
+        menu.delegate = self
+        statusItem.menu = menu
         rebuild()
-        refresh = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in Task { @MainActor in self?.rebuild() } }
+        // The icon follows the agent's state; the menu is built when it opens.
+        agentChanges = agent.objectWillChange.receive(on: DispatchQueue.main).sink { [weak self] in self?.rebuild() }
         agent.onUnpaired = { [weak self] in self?.window.publishState(); self?.rebuild() }
         NSApp.mainMenu = mainMenu()
         window.onChange = { [weak self] in self?.rebuild() }
@@ -43,14 +50,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
+    /// Updates the menu bar icon and tooltip when they changed.
     func rebuild() {
-        let flashing = agent.lastFrameAt.map { Date().timeIntervalSince($0) < 3 } ?? false
+        let sinceFrame = agent.lastFrameAt.map { Date().timeIntervalSince($0) }
+        let flashing = sinceFrame.map { $0 < 3 } ?? false
         let symbol = !agent.isPaired ? "circle.dashed" : agent.settings.paused ? "pause.circle" :
             flashing ? "camera.circle.fill" : "record.circle"
-        statusItem.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Hackatime Desktop")
-        statusItem.button?.toolTip = "Hackatime: \(agent.status)"
+        if shownSymbol != symbol {
+            shownSymbol = symbol
+            statusItem.button?.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "Hackatime Desktop")
+        }
+        let tip = "Hackatime: \(agent.status)"
+        if statusItem.button?.toolTip != tip { statusItem.button?.toolTip = tip }
+        // Turn the camera off again when the flash ends.
+        flashEnd?.cancel()
+        if let sinceFrame, flashing {
+            let work = DispatchWorkItem { [weak self] in self?.rebuild() }
+            flashEnd = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3 - sinceFrame, execute: work)
+        }
+    }
 
-        let menu = NSMenu()
+    /// Fills the status menu as it opens, so it is current without being
+    /// rebuilt in the background.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
         menu.addItem(withTitle: "Hackatime · \(agent.status)", action: nil, keyEquivalent: "")
         menu.addItem(withTitle: "Today: \(agent.todayMinutes / 60)h \(agent.todayMinutes % 60)m tracked", action: nil, keyEquivalent: "")
         menu.addItem(withTitle: "Timelapse: kept on this Mac until you ship", action: nil, keyEquivalent: "")
@@ -74,7 +98,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !InputSensor.hasInputMonitoring { add(menu, "Allow input counts (Input Monitoring)…", #selector(askInput), "") }
         if !WindowCapture.hasPermission { add(menu, "Allow screenshots (Screen Recording)…", #selector(askScreen), "") }
         add(menu, "Quit", #selector(NSApplication.terminate(_:)), "q")
-        statusItem.menu = menu
     }
 
     private func add(_ menu: NSMenu, _ title: String, _ action: Selector, _ key: String) {
