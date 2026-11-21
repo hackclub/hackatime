@@ -17,11 +17,21 @@ enum WindowCapture {
     static let maxWidth = 1024
     static let quality = 0.35
 
-    static func captureFocusedWindow(pid: pid_t) async throws -> CGImage? {
+    /// Captures the app's focused window: the one the classifier judged,
+    /// matched by its Accessibility frame, never another window of the same
+    /// app (a banking tab behind a docs window). Without Accessibility it
+    /// falls back to the app's frontmost window. Returns nil when the focused
+    /// window cannot be found or its title is no longer `expectedTitle`.
+    static func captureFocusedWindow(pid: pid_t, expectedTitle: String? = nil) async throws -> CGImage? {
+        let focused = focusedWindow(pid: pid)
+        if let expectedTitle, let focused, focused.title != expectedTitle { return nil }
         let content = try await SCShareableContent.excludingDesktopWindows(true, onScreenWindowsOnly: true)
-        guard let window = content.windows
-            .filter({ $0.owningApplication?.processID == pid && $0.isOnScreen && $0.windowLayer == 0 && $0.frame.width > 80 })
-            .max(by: { $0.frame.width * $0.frame.height < $1.frame.width * $1.frame.height }) else { return nil }
+        let order = frontToBackWindowIDs()
+        let candidates = content.windows
+            .filter { $0.owningApplication?.processID == pid && $0.isOnScreen && $0.windowLayer == 0 && $0.frame.width > 80 }
+            .filter { window in focused.map { framesMatch($0.frame, window.frame) } ?? true }
+            .sorted { (order[$0.windowID] ?? .max) < (order[$1.windowID] ?? .max) }
+        guard let window = candidates.first else { return nil }
         let filter = SCContentFilter(desktopIndependentWindow: window)
         let config = SCStreamConfiguration()
         let scale = min(1, CGFloat(maxWidth) / window.frame.width)
@@ -30,6 +40,41 @@ enum WindowCapture {
         config.showsCursor = false
         config.ignoreShadowsSingleWindow = true
         return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+    }
+
+    /// The focused window's frame (top-left origin, like SCWindow.frame) and
+    /// title, or nil without Accessibility.
+    static func focusedWindow(pid: pid_t) -> (frame: CGRect, title: String)? {
+        guard AXIsProcessTrusted() else { return nil }
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(AXUIElementCreateApplication(pid), kAXFocusedWindowAttribute as CFString, &value) == .success,
+              let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+        let window = value as! AXUIElement
+        func read(_ name: String) -> CFTypeRef? {
+            var out: CFTypeRef?
+            return AXUIElementCopyAttributeValue(window, name as CFString, &out) == .success ? out : nil
+        }
+        var origin = CGPoint.zero, size = CGSize.zero
+        guard let position = read(kAXPositionAttribute), CFGetTypeID(position) == AXValueGetTypeID(),
+              AXValueGetValue(position as! AXValue, .cgPoint, &origin),
+              let extent = read(kAXSizeAttribute), CFGetTypeID(extent) == AXValueGetTypeID(),
+              AXValueGetValue(extent as! AXValue, .cgSize, &size) else { return nil }
+        return (CGRect(origin: origin, size: size), read(kAXTitleAttribute) as? String ?? "")
+    }
+
+    static func framesMatch(_ a: CGRect, _ b: CGRect) -> Bool {
+        abs(a.minX - b.minX) <= 2 && abs(a.minY - b.minY) <= 2 && abs(a.width - b.width) <= 2 && abs(a.height - b.height) <= 2
+    }
+
+    /// Window IDs ranked front to back, to break ties between windows with
+    /// the same frame and for the fallback without Accessibility.
+    static func frontToBackWindowIDs() -> [CGWindowID: Int] {
+        let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+        var order: [CGWindowID: Int] = [:]
+        for (index, info) in list.enumerated() {
+            if let number = info[kCGWindowNumber as String] as? CGWindowID, order[number] == nil { order[number] = index }
+        }
+        return order
     }
 
     /// Patterns that look like secrets: API keys, tokens, private keys,
