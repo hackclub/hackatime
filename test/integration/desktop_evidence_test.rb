@@ -275,6 +275,21 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal 0.0, @user.desktop_devices.sole.confidence_bonus, "secure_enclave was only claimed"
   end
 
+  test "pairing the same Mac again replaces the old pairing, but another account cannot take it" do
+    first = pair_device
+    enrol_key(first)
+    second = pair_device
+    enrol_key(second)
+    assert_nil DesktopDevice.authenticate(first), "the old pairing of this Mac is revoked"
+    assert_equal 1, @user.desktop_devices.active.count
+
+    other = create(:user, :with_email, username: "other")
+    post "/api/desktop/v1/key", params: { public_key: Base64.strict_encode64(@key.public_to_der), hardware_id: "SERIAL-1" },
+      headers: auth(pair_device(user: other)), as: :json
+    assert_response :conflict
+    assert DesktopDevice.authenticate(second), "another account cannot unpair this Mac"
+  end
+
   test "a pairing code works once and only with its verifier" do
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)

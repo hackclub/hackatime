@@ -88,11 +88,15 @@ class Api::Desktop::V1::DesktopController < ActionController::API
       end
     end
     error = attributes.delete(:attestation_error)
-    if @device.update(attributes)
-      render json: { device: device_json(@device), attestation_error: error }
-    else
-      render json: { error: "This machine is already paired with another account" }, status: :conflict
+    DesktopDevice.transaction do
+      # Pairing the same Mac again from the same account replaces the old pairing.
+      if (digest = attributes[:hardware_id_digest])
+        previous = DesktopDevice.active.where(hardware_id_digest: digest).where.not(id: @device.id).lock.first
+        previous.revoke! if previous&.user_id == @device.user_id
+      end
+      @device.update!(attributes)
     end
+    render json: { device: device_json(@device), attestation_error: error }
   rescue ArgumentError, OpenSSL::PKey::PKeyError
     render json: { error: "public_key must be a base64 DER SubjectPublicKeyInfo" }, status: :unprocessable_entity
   rescue ActiveRecord::RecordNotUnique
