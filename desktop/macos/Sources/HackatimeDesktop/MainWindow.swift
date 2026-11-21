@@ -156,7 +156,7 @@ final class MainWindowController: NSObject, NSWindowDelegate, WKNavigationDelega
         material.addSubview(webView)
 
         overlay.background = NSColor(hex: UserDefaults.standard.string(forKey: "windowBackground") ?? "") ?? .black
-        overlayView = NSHostingView(rootView: WindowOverlay(model: overlay, retry: { [weak self] in self?.retry() },
+        overlayView = OverlayHostingView(rootView: WindowOverlay(model: overlay, retry: { [weak self] in self?.retry() },
                                                             signIn: { [weak self] in self?.retry() }))
         overlayView.frame = material.bounds
         overlayView.autoresizingMask = [.width, .height]

@@ -88,3 +88,9 @@ private struct AppMark: View {
         }
     }
 }
+
+/// NSHostingView still answers hit tests while hidden, so the faded-out
+/// overlay would swallow every click meant for the page underneath.
+final class OverlayHostingView<Content: View>: NSHostingView<Content> {
+    override func hitTest(_ point: NSPoint) -> NSView? { isHidden ? nil : super.hitTest(point) }
+}
