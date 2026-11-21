@@ -13,7 +13,7 @@ enum WindowCapture {
 
     /// Timelapse frames only need to show what you were working on, so they
     /// are kept small: at most 1024px wide, HEIC at low quality (typically
-    /// 30 to 60 KB, about 2 to 3 MB per hour of work).
+    /// 30 to 60 KB, so up to about 10 MB per hour of work at three a minute).
     static let maxWidth = 1024
     static let quality = 0.35
 
