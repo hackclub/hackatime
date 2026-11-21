@@ -55,10 +55,12 @@ public struct MinutePayload: Codable, Equatable {
     public var project: String?
     public var category: String?
     public var activeS = 0
-    public var keys = 0
-    public var clicks = 0
-    public var moves = 0
-    public var injected = 0
+    /// Input counts and scores are nil, and left out of the JSON, when the
+    /// Mac has no Input Monitoring permission: unknown, not zero.
+    public var keys: Int?
+    public var clicks: Int?
+    public var moves: Int?
+    public var injected: Int?
     public var rhythm: Double?
     public var jiggler: Double?
     public var edits = 0

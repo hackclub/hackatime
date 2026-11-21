@@ -63,8 +63,13 @@ final class InputSensor {
     static var hasInputMonitoring: Bool { CGPreflightListenEventAccess() }
     static func requestInputMonitoring() { _ = CGRequestListenEventAccess() }
 
-    func start() {
-        guard tap == nil, Self.hasInputMonitoring else { return }
+    /// Starts the tap if it is not running and the permission is granted,
+    /// and returns whether it is running. Called every minute, so granting
+    /// the permission later takes effect without a restart.
+    @discardableResult
+    func start() -> Bool {
+        guard tap == nil else { return true }
+        guard Self.hasInputMonitoring else { return false }
         let mask: CGEventMask = [CGEventType.keyDown, .leftMouseDown, .rightMouseDown, .mouseMoved, .leftMouseDragged, .scrollWheel]
             .reduce(0) { $0 | (1 << $1.rawValue) }
         let refcon = Unmanaged.passUnretained(self).toOpaque()
@@ -73,10 +78,11 @@ final class InputSensor {
                                     if let refcon { Unmanaged<InputSensor>.fromOpaque(refcon).takeUnretainedValue().handle(type, event) }
                                     return Unmanaged.passUnretained(event)
                                 }, userInfo: refcon)
-        guard let tap else { return }
+        guard let tap else { return false }
         let source = CFMachPortCreateRunLoopSource(nil, tap, 0)
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        return true
     }
 
     private func handle(_ type: CGEventType, _ event: CGEvent) {

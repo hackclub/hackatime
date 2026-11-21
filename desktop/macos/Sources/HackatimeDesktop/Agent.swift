@@ -34,6 +34,7 @@ final class Agent: ObservableObject {
     let aiInbox: AIInbox
     private let focus = FocusSensor()
     private let input = InputSensor()
+    private var inputRunning = false
     private var key: DeviceKey?
     private var lastBeacon: Beacon?
     private var focusSamples: [(FocusLabel, String?, pid_t)] = []
@@ -80,7 +81,7 @@ final class Agent: ObservableObject {
 
     func start() {
         key = try? DeviceKey.loadOrCreate(store: store)
-        input.start()
+        inputRunning = input.start()
         watchProjects()
         timers.append(Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in Task { @MainActor in self?.sampleFocus() } })
         // Fire just after each minute boundary.
@@ -229,7 +230,11 @@ final class Agent: ObservableObject {
 
         scheduleTimelapse(beacon)
 
+        // Counts are known only if the tap ran all minute with the permission
+        // still granted; otherwise they are left out, never sent as zero.
+        let inputKnown = inputRunning && InputSensor.hasInputMonitoring
         let inputs = input.takeMinute()
+        inputRunning = input.start()
         var payload = MinutePayload()
         let labels = focusSamples.map(\.0)
         let winner = [FocusLabel.project, .research, .unrelated, .unknown].max { a, b in
@@ -238,12 +243,14 @@ final class Agent: ObservableObject {
         payload.focus = labels.isEmpty ? .unknown : winner
         payload.project = focusSamples.compactMap(\.1).last
         payload.activeS = InputSensor.idleSeconds < 60 ? min(60, labels.filter { $0 == .project || $0 == .research }.count * 5) : 0
-        payload.keys = inputs.keys
-        payload.clicks = inputs.clicks
-        payload.moves = inputs.moves
-        payload.injected = inputs.injected
-        payload.rhythm = inputs.rhythm.map { ($0 * 1000).rounded() / 1000 }
-        payload.jiggler = (inputs.jiggler * 1000).rounded() / 1000
+        if inputKnown {
+            payload.keys = inputs.keys
+            payload.clicks = inputs.clicks
+            payload.moves = inputs.moves
+            payload.injected = inputs.injected
+            payload.rhythm = inputs.rhythm.map { ($0 * 1000).rounded() / 1000 }
+            payload.jiggler = (inputs.jiggler * 1000).rounded() / 1000
+        }
         payload.edits = fileEdits
         payload.commits = commits
         payload.builds = builds

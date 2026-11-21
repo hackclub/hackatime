@@ -42,6 +42,21 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(next.monoMs - rebooted.monoMs, 60_000, "time elapsed since the reboot is kept")
     }
 
+    func testUnknownInputIsLeftOutOfTheBlockNotSentAsZero() throws {
+        let chain = ChainState()
+        var payload = MinutePayload()
+        payload.focus = .project
+        payload.activeS = 60
+        let unknown = try XCTUnwrap(chain.append(payload: payload, beacon: beacon, now: Date(timeIntervalSince1970: 1_740_000_005), monoMs: 1, key: nil))
+        let fields = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(unknown.payload.utf8)) as? [String: Any])
+        for field in ["keys", "clicks", "moves", "injected", "rhythm", "jiggler"] { XCTAssertNil(fields[field], field) }
+
+        payload.keys = 0
+        payload.clicks = 0
+        let idle = try XCTUnwrap(chain.append(payload: payload, beacon: beacon, now: Date(timeIntervalSince1970: 1_740_000_065), monoMs: 2, key: nil))
+        XCTAssertTrue(idle.payload.contains(#""keys":0"#), idle.payload)
+    }
+
     func testDeviceKeyPersistsAcrossLaunches() throws {
         let store = MemoryStore()
         let a = try DeviceKey.loadOrCreate(store: store)
