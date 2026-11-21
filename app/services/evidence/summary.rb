@@ -19,7 +19,7 @@ module Evidence
         unrelated_minutes: blocks.count { |block| block.focus == "unrelated" },
         frames: ship.evidence_frames.count, redacted_frames: ship.evidence_frames.where(redacted: true).count,
         flags: ship.flags,
-        spot_checks: ship.spot_checks.map { |check| check.slice("seq", "root_ok", "plausible", "overlap") },
+        spot_checks: ship.spot_checks.map { |check| check.slice("seq", "root_ok", "plausible", "overlap", "shared_files", "compared") },
         stretches: ship.stretches.map { |stretch| stretch.slice("from_seq", "to_seq", "counted_seconds", "confidence", "reasons") }
       }
     end
@@ -33,8 +33,13 @@ module Evidence
                "confidence (#{facts[:scorer]}), output ceiling #{hours.(facts[:ceiling])}, suggested credit #{hours.(facts[:credited])}."
       lines << "#{facts[:research_minutes]} research and #{facts[:unrelated_minutes]} unrelated minutes; " \
                "#{facts[:frames]} frames revealed, #{facts[:redacted_frames]} redacted."
-      passed = facts[:spot_checks].count { |check| check["plausible"] }
-      lines << "Code spot-checks: #{passed} of #{facts[:spot_checks].length} matched their committed roots and lead to the shipped repo."
+      checks = facts[:spot_checks]
+      rooted = checks.select { |check| check["root_ok"] }
+      led = rooted.count { |check| check["plausible"] && check["compared"] }
+      blind = rooted.count { |check| check["shared_files"].to_i.zero? }
+      line = "Code spot-checks: #{rooted.length} of #{checks.length} matched their committed roots; #{led} disclosed shipped code that leads to the shipped repo."
+      line += " #{blind} disclosed no shipped file, so they prove nothing about the shipped repo and the output ceiling may be too high." if blind.positive?
+      lines << line
       lines << (facts[:flags].any? ? "Flags: #{facts[:flags].join(", ")}." : "No flags.")
       lines.join("\n")
     end

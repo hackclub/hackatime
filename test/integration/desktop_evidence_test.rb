@@ -202,6 +202,24 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_operator @user.evidence_ships.sum(:claimed_seconds), :<=, 10 * 45
   end
 
+  test "a spot-check that discloses no shipped file is flagged, and the summary says what it proved" do
+    token = pair_device
+    files = { "app.rb" => "puts 1\n" }
+    10.times { |i| post_minute(token, i, payload(i, tree: (files if i.zero? || i == 9))) }
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 10 }, headers: auth(token), as: :json
+    ship = response.parsed_body
+    leaves_only = ship["spot_check_seqs"].map { |seq| { seq:, salt: @salt, entries: [ { leaf: Evidence::Crypto.merkle_leaf(@salt, "app.rb", files["app.rb"]) } ] } }
+    post "/api/desktop/v1/ships/#{ship["id"]}/submit", headers: auth(token), as: :json, params: {
+      final_files: [ { path: "other.rb", content: Base64.strict_encode64("x = 1\n" * 50) } ], snapshots: leaves_only
+    }
+    assert_response :success
+    record = EvidenceShip.find(ship["id"])
+    assert_includes record.flags, "undisclosed_snapshot"
+    summary = Evidence::Summary.plain(Evidence::Summary.facts(record))
+    assert_includes summary, "2 of 2 matched their committed roots; 0 disclosed shipped code that leads to the shipped repo."
+    assert_includes summary, "2 disclosed no shipped file"
+  end
+
   test "a pairing code works once and only with its verifier" do
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)

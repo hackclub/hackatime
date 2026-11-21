@@ -42,6 +42,10 @@ module Evidence
       flags = result.flags.dup
       flags << "snapshot_mismatch" if checks.any? { |check| !check["root_ok"] }
       flags << "implausible_history" if checks.any? { |check| check["root_ok"] && !check["plausible"] }
+      # A snapshot sent as leaf hashes only proves its root and nothing about
+      # the shipped repo; without a disclosed first snapshot the output
+      # ceiling counts every shipped line as written in this range.
+      flags << "undisclosed_snapshot" if checks.any? { |check| check["root_ok"] && check["shared_files"].zero? }
       flags << "redacted_frames" if @ship.evidence_frames.where(redacted: true).exists?
       flags << "unshipped_gaps" if blocks.each_cons(2).any? { |a, b| b.minute - a.minute > 30 }
       flags << "offline_blocks" if blocks.any?(&:offline)
