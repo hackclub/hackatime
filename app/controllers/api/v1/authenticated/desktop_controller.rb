@@ -7,6 +7,7 @@ module Api
       # confidence and scoring internals are reviewer-only and never returned.
       class DesktopController < ApplicationController
         require_oauth_scope :desktop
+        before_action :ensure_desktop_application!
 
         rescue_from ActiveRecord::RecordNotFound, with: -> { render json: { error: "Not found" }, status: :not_found }
         rescue_from ActionController::ParameterMissing, with: -> { render json: { error: "Something was missing from that form. Try again." }, status: :bad_request }
@@ -74,6 +75,12 @@ module Api
         end
 
         private
+
+        # The scope alone is not enough: tokens from applications that are
+        # not, or are no longer, verified for it cannot pair or manage devices.
+        def ensure_desktop_application!
+          render json: { error: "This application cannot manage Hackatime Desktop" }, status: :forbidden unless doorkeeper_token.application&.desktop_scope_allowed?
+        end
 
         def desktop_heartbeats = current_user.heartbeats.where(entity: "Hackatime Desktop")
 

@@ -1603,7 +1603,8 @@ paths:
                           type: integer
                           nullable: true
         '403':
-          description: token lacks the desktop scope
+          description: token lacks the desktop scope or comes from an application
+            not verified for it
   "/api/v1/authenticated/desktop/ships/{id}":
     get:
       summary: One shipped stretch of work

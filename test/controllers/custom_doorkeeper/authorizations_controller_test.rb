@@ -167,6 +167,21 @@ class CustomDoorkeeperAuthorizationsControllerTest < ActionDispatch::Integration
     assert_redirected_to %r{https://example\.com/callback\?code=}
   end
 
+  test "new denies unverified applications requesting the desktop scope" do
+    @oauth_app.update!(scopes: "profile desktop")
+    sign_in_as(@user)
+    get "/oauth/authorize", params: authorization_params(scope: "profile desktop")
+    assert_response :forbidden
+    assert_match(/verified applications configured with the desktop scope/i, inertia.props["error_description"])
+  end
+
+  test "create allows a verified application to request the desktop scope" do
+    @oauth_app.update!(scopes: "profile desktop", verified: true)
+    sign_in_as(@user)
+    post "/oauth/authorize", params: authorization_params(scope: "profile desktop")
+    assert_redirected_to %r{https://example\.com/callback\?code=}
+  end
+
   private
 
   def enable_admin_scope!(verified: true)

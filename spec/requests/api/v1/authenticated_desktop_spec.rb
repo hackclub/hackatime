@@ -2,7 +2,7 @@ require 'swagger_helper'
 
 RSpec.describe 'Api::V1::Authenticated::Desktop', type: :request do
   let(:user) { create(:user) }
-  let(:Authorization) { "Bearer #{create(:oauth_access_token, resource_owner_id: user.id, scopes: 'profile desktop').token}" }
+  let(:Authorization) { "Bearer #{create(:oauth_access_token, application: create(:oauth_application, :desktop), resource_owner_id: user.id, scopes: 'profile desktop').token}" }
   let(:device) do
     DesktopDevice.build_with_token(user:, name: 'Mac', platform: 'macos', capture_consented_at: Time.current).first.tap(&:save!)
   end
@@ -54,7 +54,7 @@ RSpec.describe 'Api::V1::Authenticated::Desktop', type: :request do
         run_test! { |response| expect(response.body).not_to include('jiggler') }
       end
 
-      response(403, 'token lacks the desktop scope') do
+      response(403, 'token lacks the desktop scope or comes from an application not verified for it') do
         let(:Authorization) { "Bearer #{create(:oauth_access_token, resource_owner_id: user.id, scopes: 'read').token}" }
         run_test!
       end

@@ -5,6 +5,7 @@ module CustomDoorkeeper
     layout "inertia"
 
     before_action :ensure_admin_scope_allowed!, only: %i[new create]
+    before_action :ensure_desktop_scope_allowed!, only: %i[new create]
 
     def new
       if pre_auth.authorizable?
@@ -63,6 +64,15 @@ module CustomDoorkeeper
         "Only admins can authorize applications that request the admin scope.",
         status: :forbidden
       )
+    end
+
+    def ensure_desktop_scope_allowed!
+      return if performed?
+      return unless pre_auth.authorizable?
+      return unless pre_auth.scopes.include?(OauthApplication::DESKTOP_SCOPE)
+      return if pre_auth.client.application.desktop_scope_allowed?
+
+      render_oauth_error("Only verified applications configured with the desktop scope can request it.", status: :forbidden)
     end
 
     def render_error

@@ -267,6 +267,9 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     post "/api/v1/authenticated/desktop/pairings", params: { code_challenge: challenge, consent: true },
       headers: auth(create(:oauth_access_token, resource_owner_id: @user.id, scopes: "read").token), as: :json
     assert_response :forbidden, "the desktop scope is required"
+    unverified = create(:oauth_access_token, application: create(:oauth_application, scopes: "profile desktop"), resource_owner_id: @user.id, scopes: "profile desktop")
+    post "/api/v1/authenticated/desktop/pairings", params: { code_challenge: challenge, consent: true }, headers: auth(unverified.token), as: :json
+    assert_response :forbidden, "only a verified application can pair devices"
     _pairing, code = DesktopPairing.issue!(user: @user, code_challenge: challenge, consented: true)
 
     post "/api/desktop/v1/pair", params: { code:, code_verifier: "wrong", platform: "macos" }, as: :json
@@ -336,12 +339,14 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
   def auth(token) = { "Authorization" => "Bearer #{token}" }
 
   # The companion site's OAuth token for the student.
-  def site_auth = auth(@site_token ||= create(:oauth_access_token, resource_owner_id: @user.id, scopes: "profile desktop").token)
+  def site_auth = auth(@site_token ||= desktop_token(@user))
+
+  def desktop_token(user) = create(:oauth_access_token, application: create(:oauth_application, :desktop), resource_owner_id: user.id, scopes: "profile desktop").token
 
   def pair_device(user: @user)
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)
-    headers = user == @user ? site_auth : auth(create(:oauth_access_token, resource_owner_id: user.id, scopes: "profile desktop").token)
+    headers = user == @user ? site_auth : auth(desktop_token(user))
     post "/api/v1/authenticated/desktop/pairings", params: { code_challenge: challenge, consent: true }, headers:, as: :json
     assert_response :created
     code = response.parsed_body["code"]

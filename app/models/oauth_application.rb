@@ -1,5 +1,8 @@
 class OauthApplication < Doorkeeper::Application
   ADMIN_SCOPE = "admin"
+  # Pairs devices that record a timelapse, so only applications Hackatime
+  # verified (its own companion site) may hold it.
+  DESKTOP_SCOPE = "desktop"
 
   belongs_to :owner, polymorphic: true, optional: true
 
@@ -14,6 +17,7 @@ class OauthApplication < Doorkeeper::Application
   def admin_update!(attrs) = with_admin_override { update!(attrs) }
 
   def admin_scope? = scopes.to_a.include?(ADMIN_SCOPE)
+  def desktop_scope_allowed? = verified? && scopes.to_a.include?(DESKTOP_SCOPE)
 
   private
 

@@ -38,6 +38,11 @@ FactoryBot.define do
     redirect_uri { "https://example.com/callback" }
     scopes { Doorkeeper.configuration.default_scopes.to_a.join(" ") }
     confidential { true }
+
+    trait :desktop do
+      scopes { "profile desktop" }
+      verified { true }
+    end
   end
 
   factory :oauth_access_token, class: "Doorkeeper::AccessToken" do
