@@ -186,7 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     return ShipPreviewModel.Frame(id: hash, image: image)
                 }
                 toasts.dismiss("ship")
-                let preview = ShipPreviewModel(project: name, minutes: review.timeline.keptCountedMinutes, frames: frames)
+                let preview = ShipPreviewModel(project: name, frames: frames)
                 guard await ShipReviewWindow.run(title: "Preview frames", size: NSSize(width: 900, height: 680), step: preview,
                                                  content: ShipPreviewView(model: preview)) else {
                     toasts.show("Ship cancelled", detail: "Nothing was uploaded.", style: .info, id: "ship")

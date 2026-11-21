@@ -15,14 +15,12 @@ final class ShipPreviewModel: ObservableObject, ShipReviewStep {
     }
 
     let project: String
-    let minutes: Int
     @Published var frames: [Frame]
     @Published var selected = 0
     var finish: (Bool) -> Void = { _ in }
 
-    init(project: String, minutes: Int, frames: [Frame]) {
+    init(project: String, frames: [Frame]) {
         self.project = project
-        self.minutes = minutes
         self.frames = frames
     }
 
@@ -46,25 +44,27 @@ struct ShipPreviewView: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Preview \(model.project) before shipping").font(.title2.weight(.semibold))
-                Text("\(model.minutes) tracked minutes. The server asked for these \(model.frames.count) frames from the time you kept; they will be sent to Hack Club reviewers. Drag over anything you want blacked out. Nothing is uploaded until you press Ship.")
-                    .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                if !model.frames.isEmpty {
+                    Text("Reviewers will see \(model.frames.count == 1 ? "this frame" : "these \(model.frames.count) frames"). Drag over anything to black it out.")
+                        .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
             }
             if model.frames.isEmpty {
-                Text("This range has no timelapse frames to send.").frame(maxWidth: .infinity, maxHeight: .infinity)
+                Text("No frames to send").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 editor
                 strip
             }
             HStack {
                 if !model.frames.isEmpty {
-                    Button("Undo box") { _ = model.frames[model.selected].regions.popLast() }
+                    Button("Undo") { _ = model.frames[model.selected].regions.popLast() }
                         .disabled(model.frames[model.selected].regions.isEmpty)
-                    Button("Clear boxes") { model.frames[model.selected].regions.removeAll() }
+                    Button("Clear") { model.frames[model.selected].regions.removeAll() }
                         .disabled(model.frames[model.selected].regions.isEmpty)
                 }
                 Spacer()
                 Button("Cancel") { model.finish(false) }.keyboardShortcut(.cancelAction)
-                Button(model.frames.isEmpty ? "Ship" : "Ship \(model.frames.count) frames") { model.finish(true) }
+                Button("Ship") { model.finish(true) }
                     .keyboardShortcut(.defaultAction)
             }
         }
