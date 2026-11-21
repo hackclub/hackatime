@@ -1,5 +1,4 @@
 import { error } from '@sveltejs/kit';
-import { api, type Overview } from '#lib/server/hackatime.js';
 import type { RequestHandler } from './$types';
 
 // Avatars come from these hosts only (GitHub, Slack, Hackatime's fallback).
@@ -8,12 +7,12 @@ const TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const MAX_BYTES = 2_000_000;
 
 // Same-origin copy of the student's avatar, so the home page can dither it on
-// a canvas (cross-origin images would taint the canvas). Raster only: an SVG
-// served from this origin could run script.
-export const GET: RequestHandler = async ({ locals }) => {
+// a canvas (cross-origin images would taint the canvas). The page passes the
+// avatar URL it already loaded; only signed-in visitors and the hosts above
+// are served. Raster only: an SVG served from this origin could run script.
+export const GET: RequestHandler = async ({ locals, url }) => {
 	if (!locals.token) error(401);
-	const { user } = await api<Overview>(locals.token, '');
-	const source = user.avatar_url ? URL.parse(user.avatar_url) : null;
+	const source = URL.parse(url.searchParams.get('src') ?? '');
 	if (!source || source.protocol !== 'https:' || !HOSTS.some((host) => host.test(source.hostname))) error(404);
 	const image = await fetch(source, { redirect: 'error', signal: AbortSignal.timeout(3000) }).catch(() => null);
 	const type = image?.headers.get('content-type')?.split(';')[0].trim() ?? '';

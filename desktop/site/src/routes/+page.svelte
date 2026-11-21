@@ -26,7 +26,7 @@
 
 			<div class="flex flex-col gap-3 max-md:max-w-[160px]">
 				<div class="border-4 border-cream">
-					<Portrait src={overview.user.avatar_url ? '/avatar' : null} name={overview.user.name} />
+					<Portrait src={overview.user.avatar_url ? `/avatar?src=${encodeURIComponent(overview.user.avatar_url)}` : null} name={overview.user.name} />
 				</div>
 				<p class="text-sm text-dim">{overview.user.username ? `@${overview.user.username}`: overview.user.name}</p>
 			</div>
