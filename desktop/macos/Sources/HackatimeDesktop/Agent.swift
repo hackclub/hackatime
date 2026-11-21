@@ -52,6 +52,7 @@ final class Agent: ObservableObject {
     private var timers: [Timer] = []
     private var pendingVerifier: String?
     private var ticking = false
+    private var sampling = false
 
     nonisolated static let defaultSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("Hackatime Desktop", isDirectory: true)
@@ -106,7 +107,7 @@ final class Agent: ObservableObject {
         loadKey()
         inputRunning = input.start()
         watchProjects()
-        timers.append(Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in Task { @MainActor in self?.sampleFocus() } })
+        timers.append(Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in Task { @MainActor in await self?.sampleFocus() } })
         // Fire just after each minute boundary.
         let delay = 60 - Date().timeIntervalSince1970.truncatingRemainder(dividingBy: 60) + 1
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
@@ -216,10 +217,14 @@ final class Agent: ObservableObject {
 
     // MARK: Sampling
 
-    private func sampleFocus() {
-        guard !settings.paused, let sample = focus.sample() else { return }
+    private func sampleFocus() async {
+        // An app that hangs can hold an Accessibility call for seconds; skip
+        // a sample rather than queue them up behind it.
+        guard !settings.paused, !sampling else { return }
+        sampling = true
+        defer { sampling = false }
+        guard let (sample, pid) = await focus.sampleInBackground(), !settings.paused else { return }
         let (label, project) = classifier.classify(sample, activeProject: activeProject)
-        let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? 0
         focusSamples.append((label, project, pid))
     }
 
@@ -234,20 +239,18 @@ final class Agent: ObservableObject {
     }
 
     private func captureTimelapseFrame() async {
-        guard isPaired, !settings.paused, WindowCapture.hasPermission, let sample = focus.sample(),
+        guard isPaired, !settings.paused, WindowCapture.hasPermission, let (sample, pid) = await focus.sampleInBackground(),
               classifier.classify(sample).label != .unrelated, classifier.isCaptureAllowed(sample, activeProject: activeProject),
-              let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
               let image = try? await WindowCapture.captureFocusedWindow(pid: pid, expectedTitle: sample.title),
-              let (redacted, _) = WindowCapture.redact(image) else { return }
+              let prepared = await WindowCapture.prepare(image), isPaired, !settings.paused else { return }
         let now = Int64(Date().timeIntervalSince1970 * 1000)
-        let thumbnail = WindowCapture.thumbnail(redacted)
+        let thumbnail = prepared.thumbnail
         // An unchanged screen reuses the last frame instead of storing a copy.
         if let last = lastFrame, !WindowCapture.screenChanged(from: lastThumbnail, to: thumbnail) {
             framesThisMinute.append(.init(hash: last.hash, atMs: now, phash: last.phash))
             return
         }
-        guard let data = WindowCapture.encode(redacted),
-              let stored = try? vault.store(frame: data, capturedAtMs: now) else { return }
+        guard let stored = try? vault.store(frame: prepared.heic, capturedAtMs: now) else { return }
         let frame = MinutePayload.Frame(hash: stored.hash, atMs: now, phash: WindowCapture.perceptualHash(thumbnail))
         framesThisMinute.append(frame)
         lastFrame = frame
@@ -308,15 +311,17 @@ final class Agent: ObservableObject {
         if let ai = payload.ai, ai.prompts > 0 || ai.accepted > 0 { payload.category = "ai coding" }
         if !framesThisMinute.isEmpty { payload.frames = framesThisMinute }
 
+        // Start the next minute before awaiting the snapshot, so samples
+        // and frames taken meanwhile count towards it.
+        fileEdits = 0; commits = 0; builds = 0
+        focusSamples.removeAll(); framesThisMinute.removeAll()
         let minute = Int(Date().timeIntervalSince1970 / 60)
         var snapshot: TreeSnapshot?
         if minute - lastSnapshotMinute >= 5, payload.focus == .project, let root = projectRoot(named: payload.project) {
-            snapshot = TreeSnapshot.capture(root: root, blobs: vault)
-            payload.tree = .init(root: snapshot!.root)
             lastSnapshotMinute = minute
+            snapshot = await Self.captureSnapshot(root: root, vault: vault)
+            payload.tree = .init(root: snapshot!.root)
         }
-        fileEdits = 0; commits = 0; builds = 0
-        focusSamples.removeAll(); framesThisMinute.removeAll()
 
         do {
             let now = Date()
@@ -360,6 +365,12 @@ final class Agent: ObservableObject {
                 throw ChainRejection(code: error.code, message: error.message, dropped: dropped)
             }
         }
+    }
+
+    /// Hashes the working tree off the main thread; thousands of files take
+    /// over a second.
+    nonisolated static func captureSnapshot(root: URL, vault: Vault) async -> TreeSnapshot {
+        await Task.detached(priority: .utility) { TreeSnapshot.capture(root: root, blobs: vault) }.value
     }
 
     func projectRoot(named name: String?) -> URL? {

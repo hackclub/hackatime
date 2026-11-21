@@ -153,6 +153,15 @@ enum WindowCapture {
         return context.makeImage().map { ($0, boxes.count) }
     }
 
+    /// Redacts, fingerprints and encodes a frame off the main thread: text
+    /// recognition alone takes about half a second.
+    static func prepare(_ image: CGImage) async -> (thumbnail: [UInt8], heic: Data)? {
+        await Task.detached(priority: .utility) {
+            guard let (redacted, _) = redact(image), let heic = encode(redacted) else { return nil }
+            return (thumbnail(redacted), heic)
+        }.value
+    }
+
     static func encode(_ image: CGImage) -> Data? {
         let data = NSMutableData()
         guard let destination = CGImageDestinationCreateWithData(data, "public.heic" as CFString, 1, nil) else { return nil }

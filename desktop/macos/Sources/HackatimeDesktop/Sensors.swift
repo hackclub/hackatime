@@ -6,8 +6,8 @@ import HackatimeDesktopCore
 /// Focused-window sensor: NSWorkspace for the app, Accessibility for the
 /// window title and (for browsers) the URL. Needs the Accessibility
 /// permission; without it the app still works with app-level focus only.
-@MainActor
-final class FocusSensor {
+/// Holds no state, so it is safe to use from any thread.
+final class FocusSensor: Sendable {
     static var hasAccessibility: Bool { AXIsProcessTrusted() }
 
     static func requestAccessibility() {
@@ -15,7 +15,17 @@ final class FocusSensor {
         _ = AXIsProcessTrustedWithOptions(options)
     }
 
-    func sample() -> FocusSample? {
+    /// Samples off the main thread. Accessibility calls wait on the focused
+    /// app, which walking a browser's tree makes slow and a hung app makes
+    /// take seconds.
+    func sampleInBackground() async -> (FocusSample, pid_t)? {
+        await Task.detached(priority: .utility) { self.sampleWithPID() }.value
+    }
+
+    func sample() -> FocusSample? { sampleWithPID()?.0 }
+
+    /// The sample and the process it came from.
+    func sampleWithPID() -> (FocusSample, pid_t)? {
         guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
         let bundleID = app.bundleIdentifier ?? ""
         var title = ""
@@ -30,7 +40,7 @@ final class FocusSensor {
                 }
             }
         }
-        return FocusSample(bundleID: bundleID, appName: app.localizedName ?? bundleID, title: title, url: url)
+        return (FocusSample(bundleID: bundleID, appName: app.localizedName ?? bundleID, title: title, url: url), app.processIdentifier)
     }
 
     private func attribute<T>(_ element: AXUIElement, _ name: String) -> T? {
