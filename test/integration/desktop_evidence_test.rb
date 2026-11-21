@@ -311,6 +311,17 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal "Too many new devices this month", response.parsed_body["error"]
   end
 
+  test "a ship credits only minutes on its own project, and a switch to another project is not a grace minute" do
+    token = pair_device
+    projects = %w[sync-app other-app sync-app other-app Sync-App sync-app]
+    projects.each_with_index { |project, i| post_minute(token, i, payload(i).merge(project:)) }
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 6 }, headers: auth(token), as: :json
+    result = Evidence::Scorer.call(ship: EvidenceShip.find(response.parsed_body["id"]))
+    assert_equal 4 * 45, result.claimed_seconds
+    assert_equal 4 * 45, result.stretches.sum(&:counted_seconds)
+    assert_equal 2, result.stretches.flat_map { |stretch| [ stretch.reasons["other_project"] ] }.compact.sum
+  end
+
   test "a pairing code works once and only with its verifier" do
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)

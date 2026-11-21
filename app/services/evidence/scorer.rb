@@ -6,6 +6,8 @@
 # * mouse movement alone never counts, and a jiggler score above the
 #   threshold or a high share of injected input zeroes the minute;
 # * a run of identical frames zeroes the minutes it covers;
+# * minutes claimed for another project count nothing, not even as a short
+#   switch away, so two ships can never credit the same minute;
 # * switches away of `grace_seconds` or less still count;
 # * AI wait, research and testing count only when an edit, prompt or commit
 #   follows within `follow_up_seconds`; otherwise the stretch is capped.
@@ -55,6 +57,11 @@ module Evidence
         reasons << (moves.positive? ? "mouse_only" : "idle")
         active = 0
       end
+      other_project = block.project.present? && !same_project?(block.project)
+      if other_project
+        reasons << "other_project"
+        active = 0
+      end
       if payload["jiggler"].to_f >= @config[:jiggler_threshold]
         reasons << "jiggler"
         active = 0
@@ -67,8 +74,10 @@ module Evidence
       { block:, seq: block.seq, minute: block.minute, focus: payload["focus"], active:, keys:, clicks:, moves:, injected:,
         rhythm: payload["rhythm"], jiggler: payload["jiggler"].to_f, ai:, edits: payload["edits"].to_i,
         commits: payload["commits"].to_i, builds: payload["builds"].to_i, category: payload["category"],
-        frames: block.frames, tree: block.tree_root, signed: block.signed, offline: block.offline, reasons: }
+        frames: block.frames, tree: block.tree_root, signed: block.signed, offline: block.offline, reasons:, other_project: }
     end
+
+    def same_project?(name) = name.to_s.strip.casecmp?(@ship.project.to_s.strip)
 
     # The same frame hash (or perceptual hash) several minutes running means
     # a frozen or replayed screen, not work.
@@ -103,12 +112,12 @@ module Evidence
       current = []
       gap = []
       minutes.each do |minute|
-        if WORK_FOCUS.include?(minute[:focus]) || minute[:reasons].include?("duplicate_frames")
+        if (WORK_FOCUS.include?(minute[:focus]) && !minute[:other_project]) || minute[:reasons].include?("duplicate_frames")
           if current.any? && gap.any? && (gap.length > grace_minutes || minute[:minute] - current.last[:minute] - 1 > grace_minutes)
             groups << current
             current = []
           elsif current.any?
-            gap.each { |away| away[:grace] = true }
+            gap.each { |away| away[:grace] = true unless away[:other_project] }
             current.concat(gap)
           end
           gap = []
@@ -149,7 +158,7 @@ module Evidence
     # prompt or commit follows within the follow-up window.
     def countable_seconds(minute, group)
       return 60 if minute[:grace]
-      return 0 if minute[:active].zero? && !minute[:ai]["waiting"]
+      return 0 if minute[:other_project] || (minute[:active].zero? && !minute[:ai]["waiting"])
 
       conditional = minute[:focus] == "research" || minute[:ai]["waiting"] || %w[manual\ testing running\ tests].include?(minute[:category])
       return minute[:active] unless conditional
@@ -171,7 +180,7 @@ module Evidence
       sum = ->(key) { group.sum { |minute| minute[key].to_i } }
       inputs = sum.(:keys) + sum.(:clicks) + sum.(:moves)
       rhythms = group.filter_map { |minute| minute[:rhythm] }
-      frames_due = group.count { |minute| WORK_FOCUS.include?(minute[:focus]) }
+      frames_due = group.count { |minute| WORK_FOCUS.include?(minute[:focus]) && !minute[:other_project] }
       frames_on_time = group.count { |minute| on_time?(minute) }
       trees = group.filter_map { |minute| minute[:tree] }
       {
