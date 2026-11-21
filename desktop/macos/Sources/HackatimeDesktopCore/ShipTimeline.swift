@@ -108,6 +108,17 @@ public struct ShipTimeline: Equatable {
         return first ... last
     }
 
+    /// The removed minutes as stretches of positions, in order.
+    public var removedRuns: [ClosedRange<Int>] {
+        removed.sorted().reduce(into: []) { runs, position in
+            if let last = runs.last, last.upperBound + 1 == position {
+                runs[runs.count - 1] = last.lowerBound ... position
+            } else {
+                runs.append(position ... position)
+            }
+        }
+    }
+
     /// Minutes that count towards the project and are still in the ship.
     public var keptCountedMinutes: Int {
         minutes.indices.filter { minutes[$0].counts && !removed.contains($0) }.count

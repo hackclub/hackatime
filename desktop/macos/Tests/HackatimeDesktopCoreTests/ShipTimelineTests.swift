@@ -90,6 +90,7 @@ final class ShipTimelineTests: XCTestCase {
         XCTAssertEqual(timeline.excludedRanges, [8 ... 10], "neighbouring minutes merge into one range")
         timeline.setRemoved(false, positions: [2])
         XCTAssertEqual(timeline.excludedRanges, [8 ... 8, 10 ... 10])
+        XCTAssertEqual(timeline.removedRuns, [1 ... 1, 3 ... 3], "the same stretches, as places on the timeline")
         timeline.setRemoved(false, bundleID: "com.tinyspeck.slackmacgap")
         XCTAssertEqual(timeline.excludedRanges, [10 ... 10])
         XCTAssertEqual(timeline.keptCountedMinutes, 4, "the removed minute never counted")

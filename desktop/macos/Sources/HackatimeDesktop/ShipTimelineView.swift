@@ -110,6 +110,7 @@ final class ShipTimelineModel: ObservableObject, ShipReviewStep {
 struct ShipTimelineView: View {
     @ObservedObject var model: ShipTimelineModel
     @State private var dragStart: Double?
+    @State private var resize: Resize?
     /// How far the tracks are scrolled, so a clip's name stays in view while the clip does.
     @State private var scrolled: CGFloat = 0
 
@@ -126,6 +127,20 @@ struct ShipTimelineView: View {
     }
 
     private static let playheadID = "playhead"
+
+    /// One end of a removed stretch, which a drag moves.
+    private struct Handle {
+        let run: ClosedRange<Int>
+        let movesEnd: Bool
+    }
+
+    /// A removed stretch being resized: the timeline as it was when the drag
+    /// began, the handle taken hold of, and the end that stays where it is.
+    private struct Resize {
+        let from: ShipTimeline
+        let handle: Handle
+        var anchor: Int { handle.movesEnd ? handle.run.lowerBound : handle.run.upperBound }
+    }
     private static let clock: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
@@ -309,7 +324,7 @@ struct ShipTimelineView: View {
 
     private var selectionText: String {
         guard let selection = model.selection, model.timeline.minutes.indices.contains(selection.upperBound) else {
-            return "Drag over the timeline to select time, or click a window on the Apps track."
+            return "Drag to select time, click a window, or drag the ends of a removed stretch."
         }
         let minutes = model.timeline.minutes
         return "\(Self.time(minutes[selection.lowerBound].startMs)) to \(Self.time(minutes[selection.upperBound].startMs + 60_000))  ·  \(selection.count) min selected"
@@ -364,6 +379,13 @@ struct ShipTimelineView: View {
                             .gesture(DragGesture(minimumDistance: 0)
                                 .onChanged { value in drag(value, cell: cell, ended: false) }
                                 .onEnded { value in drag(value, cell: cell, ended: true) })
+                            .onContinuousHover { phase in
+                                if case let .active(point) = phase, handle(at: point, cell: cell) != nil {
+                                    NSCursor.resizeLeftRight.set()
+                                } else {
+                                    NSCursor.arrow.set()
+                                }
+                            }
                             .accessibilityIdentifier("timeline-tracks")
                             // Marks where the playhead is, for zooming to stay on it.
                             .overlay(alignment: .topLeading) {
@@ -402,7 +424,38 @@ struct ShipTimelineView: View {
         min(max(0, Double(x / cell)), Double(model.timeline.minutes.count) - 0.0001)
     }
 
+    /// The handle of a removed stretch under a point, if there is one.
+    private func handle(at point: CGPoint, cell: CGFloat) -> Handle? {
+        guard point.y >= Lane.ruler else { return nil }
+        let handles = model.timeline.removedRuns.flatMap { run in
+            [(Handle(run: run, movesEnd: false), CGFloat(run.lowerBound) * cell), (Handle(run: run, movesEnd: true), CGFloat(run.upperBound + 1) * cell)]
+        }
+        guard let nearest = handles.min(by: { abs($0.1 - point.x) < abs($1.1 - point.x) }), abs(nearest.1 - point.x) <= 6 else { return nil }
+        return nearest.0
+    }
+
+    /// Moves the end of a removed stretch to the minute boundary nearest the
+    /// pointer. The stretch keeps at least its last minute; Put back removes it.
+    private func resize(_ resize: Resize, to x: CGFloat, cell: CGFloat) {
+        let edge = min(max(0, Int((x / cell).rounded())), model.timeline.minutes.count)
+        let range = resize.handle.movesEnd ? resize.anchor ... max(resize.anchor, edge - 1) : min(resize.anchor, edge) ... resize.anchor
+        var timeline = resize.from
+        timeline.setRemoved(false, positions: resize.handle.run)
+        timeline.setRemoved(true, positions: range)
+        model.timeline = timeline
+        model.selection = nil
+        model.playhead = Double(resize.handle.movesEnd ? range.upperBound : range.lowerBound)
+    }
+
     private func drag(_ value: DragGesture.Value, cell: CGFloat, ended: Bool) {
+        if dragStart == nil, resize == nil, let handle = handle(at: value.startLocation, cell: cell) {
+            resize = Resize(from: model.timeline, handle: handle)
+        }
+        if let resize {
+            if abs(value.translation.width) > 3 { self.resize(resize, to: value.location.x, cell: cell) }
+            if ended { self.resize = nil }
+            return
+        }
         let start = dragStart ?? position(value.startLocation.x, cell: cell)
         let now = position(value.location.x, cell: cell)
         dragStart = ended ? nil : start
@@ -425,7 +478,7 @@ struct ShipTimelineView: View {
         drawFrames(context, cell: cell)
         drawApps(context, cell: cell, visibleFrom: visibleFrom)
         drawCounts(context, size: size, cell: cell)
-        drawRemoved(context, size: size, cell: cell)
+        drawRemoved(context, size: size, cell: cell, visibleFrom: visibleFrom)
         if let selection = model.selection {
             let rect = CGRect(x: CGFloat(selection.lowerBound) * cell, y: 1, width: CGFloat(selection.count) * cell, height: size.height - 2)
             // Light enough that a removed stretch still shows through.
@@ -619,14 +672,13 @@ struct ShipTimelineView: View {
         }
     }
 
-    /// Removed minutes are struck out across every lane and marked on the ruler.
-    private func drawRemoved(_ context: GraphicsContext, size: CGSize, cell: CGFloat) {
-        let removed = model.timeline.removed.sorted()
-        var start = 0
-        while start < removed.count {
-            var end = start
-            while end + 1 < removed.count, removed[end + 1] == removed[end] + 1 { end += 1 }
-            let rect = CGRect(x: CGFloat(removed[start]) * cell, y: Lane.ruler, width: CGFloat(end - start + 1) * cell, height: size.height - Lane.ruler)
+    /// Removed minutes are struck out across every lane and marked on the
+    /// ruler. Each stretch says how long it is and has a handle at either
+    /// end to drag it longer or shorter.
+    private func drawRemoved(_ context: GraphicsContext, size: CGSize, cell: CGFloat, visibleFrom: CGFloat) {
+        let red = Color(red: 1, green: 0.27, blue: 0.27)
+        for run in model.timeline.removedRuns {
+            let rect = CGRect(x: CGFloat(run.lowerBound) * cell, y: Lane.ruler, width: CGFloat(run.count) * cell, height: size.height - Lane.ruler)
             context.fill(Path(rect), with: .color(.black.opacity(0.5)))
             var hatch = context
             hatch.clip(to: Path(rect))
@@ -637,8 +689,29 @@ struct ShipTimelineView: View {
                 x += 8
             }
             hatch.stroke(lines, with: .color(Color(red: 1, green: 0.3, blue: 0.3).opacity(0.7)), lineWidth: 1)
-            context.fill(Path(CGRect(x: rect.minX, y: Lane.ruler - 4, width: rect.width, height: 3)), with: .color(Color(red: 1, green: 0.27, blue: 0.27)))
-            start = end + 1
+            context.fill(Path(CGRect(x: rect.minX, y: Lane.ruler - 4, width: rect.width, height: 3)), with: .color(red))
+
+            // How long the stretch is, on a tag that stays in view while the stretch does.
+            let duration = context.resolve(Text(Self.duration(run.count * 60)).font(.caption.weight(.bold)).foregroundColor(.white))
+            let text = duration.measure(in: CGSize(width: CGFloat.greatestFiniteMagnitude, height: 20))
+            let tag = CGSize(width: text.width + 14, height: text.height + 5)
+            if rect.width >= tag.width + 18 {
+                let from = max(rect.minX, visibleFrom) + 9
+                let x = min(max(from, rect.midX - tag.width / 2), rect.maxX - 9 - tag.width)
+                let shape = Path(roundedRect: CGRect(x: x, y: Lane.framesTop + (Lane.frames - tag.height) / 2, width: tag.width, height: tag.height),
+                                 cornerRadius: tag.height / 2)
+                var raised = context
+                raised.addFilter(.shadow(color: .black.opacity(0.5), radius: 2, y: 1))
+                raised.fill(shape, with: .color(Color(red: 0.86, green: 0.2, blue: 0.2)))
+                context.draw(duration, at: CGPoint(x: x + tag.width / 2, y: Lane.framesTop + Lane.frames / 2), anchor: .center)
+            }
+            for x in [rect.minX, rect.maxX] {
+                let grip = CGRect(x: x - 2.5, y: Lane.appsTop + Lane.apps / 2 - 13, width: 5, height: 26)
+                var raised = context
+                raised.addFilter(.shadow(color: .black.opacity(0.6), radius: 2, y: 1))
+                raised.fill(Path(roundedRect: grip, cornerRadius: 2.5), with: Self.vertical([.white, Color(white: 0.8)], grip))
+                context.stroke(Path(roundedRect: grip.insetBy(dx: 0.25, dy: 0.25), cornerRadius: 2.5), with: .color(.black.opacity(0.45)), lineWidth: 0.5)
+            }
         }
     }
 
