@@ -84,11 +84,18 @@ module Api
             start = 13.days.ago.beginning_of_day
             recent = desktop_heartbeats.where(time: start.to_i..)
             zone = ActiveRecord::Base.connection.quote(Time.zone.tzinfo.name)
-            by_day = recent.group(Arel.sql("to_char(to_timestamp(time) AT TIME ZONE #{zone}, 'YYYY-MM-DD')")).duration_seconds
+            # One grouped query: "YYYY-MM-DD|project" => seconds.
+            by_day_project = recent.group(Arel.sql("to_char(to_timestamp(time) AT TIME ZONE #{zone}, 'YYYY-MM-DD') || '|' || COALESCE(project, '')")).duration_seconds
+            by_day = Hash.new { |hash, day| hash[day] = {} }
+            by_day_project.each { |key, seconds| day, project = key.split("|", 2); by_day[day][project] = seconds }
             week = recent.where(time: 6.days.ago.beginning_of_day.to_i..)
             lines = week.pick(Arel.sql("COALESCE(SUM(human_line_changes), 0)"), Arel.sql("COALESCE(SUM(ai_line_changes), 0)"))
             {
-              days: (0..13).map { |i| day = (start + i.days).to_date.iso8601; { date: day, seconds: by_day[day] || 0 } },
+              days: (0..13).map do |i|
+                day = (start + i.days).to_date.iso8601
+                projects = by_day.fetch(day, {}).sort_by { |_, seconds| -seconds }.map { |project, seconds| { project:, seconds: } }
+                { date: day, seconds: projects.sum { |entry| entry[:seconds] }, projects: }
+              end,
               week_seconds: week.duration_seconds,
               projects: week.group(:project).duration_seconds.sort_by { |_, seconds| -seconds }.first(5).map { |project, seconds| { project:, seconds: } },
               human_lines: lines[0].to_i, ai_lines: lines[1].to_i,

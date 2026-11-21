@@ -10,6 +10,7 @@ export const hackatimeURL = () => (env.HACKATIME_URL || 'https://hackatime.hackc
 // The site's own public origin, for the OAuth redirect URI. Behind a proxy the
 // request URL can say http://; set SITE_URL to pin it.
 export const siteURL = (url: URL) => (env.SITE_URL || url.origin).replace(/\/$/, '');
+export const downloadURL = () => env.DESKTOP_DOWNLOAD_URL || 'https://github.com/hackclub/hackatime/releases/latest';
 export const apiURL = () => (env.HACKATIME_API_URL || hackatimeURL()).replace(/\/$/, '');
 
 export type Device = {
@@ -51,7 +52,7 @@ export type Overview = {
 	user: { name: string; username: string | null; avatar_url: string | null; timezone: string; theme: Theme };
 	today_seconds: number;
 	stats: {
-		days: { date: string; seconds: number }[];
+		days: { date: string; seconds: number; projects: { project: string; seconds: number }[] }[];
 		week_seconds: number;
 		projects: { project: string; seconds: number }[];
 		human_lines: number;
