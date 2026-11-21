@@ -22,7 +22,8 @@ struct Settings: Codable {
 @MainActor
 final class Agent: ObservableObject {
     @Published private(set) var status = "Not signed in"
-    @Published private(set) var todayMinutes = 0
+    /// Minutes tracked on each local day, kept across launches.
+    @Published private(set) var trackedByDay: [String: Int] = [:]
     @Published private(set) var lastFrameAt: Date?
     @Published var settings: Settings { didSet { saveSettings() } }
 
@@ -67,6 +68,23 @@ final class Agent: ObservableObject {
         aiInbox = AIInbox(url: support.appendingPathComponent("ai-events.jsonl"))
         snapshots = (try? Data(contentsOf: support.appendingPathComponent("snapshots.json")))
             .flatMap { try? JSONDecoder().decode([Int: TreeSnapshot].self, from: $0) } ?? [:]
+        trackedByDay = (try? Data(contentsOf: support.appendingPathComponent("tracked.json")))
+            .flatMap { try? JSONDecoder().decode([String: Int].self, from: $0) } ?? [:]
+    }
+
+    static func dayKey(_ date: Date) -> String {
+        let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
+    var todayMinutes: Int { trackedByDay[Self.dayKey(Date())] ?? 0 }
+
+    func countTrackedMinute(at date: Date) {
+        let day = Self.dayKey(date)
+        // Keep a week; the menu only shows today.
+        trackedByDay = trackedByDay.filter { $0.key >= Self.dayKey(date.addingTimeInterval(-7 * 86_400)) }
+        trackedByDay[day, default: 0] += 1
+        try? JSONEncoder().encode(trackedByDay).write(to: support.appendingPathComponent("tracked.json"), options: .atomic)
     }
 
     var isPaired: Bool { api.token != nil }
@@ -293,10 +311,11 @@ final class Agent: ObservableObject {
         focusSamples.removeAll(); framesThisMinute.removeAll()
 
         do {
-            if let block = try chain.append(payload: payload, beacon: beacon, now: Date(),
+            let now = Date()
+            if let block = try chain.append(payload: payload, beacon: beacon, now: now,
                                             monoMs: Int64(ProcessInfo.processInfo.systemUptime * 1000), key: key) {
                 if let snapshot { snapshots[block.seq] = snapshot; persistSnapshots() }
-                if payload.focus == .project || payload.focus == .research, payload.activeS > 0 { todayMinutes += 1 }
+                if payload.focus == .project || payload.focus == .research, payload.activeS > 0 { countTrackedMinute(at: now) }
             }
             try await flush()
             status = "Tracking"

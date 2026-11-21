@@ -131,6 +131,15 @@ final class AgentTests: XCTestCase {
         XCTAssertNil(makeAgent().snapshot(at: 5), "also on disk")
     }
 
+    func testTodayCountsTodaysMinutesAcrossRelaunches() {
+        let agent = makeAgent()
+        agent.countTrackedMinute(at: Date().addingTimeInterval(-86_400))
+        agent.countTrackedMinute(at: Date())
+        agent.countTrackedMinute(at: Date())
+        XCTAssertEqual(agent.todayMinutes, 2, "yesterday's minute is not today's")
+        XCTAssertEqual(makeAgent().todayMinutes, 2, "kept across a relaunch")
+    }
+
     func testRevokedTokenWhileSendingBlocksAlsoUnpairs() async {
         StubServer.handler = { request in
             request.url!.path.hasSuffix("/beacon") ? (200, StubServer.beacon()) : (401, ["error": "Unauthorized"])
