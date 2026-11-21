@@ -30,7 +30,7 @@ final class ShipPreviewModel: ObservableObject {
     func uploads() -> [(hash: String, redacted: Data?, regions: [[String: Int]])] {
         frames.map { frame in
             guard !frame.regions.isEmpty, let image = FrameRedaction.apply(frame.regions, to: frame.image),
-                  let data = WindowCapture.encode(image) else { return (frame.id, nil, []) }
+                  let data = FrameRedaction.encode(image) else { return (frame.id, nil, []) }
             return (frame.id, data, FrameRedaction.wire(frame.regions))
         }
     }

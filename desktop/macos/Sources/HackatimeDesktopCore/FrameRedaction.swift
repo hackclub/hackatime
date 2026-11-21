@@ -23,6 +23,15 @@ public enum FrameRedaction {
         return context.makeImage()
     }
 
+    /// A redacted copy as the server accepts it: a JPEG, which it can decode
+    /// to check the copy against the frame's committed perceptual hash.
+    public static func encode(_ image: CGImage) -> Data? {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, "public.jpeg" as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(destination, image, [kCGImageDestinationLossyCompressionQuality: 0.7] as CFDictionary)
+        return CGImageDestinationFinalize(destination) ? data as Data : nil
+    }
+
     /// Regions as the server stores them (`redactions`: x, y, w, h).
     public static func wire(_ regions: [CGRect]) -> [[String: Int]] {
         regions.map { region in

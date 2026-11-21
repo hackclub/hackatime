@@ -25,6 +25,10 @@ final class FrameRedactionTests: XCTestCase {
         XCTAssertEqual(red(x: 5, y: 16), 255, "the same column near the bottom stays")
         XCTAssertEqual(red(x: 20, y: 3), 255, "right of the box stays")
 
+        let jpeg = try XCTUnwrap(FrameRedaction.encode(redacted))
+        XCTAssertEqual(Array(jpeg.prefix(3)), [0xFF, 0xD8, 0xFF], "the server decodes JPEG, not HEIC")
+        XCTAssertEqual(FrameRedaction.decode(jpeg)?.width, width)
+
         XCTAssertEqual(FrameRedaction.wire([CGRect(x: 2.4, y: 1.6, width: 9.2, height: 4.1)]), [["x": 2, "y": 1, "w": 10, "h": 5]])
     }
 }
