@@ -1,9 +1,10 @@
 <script lang="ts">
-	// The page title: big, flat and straight, sliding in fast.
+	// The page title: big, flat and straight, sliding in fast. Lowercased on
+	// the site; in the Mac app it keeps the case it is written in.
 	let { text }: { text: string } = $props();
 </script>
 
-<h1 class="headline text-[clamp(2.5rem,6vw,4.75rem)] leading-[0.95] font-bold tracking-tight lowercase break-words">
+<h1 class="headline native:text-[22px] native:leading-tight native:font-semibold native:tracking-normal native:normal-case text-[clamp(2.5rem,6vw,4.75rem)] leading-[0.95] font-bold tracking-tight lowercase break-words">
 	{text}
 </h1>
 

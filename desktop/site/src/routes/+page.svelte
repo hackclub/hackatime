@@ -16,7 +16,7 @@
 
 {#if overview}
 	<section class="flex flex-col gap-8">
-		<Headline text="hi {firstName}!" />
+		<Headline text="Hi {firstName}!" />
 
 		<div class="grid gap-8 md:grid-cols-[minmax(0,1fr)_200px]">
 			<div class="flex flex-col gap-6">
@@ -34,8 +34,8 @@
 
 		<div class="grid gap-8 md:grid-cols-[minmax(0,1fr)_200px]"><div class="grid gap-10 sm:grid-cols-2">
 			<section aria-labelledby="devices-heading" class="flex flex-col gap-2">
-				<h2 id="devices-heading" class="flex items-center gap-2 text-2xl font-bold lowercase">
-					your macs
+				<h2 id="devices-heading" class="flex items-center gap-2 text-2xl font-bold lowercase native:normal-case">
+					<span class="inline-block">Your Macs</span>
 					{#if overview.devices.length === 0}<Burst label="New" />{/if}
 				</h2>
 				{#if overview.devices.length}
@@ -49,7 +49,8 @@
 					</ul>
 				{:else}
 					<p class="text-dim">No Mac paired yet.</p>
-					<div><Button href="/pair" size="lg">get the mac app</Button></div>
+					<!-- Inside the app there's nothing to download: pair this Mac instead. -->
+					<div><Button href="/pair" size="lg">{data.native ? 'Pair This Mac' : 'Get the Mac App'}</Button></div>
 				{/if}
 			</section>
 
@@ -85,9 +86,9 @@
 					<Entry index={2}>{#snippet title()}Everything stays on your Mac until you ship. You preview it first.{/snippet}</Entry>
 					<Entry index={3}>{#snippet title()}Pause from the menu bar whenever you like.{/snippet}</Entry>
 				</ul>
-				<div><Button href="/auth/login" size="lg">sign in with hackatime</Button></div>
+				<div><Button href="/auth/login" size="lg">Sign In with Hackatime</Button></div>
 			</div>
-			<Stripes class="h-64 md:h-auto" />
+			{#if !data.native}<Stripes class="h-64 md:h-auto" />{/if}
 		</div>
 	</section>
 {/if}

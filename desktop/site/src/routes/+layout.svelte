@@ -3,10 +3,11 @@
 	import { onNavigate } from '$app/navigation';
 	import { navigating, page } from '$app/state';
 	import Stripes from '#lib/components/site/Stripes.svelte';
+	import MacShell from '#lib/components/site/MacShell.svelte';
 	import { Toaster } from '#lib/components/ui/sonner/index.js';
 	import * as Tooltip from '#lib/components/ui/tooltip/index.js';
 	import SignOut from 'phosphor-svelte/lib/SignOut';
-	import { desktop, post } from '#lib/native.svelte.js';
+	import { post } from '#lib/native.svelte.js';
 	import type { LayoutProps } from './$types';
 
 	let { children, data }: LayoutProps = $props();
@@ -21,13 +22,7 @@
 	const path = $derived(navigating.to?.url.pathname ?? page.url.pathname);
 	const current = (href: string) => (href === '/' ? path === '/' : path.startsWith(href));
 
-	// In the Mac app the window's frame takes the page colour, and a paired
-	// Mac has nothing left to pair, so the pairing card goes away.
-	let mounted = $state(false);
-	$effect(() => {
-		mounted = true;
-	});
-	const paired = $derived(data.native && mounted && desktop.current?.paired);
+	// In the Mac app the window's material and appearance follow the theme.
 	$effect(() => {
 		if (!data.native) return;
 		const ink = data.theme.palette.darker;
@@ -54,15 +49,23 @@
 
 <!-- On phones, toasts sit above the bottom nav instead of over it. In the Mac app toasts are native. -->
 {#if !data.native}<Toaster position="bottom-right" mobileOffset={{ bottom: 76 }} />{/if}
-{#if navigating.to}
+{#if navigating.to && !data.native}
 	<div class="nav-progress fixed inset-x-0 top-0 z-50 h-1 bg-link" aria-hidden="true"></div>
 {/if}
 <Tooltip.Provider>
 
+{#if data.native}
+<MacShell overview={data.overview}>
+	{#if data.offline}
+		<p role="status" class="mb-6 w-fit rounded-md bg-cream px-3 py-1.5 text-ink">Hackatime isn't answering right now. Try again in a minute.</p>
+	{/if}
+	{@render children()}
+</MacShell>
+{:else}
 <a href="#main" class="sr-only z-50 bg-cream px-3 py-2 text-ink focus:not-sr-only focus:fixed focus:top-2 focus:left-2">Skip to content</a>
 
-<div class="flex min-h-dvh w-full gap-9 px-5 pb-24 md:px-6 md:pb-6 {data.native ? 'pt-[52px]' : 'pt-6'}">
-	<aside class="sidebar sticky select-none hidden {data.native ? 'top-[52px] h-[calc(100dvh-76px)]' : 'top-6 h-[calc(100dvh-48px)]'} w-[153px] shrink-0 flex-col gap-2 md:flex">
+<div class="flex min-h-dvh w-full gap-9 px-5 pt-6 pb-24 md:px-6 md:pb-6">
+	<aside class="sidebar sticky select-none top-6 hidden h-[calc(100dvh-48px)] w-[153px] shrink-0 flex-col gap-2 md:flex">
 		<a href="/" class="mb-4 block text-[22px] leading-none font-bold tracking-tight" aria-label="Hackatime Desktop, home">
 			hackatime<br /><span class="text-link">desktop</span>
 		</a>
@@ -85,19 +88,10 @@
 
 		<div class="flex flex-col gap-3">
 			{#if data.overview}
-				{#if data.native}
-					{#if !paired && page.url.pathname !== '/pair'}
-						<a href="/pair" class="card block bg-cream p-3 text-ink">
-							<span class="block text-lg leading-tight font-bold">pair this mac</span>
-							<span class="block text-sm leading-snug">Agree to the timelapse and tracking starts.</span>
-						</a>
-					{/if}
-				{:else}
-					<a href="/pair" class="card block bg-cream p-3 text-ink">
-						<span class="block text-lg leading-tight font-bold">get the mac app</span>
-						<span class="block text-sm leading-snug">Download it and pair inside the app.</span>
-					</a>
-				{/if}
+				<a href="/pair" class="card block bg-cream p-3 text-ink">
+					<span class="block text-lg leading-tight font-bold">get the mac app</span>
+					<span class="block text-sm leading-snug">Download it and pair inside the app.</span>
+				</a>
 				<div class="flex items-center justify-between gap-2 text-sm">
 					<span class="truncate text-dim">{data.overview.user.username ?? data.overview.user.name}</span>
 					<form method="POST" action="/auth/logout">
@@ -144,6 +138,7 @@
 			<button class="px-4 text-dim hover:text-cream" aria-label="Sign out"><SignOut class="size-5" /></button>
 		</form>
 	</nav>
+{/if}
 {/if}
 
 </Tooltip.Provider>

@@ -21,7 +21,7 @@ struct Settings: Codable {
 /// then append a signed block to the chain and flush the queue.
 @MainActor
 final class Agent: ObservableObject {
-    @Published private(set) var status = "Not signed in"
+    @Published private(set) var status = "Not paired"
     @Published private(set) var todayMinutes = 0
     @Published private(set) var lastFrameAt: Date?
     @Published var settings: Settings { didSet { saveSettings() } }
@@ -45,6 +45,9 @@ final class Agent: ObservableObject {
     private var lastFrame: MinutePayload.Frame?
     private var timers: [Timer] = []
     private var pendingVerifier: String?
+    /// Called when Hackatime no longer accepts this Mac's token, for example
+    /// after it was unpaired on the website.
+    var onRevoked: (() -> Void)?
 
     init() {
         support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -78,7 +81,7 @@ final class Agent: ObservableObject {
             self.timers.append(Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in Task { await self?.tick() } })
         }
         vault.shredExpired()
-        status = isPaired ? "Tracking" : "Not signed in"
+        status = isPaired ? "Tracking" : "Not paired"
     }
 
     // MARK: Pairing
@@ -131,10 +134,26 @@ final class Agent: ObservableObject {
 
     func unpair() async {
         try? await api.unpair()
+        forgetPairing()
+    }
+
+    private func forgetPairing() {
         store.delete("device-token")
         api.token = nil
         settings.keyEnrolled = false
-        status = "Not signed in"
+        settings.deviceUID = nil
+        // Minutes queued for the old device can't be sent any more.
+        chain.resync(seq: 0, head: EvidenceProtocol.zeroHash)
+        persistChain()
+        status = "Not paired"
+    }
+
+    /// A 401 means the token was revoked; anything else is just offline.
+    private func revokedIfUnauthorised(_ error: Error) -> Bool {
+        guard (error as? APIClient.Failure)?.status == 401 else { return false }
+        forgetPairing()
+        onRevoked?()
+        return true
     }
 
     // MARK: Sampling
@@ -183,8 +202,9 @@ final class Agent: ObservableObject {
         guard isPaired, !settings.paused else {
             _ = input.takeMinute(); focusSamples.removeAll(); return
         }
-        let beacon: Beacon? = (try? await api.beacon()) ?? lastBeacon
-        guard let beacon else { status = "Offline, waiting for the server"; return }
+        var fresh: Beacon?
+        do { fresh = try await api.beacon() } catch { if revokedIfUnauthorised(error) { return } }
+        guard let beacon = fresh ?? lastBeacon else { status = "Offline, waiting for the server"; return }
         if beacon != lastBeacon { lastBeacon = beacon }
 
         scheduleTimelapse(beacon)
@@ -230,6 +250,7 @@ final class Agent: ObservableObject {
             try await flush()
             status = "Tracking"
         } catch {
+            if revokedIfUnauthorised(error) { return }
             status = "Queued \(chain.pending.count) minutes (offline)"
         }
         persistChain()

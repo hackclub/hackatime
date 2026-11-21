@@ -51,7 +51,7 @@
 					<form method="POST" action="?/answer" class="flex flex-col gap-3" use:enhance={submit}>
 						<Textarea name="answer" rows={5} maxlength={5000} placeholder="Explain in your own words. Code snippets are fine." class="min-h-32 text-base md:text-base" aria-label="Your answer" />
 						{#if errorFor('answer')}<p role="alert" class="text-warn">{errorFor('answer')}</p>{/if}
-						<div><Button type="submit" size="lg" disabled={busy}>send answer</Button></div>
+						<div><Button type="submit" size="lg" disabled={busy}>Send Answer</Button></div>
 					</form>
 				</section>
 			{:else if ship.reviewer_question}
@@ -77,15 +77,15 @@
 			{:else if ship.appealable}
 				<div class="flex flex-col gap-3">
 					{#if !appealing}
-						<div><Button variant="outline" size="lg" onclick={() => (appealing = true)}>appeal this decision</Button></div>
+						<div><Button variant="outline" size="lg" onclick={() => (appealing = true)}>Appeal This Decision</Button></div>
 					{:else}
 						<form method="POST" action="?/appeal" class="flex flex-col gap-3" transition:slide={{ duration: ms(140) }} use:enhance={submit}>
 							<p class="text-lg">A different reviewer will look again. Tell them what the first one missed.</p>
 							<Textarea name="appeal" rows={4} maxlength={5000} class="min-h-32 text-base md:text-base" aria-label="Why you're appealing" />
 							{#if errorFor('appeal')}<p role="alert" class="text-warn">{errorFor('appeal')}</p>{/if}
 							<div class="flex gap-3">
-								<Button type="submit" size="lg" disabled={busy}>send appeal</Button>
-								<Button variant="ghost" size="lg" onclick={() => (appealing = false)}>cancel</Button>
+								<Button type="submit" size="lg" disabled={busy}>Send Appeal</Button>
+								<Button variant="ghost" size="lg" onclick={() => (appealing = false)}>Cancel</Button>
 							</div>
 						</form>
 					{/if}

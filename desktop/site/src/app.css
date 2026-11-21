@@ -5,6 +5,8 @@
 @import "@fontsource-variable/familjen-grotesk";
 
 @custom-variant dark (&:is(.dark *));
+/* Styles for the Mac app only, e.g. native:text-[22px]. */
+@custom-variant native (&:where(html[data-native] *));
 
 /* Every colour comes from the student's Hackatime theme (#lib/theme.ts sets
    --ink, --cream, --link and friends on <html>). shadcn's tokens map onto them.
@@ -185,4 +187,68 @@ body {
 		animation-iteration-count: 1 !important;
 		transition-duration: 1ms !important;
 	}
+}
+
+/* Inside the Mac app (data-native="mac", set by the server from the app's
+   user agent) the site follows macOS: the system font at a smaller scale,
+   rounded controls, chrome that can't be selected or dragged, and macOS
+   focus rings. In a browser none of this applies. */
+html[data-native] {
+	/* Every rem-based size shrinks with this: 13px is macOS's body size. */
+	font-size: 13px;
+	font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+	--radius: 0.5rem;
+	cursor: default;
+	-webkit-user-select: none;
+	user-select: none;
+}
+html[data-native] body {
+	animation: none;
+}
+/* Content stays selectable; chrome, headings, labels and buttons don't. */
+html[data-native] main :is(p, li, dd, td, code, pre, blockquote),
+html[data-native] :is(input, textarea) {
+	-webkit-user-select: text;
+	user-select: text;
+}
+html[data-native] :is(button, [role='button'], label, h1, h2, h3, nav) {
+	-webkit-user-select: none;
+	user-select: none;
+}
+html[data-native] :is(a, img) {
+	-webkit-user-drag: none;
+}
+html[data-native] :focus-visible {
+	outline: 3px solid color-mix(in srgb, AccentColor 55%, transparent);
+	outline-offset: 1px;
+	border-radius: 6px;
+}
+/* The site's chunky 4px boxes and rules become hairlines. */
+html[data-native] :is(.border-4, .border-l-4, .sm\:border-l-4, .border-t-4, .border-b-4) {
+	border-color: color-mix(in srgb, var(--cream) 12%, transparent);
+}
+html[data-native] .border-4 {
+	border-width: 1px;
+	border-radius: 10px;
+}
+html[data-native] :is(.border-l-4, .sm\:border-l-4) {
+	border-left-width: 1px;
+}
+html[data-native] .border-t-4 {
+	border-top-width: 1px;
+}
+html[data-native] .border-b-4 {
+	border-bottom-width: 1px;
+}
+html[data-native] main :is(h1, h2) {
+	letter-spacing: -0.01em;
+}
+html[data-native] main :is(h1, h2, h3)::first-letter,
+html[data-native] main :is(h1, h2, h3) > .inline-block::first-letter {
+	text-transform: uppercase;
+}
+/* The app draws a native material behind a transparent page. */
+html[data-native][data-native-material],
+html[data-native][data-native-material] body {
+	background: transparent;
 }

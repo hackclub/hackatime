@@ -20,11 +20,11 @@
 <svelte:head><title>Devices · Hackatime Desktop</title></svelte:head>
 
 <section class="flex flex-col gap-8">
-	<Headline text="your macs" />
+	<Headline text="Your Macs" />
 
 	{#if devices.length === 0}
 		<p class="text-xl">No Mac paired yet.</p>
-		<div><Button href="/pair" size="lg">get the mac app</Button></div>
+		<div><Button href="/pair" size="lg">{data.native ? 'Pair This Mac' : 'Get the Mac App'}</Button></div>
 	{:else}
 		<ul class="grid gap-4 md:grid-cols-2">
 			{#each devices as device, i (device.id)}

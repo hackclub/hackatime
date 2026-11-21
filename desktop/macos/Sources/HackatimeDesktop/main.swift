@@ -24,6 +24,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refresh = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in Task { @MainActor in self?.rebuild() } }
         NSApp.mainMenu = mainMenu()
         window.onChange = { [weak self] in self?.rebuild() }
+        agent.onRevoked = { [weak self] in
+            guard let self else { return }
+            self.toasts.show("This Mac was unpaired", detail: "It was removed from your Hackatime account. Pair it again to keep tracking.",
+                             style: .info, id: "revoked", action: .init(label: "Pair") { [weak self] in self?.window.startPairing() })
+            self.window.publishState()
+            if self.window.isVisible { self.window.startPairing() }
+            self.rebuild()
+        }
         if CommandLine.arguments.contains("--self-test") { Task { await selfTest() } }
         else if !CommandLine.arguments.contains("--e2e") {
             if agent.isPaired { window.show() } else { window.startPairing() }
@@ -62,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(withTitle: "Timelapse: kept on this Mac until you ship", action: nil, keyEquivalent: "")
         menu.addItem(.separator())
         add(menu, "Open Hackatime Desktop", #selector(openWindow), "o")
+        add(menu, "Settings…", #selector(openSettingsWindow), ",")
         menu.addItem(.separator())
         if agent.isPaired {
             add(menu, agent.settings.paused ? "Resume tracking" : "Pause tracking", #selector(togglePause), "p")
@@ -139,6 +148,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    @objc func openSettingsWindow() { SettingsWindow.show(agent: agent, onChange: { [weak self] in self?.rebuild() }) }
+    @objc func openHelp() { NSWorkspace.shared.open(URL(string: "https://github.com/hackclub/hackatime/tree/main/desktop#readme")!) }
+    @objc func reportProblem() { NSWorkspace.shared.open(URL(string: "https://github.com/hackclub/hackatime/issues/new")!) }
     @objc func openVault() { NSWorkspace.shared.open(agent.support.appendingPathComponent("vault")) }
 
     @objc func deleteEverything() {
@@ -189,29 +201,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             main.addItem(holder)
             return menu
         }
-        func item(_ title: String, _ action: Selector?, _ key: String = "", _ modifiers: NSEvent.ModifierFlags = .command) -> NSMenuItem {
+        func item(_ title: String, _ action: Selector?, _ key: String = "", _ modifiers: NSEvent.ModifierFlags = .command,
+                  target: AnyObject? = nil) -> NSMenuItem {
             let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
             item.keyEquivalentModifierMask = modifiers
+            item.target = target
             return item
         }
+        let page = window
         _ = submenu("Hackatime Desktop", [
             item("About Hackatime Desktop", #selector(NSApplication.orderFrontStandardAboutPanel(_:))), .separator(),
+            item("Settings…", #selector(openSettingsWindow), ",", target: self), .separator(),
             item("Hide Hackatime Desktop", #selector(NSApplication.hide(_:)), "h"),
-            item("Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]), .separator(),
-            item("Close Window, Keep Tracking", #selector(NSWindow.performClose(_:)), "w"),
+            item("Hide Others", #selector(NSApplication.hideOtherApplications(_:)), "h", [.command, .option]),
+            item("Show All", #selector(NSApplication.unhideAllApplications(_:))), .separator(),
             item("Quit Hackatime Desktop", #selector(NSApplication.terminate(_:)), "q"),
+        ])
+        _ = submenu("File", [
+            item("Add Project Folder…", #selector(addProject), "o", [.command, .shift], target: self), .separator(),
+            item("Close Window", #selector(NSWindow.performClose(_:)), "w"),
         ])
         _ = submenu("Edit", [
             item("Undo", Selector(("undo:")), "z"), item("Redo", Selector(("redo:")), "z", [.command, .shift]), .separator(),
             item("Cut", #selector(NSText.cut(_:)), "x"), item("Copy", #selector(NSText.copy(_:)), "c"),
             item("Paste", #selector(NSText.paste(_:)), "v"), item("Select All", #selector(NSText.selectAll(_:)), "a"),
         ])
-        _ = submenu("View", [item("Reload Page", #selector(WKWebView.reload(_:)), "r")])
+        _ = submenu("View", [
+            item("Toggle Sidebar", #selector(MainWindowController.toggleSidebar(_:)), "b", target: page), .separator(),
+            item("Back", #selector(MainWindowController.goBack(_:)), "[", target: page),
+            item("Forward", #selector(MainWindowController.goForward(_:)), "]", target: page),
+            item("Reload Page", #selector(MainWindowController.reloadPage(_:)), "r", target: page), .separator(),
+            item("Actual Size", #selector(MainWindowController.actualSize(_:)), "0", target: page),
+            item("Zoom In", #selector(MainWindowController.zoomIn(_:)), "+", target: page),
+            item("Zoom Out", #selector(MainWindowController.zoomOut(_:)), "-", target: page), .separator(),
+            item("Enter Full Screen", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control]),
+        ])
         let windowMenu = submenu("Window", [
             item("Minimize", #selector(NSWindow.performMiniaturize(_:)), "m"),
             item("Zoom", #selector(NSWindow.performZoom(_:))),
         ])
         NSApp.windowsMenu = windowMenu
+        let helpMenu = submenu("Help", [
+            item("Hackatime Desktop Help", #selector(openHelp), "?", target: self),
+            item("Report a Problem…", #selector(reportProblem), target: self),
+        ])
+        NSApp.helpMenu = helpMenu
         return main
     }
 
