@@ -88,6 +88,50 @@ jobs:
       - name: Run Knip (unused files / deps / exports)
         run: bun run knip
 
+  desktop_site:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop/site
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install JavaScript dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run Svelte type checks
+        run: bun run check
+
+      - name: Build the companion site
+        env:
+          OAUTH_CLIENT_ID: ci
+          SESSION_SECRET: ci-only-session-secret-not-for-deploys
+        run: bun --bun run build
+
+  desktop_macos:
+    # The app uses macOS 27 SDK APIs, so it needs Xcode 27.
+    runs-on: xcode-27
+    defaults:
+      run:
+        working-directory: desktop/macos
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Run Swift tests
+        run: swift test
+
+      - name: Bundle the app
+        run: ./scripts/bundle.sh
+
   zeitwerk:
     runs-on: ubuntu-latest
 

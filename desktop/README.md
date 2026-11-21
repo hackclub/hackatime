@@ -13,7 +13,7 @@ A Mac app that tracks your editor, terminal, browser and AI tools, and backs eve
 
 The full protocol is in [PROTOCOL.md](PROTOCOL.md).
 
-## Build (macOS 14+)
+## Build (Xcode 27; runs on macOS 14+)
 
 ```sh
 cd desktop/macos

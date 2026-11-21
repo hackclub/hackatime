@@ -20,6 +20,12 @@ CI.run do
   step "Frontend: Lint", "bun run lint"
   step "Frontend: Knip", "bun run knip"
 
+  step "Desktop site: Typecheck", "cd desktop/site && bun install --frozen-lockfile && bun run check"
+  # SvelteKit needs Node 22.17+, newer than the web container has, so build with Bun's runtime.
+  step "Desktop site: Build", "cd desktop/site && env OAUTH_CLIENT_ID=ci SESSION_SECRET=ci-only-session-secret-not-for-deploys bun --bun run build"
+  # The Mac app builds only on macOS (with Xcode 27); GitHub Actions runs it there.
+  step "Desktop app: Swift tests", "cd desktop/macos && swift test" if RUBY_PLATFORM.include?("darwin")
+
   if success?
     heading "Signoff: All systems go. Ready for merge and deploy.", type: :success
   else

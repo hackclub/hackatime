@@ -43,3 +43,5 @@ HACKATIME_URL=http://localhost:3000 OAUTH_CLIENT_ID=… SESSION_SECRET=… bun r
 bun run build      # with the variables above set
 node build         # @sveltejs/adapter-node; reads the variables again at start
 ```
+
+SvelteKit needs Node 22.17 or later. Where only an older Node is installed, `bun --bun run build` builds with Bun's runtime instead, as CI does.
