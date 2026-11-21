@@ -17,7 +17,7 @@ class EvidenceShip < ApplicationRecord
   validates :project, presence: true, length: { maximum: 200 }
   validates :from_seq, :to_seq, numericality: { only_integer: true, greater_than: 0 }
   validate :range_is_ordered_and_closed, on: :create
-  validate :range_does_not_overlap, on: :create
+  validate :range_does_not_overlap
 
   scope :review_queue, -> { where(status: %i[submitted appealed]).order(Arel.sql("jsonb_array_length(flags) DESC"), :submitted_at) }
   scope :decided, -> { where(status: %i[approved deflated rejected]) }
@@ -72,7 +72,9 @@ class EvidenceShip < ApplicationRecord
   def range_does_not_overlap
     return if from_seq.blank? || to_seq.blank? || desktop_device.nil?
 
-    overlap = desktop_device.evidence_ships.where.not(status: :draft).where("from_seq <= ? AND to_seq >= ?", to_seq, from_seq)
+    # Drafts may overlap each other; at most one ship may ever leave draft
+    # for any minute, so the same work is never credited twice.
+    overlap = desktop_device.evidence_ships.where.not(status: :draft).where.not(id:).where("from_seq <= ? AND to_seq >= ?", to_seq, from_seq)
     errors.add(:base, "This range overlaps a ship you already submitted") if overlap.exists?
   end
 end

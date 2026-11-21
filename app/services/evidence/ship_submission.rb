@@ -48,16 +48,24 @@ module Evidence
       # A snapshot that does not match its root is a broken claim: no credit.
       credited = flags.include?("snapshot_mismatch") ? 0 : result.credited_seconds
 
-      @ship.update!(
-        status: :submitted, submitted_at: Time.current, spot_checks: checks, flags: flags.uniq,
-        stretches: result.stretches.map { |stretch| serialize(stretch) },
-        claimed_seconds: result.claimed_seconds, scored_seconds: result.scored_seconds,
-        ceiling_seconds: ceiling, credited_seconds: credited, confidence: result.confidence, scorer: result.scorer
-      )
+      # Serialises submissions of one device so two overlapping drafts
+      # cannot both pass the overlap check in EvidenceShip.
+      @ship.desktop_device.with_lock do
+        raise Invalid, "Only drafts can be submitted" unless @ship.reload.draft?
+
+        @ship.update!(
+          status: :submitted, submitted_at: Time.current, spot_checks: checks, flags: flags.uniq,
+          stretches: result.stretches.map { |stretch| serialize(stretch) },
+          claimed_seconds: result.claimed_seconds, scored_seconds: result.scored_seconds,
+          ceiling_seconds: ceiling, credited_seconds: credited, confidence: result.confidence, scorer: result.scorer
+        )
+      end
       EvidenceSummaryJob.perform_later(@ship.id)
       @ship
     rescue ArgumentError, KeyError => e
       raise Invalid, e.message
+    rescue ActiveRecord::RecordInvalid => e
+      raise Invalid, e.record.errors.full_messages.to_sentence
     end
 
     private

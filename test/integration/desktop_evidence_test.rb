@@ -180,6 +180,28 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal 21, @user.desktop_devices.sole.last_seq
   end
 
+  test "of several overlapping drafts only the first submitted is credited" do
+    token = pair_device
+    files = { "app.rb" => "def hello\n  puts 'hi'\nend\n" }
+    10.times { |i| post_minute(token, i, payload(i, tree: files)) }
+    ships = [ [ 1, 10 ], [ 1, 9 ], [ 2, 10 ] ].map do |from, to|
+      post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: from, to_seq: to }, headers: auth(token), as: :json
+      assert_response :created
+      response.parsed_body
+    end
+    statuses = ships.map do |ship|
+      post "/api/desktop/v1/ships/#{ship["id"]}/submit", headers: auth(token), as: :json, params: {
+        final_files: [ { path: "app.rb", content: Base64.strict_encode64(files["app.rb"]) } ],
+        snapshots: ship["spot_check_seqs"].map { |seq| snapshot(seq, files) }
+      }
+      response.status
+    end
+    assert_equal [ 200, 422, 422 ], statuses
+    assert_match(/overlaps a ship you already submitted/, response.parsed_body["error"])
+    assert_equal 1, @user.evidence_ships.submitted.count
+    assert_operator @user.evidence_ships.sum(:claimed_seconds), :<=, 10 * 45
+  end
+
   test "a pairing code works once and only with its verifier" do
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)
