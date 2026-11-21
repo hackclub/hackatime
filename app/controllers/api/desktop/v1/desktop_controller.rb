@@ -8,13 +8,14 @@ class Api::Desktop::V1::DesktopController < ActionController::API
   FRAME_MAX_BYTES = 2.megabytes
 
   before_action :authenticate_device!, except: :pair
-  rate_limit to: 10, within: 10.minutes, only: :pair, by: -> { client_ip }
-  rate_limit to: 30, within: 1.minute, only: :blocks, by: -> { @device&.id || client_ip }
+  rate_limit to: 10, within: 10.minutes, only: :pair, by: -> { client_ip }, name: "pair"
+  rate_limit to: 30, within: 1.minute, only: :blocks, by: -> { @device&.id || client_ip }, name: "blocks"
   # Shipping does real work per request (decrypting frames, fingerprinting
   # snapshots), so it is paced per device well above what an honest ship needs.
-  rate_limit to: 20, within: 10.minutes, only: :create_ship, by: -> { @device.id }
-  rate_limit to: 300, within: 10.minutes, only: :upload_frame, by: -> { @device.id }
-  rate_limit to: 5, within: 10.minutes, only: :submit_ship, by: -> { @device.id }
+  # Each limit is named: unnamed limits on one controller share a counter.
+  rate_limit to: 20, within: 10.minutes, only: :create_ship, by: -> { @device.id }, name: "create_ship"
+  rate_limit to: 300, within: 10.minutes, only: :upload_frame, by: -> { @device.id }, name: "upload_frame"
+  rate_limit to: 5, within: 10.minutes, only: :submit_ship, by: -> { @device.id }, name: "submit_ship"
 
   rescue_from ActiveRecord::RecordNotFound, with: -> { render json: { error: "Not found" }, status: :not_found }
   rescue_from ActionController::ParameterMissing, with: ->(e) { render json: { error: e.message }, status: :bad_request }
