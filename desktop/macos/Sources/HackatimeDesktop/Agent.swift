@@ -311,4 +311,15 @@ final class Agent: ObservableObject {
     }
 
     func snapshot(at seq: Int) -> TreeSnapshot? { snapshots[seq] }
+
+    /// "Delete all local evidence": everything the vault does not hold.
+    /// Snapshot leaf lists name every file, and the AI inbox keeps working
+    /// directories, so both go too.
+    func forgetLocalEvidence() {
+        snapshots = [:]
+        try? FileManager.default.removeItem(at: support.appendingPathComponent("snapshots.json"))
+        framesThisMinute = []
+        lastFrame = nil
+        try? FileHandle(forWritingTo: aiInbox.url).truncate(atOffset: 0)
+    }
 }

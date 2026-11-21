@@ -29,7 +29,8 @@ public final class Vault: BlobStore {
     }
 
     let directory: URL
-    let vaultKey: SymmetricKey
+    private let store: SecretStore
+    private var vaultKey: SymmetricKey
     private(set) public var frames: [StoredFrame] = []
     private(set) public var accessLog: [AccessEntry] = []
     private var wrappedKeys: [Int64: Data] = [:]
@@ -37,6 +38,7 @@ public final class Vault: BlobStore {
 
     public init(directory: URL, store: SecretStore) throws {
         self.directory = directory
+        self.store = store
         try FileManager.default.createDirectory(at: directory.appendingPathComponent("frames"), withIntermediateDirectories: true)
         try FileManager.default.createDirectory(at: directory.appendingPathComponent("blobs"), withIntermediateDirectories: true)
         if let raw = store.read("vault-key"), raw.count == 32 {
@@ -125,13 +127,23 @@ public final class Vault: BlobStore {
         return expired.count
     }
 
-    /// "Delete everything": destroys every key, so nothing can be decrypted.
+    /// "Delete everything": replaces the Keychain vault key, so a copy or
+    /// backup of the vault made before (wrapped segment keys, frames and
+    /// snapshot blobs) can no longer be decrypted, then removes every file.
     public func deleteEverything() {
         lock.lock(); defer { lock.unlock() }
-        shred(segments: Set(frames.map(\.segment)))
-        try? FileManager.default.removeItem(at: directory.appendingPathComponent("blobs"))
-        try? FileManager.default.createDirectory(at: directory.appendingPathComponent("blobs"), withIntermediateDirectories: true)
+        let fresh = SymmetricKey(size: .bits256)
+        store.write("vault-key", fresh.withUnsafeBytes { Data($0) })
+        vaultKey = fresh
+        wrappedKeys = [:]
+        frames = []
+        accessLog = []
+        for folder in ["frames", "blobs"] {
+            try? FileManager.default.removeItem(at: directory.appendingPathComponent(folder))
+            try? FileManager.default.createDirectory(at: directory.appendingPathComponent(folder), withIntermediateDirectories: true)
+        }
         log("delete_everything", "")
+        save()
     }
 
     private func shred(segments: Set<Int64>) {

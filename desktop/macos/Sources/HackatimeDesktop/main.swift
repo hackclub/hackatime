@@ -150,6 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         guard confirm.runModal() == .alertFirstButtonReturn else { return }
         agent.vault.deleteEverything()
+        agent.forgetLocalEvidence()
         toasts.show("Local evidence deleted", detail: "Every screenshot key on this Mac is gone.", style: .success)
     }
 
