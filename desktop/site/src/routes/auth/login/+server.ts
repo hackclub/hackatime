@@ -6,15 +6,21 @@ import { writeFlow } from '#lib/server/session.js';
 import type { RequestHandler } from './$types';
 
 // Sign in with Hackatime: OAuth authorisation code with PKCE.
-export const GET: RequestHandler = ({ url, cookies }) => {
+// The Mac app runs the Hackatime half in the system sign-in sheet, which hands
+// the code back to the app on its own URL scheme; the app then opens
+// /auth/callback in its window, where this flow's cookie lives.
+const NATIVE_REDIRECT = 'hackatime-desktop://auth/callback';
+
+export const GET: RequestHandler = ({ url, cookies, locals }) => {
 	const next = url.searchParams.get('next') ?? '/';
 	const verifier = randomBytes(48).toString('base64url');
 	const state = randomBytes(16).toString('base64url');
-	writeFlow(cookies, { state, verifier, next: safeNext(next, url.origin) });
+	const redirectURI = locals.native ? NATIVE_REDIRECT : `${siteURL(url)}/auth/callback`;
+	writeFlow(cookies, { state, verifier, next: safeNext(next, url.origin), redirectURI });
 	const authorize = new URL(`${hackatimeURL()}/oauth/authorize`);
 	authorize.search = new URLSearchParams({
 		client_id: env.OAUTH_CLIENT_ID ?? '',
-		redirect_uri: `${siteURL(url)}/auth/callback`,
+		redirect_uri: redirectURI,
 		response_type: 'code',
 		scope: 'profile desktop',
 		state,

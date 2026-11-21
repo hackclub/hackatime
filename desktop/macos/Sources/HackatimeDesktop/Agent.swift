@@ -21,7 +21,7 @@ struct Settings: Codable {
 /// then append a signed block to the chain and flush the queue.
 @MainActor
 final class Agent: ObservableObject {
-    @Published private(set) var status = "Not signed in"
+    @Published private(set) var status = "Not paired"
     /// Minutes tracked on each local day, kept across launches.
     @Published private(set) var trackedByDay: [String: Int] = [:]
     @Published private(set) var lastFrameAt: Date?
@@ -55,6 +55,9 @@ final class Agent: ObservableObject {
     private var pendingVerifier: String?
     private var ticking = false
     private var sampling = false
+    /// Called when Hackatime no longer accepts this Mac's token, for example
+    /// after it was unpaired on the website.
+    var onRevoked: (() -> Void)?
 
     nonisolated static let defaultSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("Hackatime Desktop", isDirectory: true)
@@ -120,7 +123,7 @@ final class Agent: ObservableObject {
             self.timers.append(Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in Task { await self?.tick() } })
         }
         vault.shredExpired()
-        status = isPaired ? "Tracking" : "Not signed in"
+        status = isPaired ? "Tracking" : "Not paired"
     }
 
     // MARK: Pairing
@@ -194,18 +197,18 @@ final class Agent: ObservableObject {
             return "\(error)"
         }
         forgetPairing()
-        status = "Not signed in"
         return nil
     }
-
-    /// Called when the pairing ends without the app asking, such as when the
-    /// device is removed on the site; the app uses it to refresh its window.
-    var onUnpaired: () -> Void = {}
 
     private func forgetPairing() {
         store.delete("device-token")
         api.token = nil
         settings.keyEnrolled = false
+        settings.deviceUID = nil
+        // Minutes queued for the old device can't be sent any more.
+        chain.resync(seq: 0, head: EvidenceProtocol.zeroHash)
+        persistChain()
+        status = "Not paired"
     }
 
     /// The server no longer knows this token: the device was unpaired on the
@@ -213,10 +216,7 @@ final class Agent: ObservableObject {
     private func pairingRevoked() {
         forgetPairing()
         focusSamples.removeAll(); framesThisMinute.removeAll()
-        status = "Unpaired on the site"
-        NativeToastCenter.shared.show("This Mac was unpaired", detail: "Tracking has stopped. Pair again to carry on.",
-                                      style: .error, id: "unpaired")
-        onUnpaired()
+        onRevoked?()
     }
 
     // MARK: Sampling

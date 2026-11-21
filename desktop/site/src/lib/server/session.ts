@@ -37,7 +37,7 @@ export const clearToken = (cookies: Cookies) => cookies.delete(COOKIE, options);
 // Short-lived PKCE state for the sign-in round trip.
 export const writeFlow = (cookies: Cookies, flow: object) =>
 	cookies.set('hkd_flow', seal(JSON.stringify(flow)), { ...options, maxAge: 600 });
-export function takeFlow(cookies: Cookies): { state: string; verifier: string; next: string } | null {
+export function takeFlow(cookies: Cookies): { state: string; verifier: string; next: string; redirectURI?: string } | null {
 	const raw = unseal(cookies.get('hkd_flow'));
 	cookies.delete('hkd_flow', options);
 	return raw ? JSON.parse(raw) : null;

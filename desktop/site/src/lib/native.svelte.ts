@@ -4,8 +4,15 @@ import { toast } from 'svelte-sonner';
 // Hackatime Desktop's Mac window loads this site. It sets window.hackatimeDesktop
 // before any script runs, updates it and fires `hackatime-native` when it
 // changes, and takes messages on window.webkit.messageHandlers.hackatime.
-export type DesktopState = { paired: boolean; paused: boolean; version: string; device: string };
-export type NativeEvent = { type: 'pairFailed'; error: string } | undefined;
+export type DesktopState = {
+	paired: boolean;
+	paused: boolean;
+	version: string;
+	device: string;
+	canGoBack?: boolean;
+	canGoForward?: boolean;
+};
+export type NativeEvent = { type: 'pairFailed'; error: string } | { type: 'command'; name: 'toggleSidebar' } | undefined;
 
 declare global {
 	interface Window {

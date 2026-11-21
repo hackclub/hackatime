@@ -11,5 +11,5 @@
 	<p class="text-xl leading-snug">
 		{page.status === 404 ? "There's nothing at this address." : (page.error?.message ?? 'Something went wrong.')}
 	</p>
-	<div><Button href="/" size="lg">go home</Button></div>
+	<div><Button href="/" size="lg">Go Home</Button></div>
 </section>

@@ -14,7 +14,7 @@
 <svelte:head><title>Shipped · Hackatime Desktop</title></svelte:head>
 
 <section class="flex flex-col gap-8">
-	<Headline text="shipped" />
+	<Headline text="Shipped" />
 
 	{#if ships.length === 0}
 		<p class="max-w-[52ch] text-xl leading-snug">

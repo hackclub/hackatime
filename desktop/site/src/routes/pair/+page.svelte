@@ -43,14 +43,14 @@
 <svelte:head><title>Pair a Mac · Hackatime Desktop</title></svelte:head>
 
 <section class="flex max-w-[720px] flex-col gap-8">
-	<Headline text={data.challenge || pairing ? 'pair a mac' : data.native ? 'pair this mac' : 'get the mac app'} />
+	<Headline text={data.challenge || pairing ? 'Pair a Mac' : data.native ? 'Pair this Mac' : 'Get the Mac app'} />
 
 	{#if pairing && data.native}
 		<div class="flex flex-col gap-4" in:fly={{ y: 8, duration: ms(160) }}>
 			{#if failed}
 				<p class="text-xl leading-snug">This Mac couldn't finish pairing.</p>
 				<p role="alert" class="w-fit bg-warn px-3 py-1.5 text-ink">{failed}</p>
-				<div><Button size="lg" onclick={() => post('startPairing')}>start again</Button></div>
+				<div><Button size="lg" onclick={() => post('startPairing')}>Start Again</Button></div>
 			{:else}
 				<p class="text-xl leading-snug">Pairing <strong class="text-link">{data.name || 'this Mac'}</strong>. This takes a second.</p>
 			{/if}
@@ -62,24 +62,24 @@
 			<p class="-mt-3 w-fit bg-cream px-5 py-3 font-mono text-4xl font-bold tracking-[0.2em] text-ink" aria-labelledby="code-label">{pairing.code}</p>
 			<p class="text-dim">The code works once and runs out at {clock(pairing.expires_at)}.</p>
 			<div class="flex flex-wrap gap-3">
-				<Button href={pairing.deep_link} size="lg">open hackatime desktop</Button>
-				<Button href="/devices" size="lg" variant="outline">see your macs</Button>
+				<Button href={pairing.deep_link} size="lg">Open Hackatime Desktop</Button>
+				<Button href="/devices" size="lg" variant="outline">See Your Macs</Button>
 			</div>
 		</div>
 	{:else if !data.challenge && data.native}
 		<div class="flex flex-col gap-4 text-xl leading-snug">
 			{#if mounted && desktop.current?.paired}
 				<p>This Mac is paired and tracking from the menu bar, even with this window closed.</p>
-				<div><Button href="/devices" size="lg" variant="outline">see your macs</Button></div>
+				<div><Button href="/devices" size="lg" variant="outline">See Your Macs</Button></div>
 			{:else}
 				<p>Pair this Mac with your Hackatime account. You'll see what the timelapse records and agree to it first.</p>
-				<div><Button size="lg" onclick={() => post('startPairing')}>pair this mac</Button></div>
+				<div><Button size="lg" onclick={() => post('startPairing')}>Pair This Mac</Button></div>
 			{/if}
 		</div>
 	{:else if !data.challenge}
 		<div class="flex flex-col gap-4 text-xl leading-snug">
 			<p>Hackatime Desktop runs in your Mac's menu bar and keeps a timelapse of the windows you code in.</p>
-			<div><Button href={data.download} size="lg">download for macOS</Button></div>
+			<div><Button href={data.download} size="lg">Download for macOS</Button></div>
 			<ol class="flex flex-col text-lg">
 				<Entry index={0}>{#snippet title()}Open the app. It opens this site in its own window.{/snippet}</Entry>
 				<Entry index={1}>{#snippet title()}Sign in and agree to the timelapse. The app pairs itself.{/snippet}</Entry>
@@ -129,7 +129,7 @@
 				<p role="alert" class="w-fit bg-warn px-3 py-1.5 text-ink">{form.error}</p>
 			{/if}
 
-			<div><Button type="submit" size="lg" disabled={busy}>{busy ? 'pairing…' : 'pair this mac'}</Button></div>
+			<div><Button type="submit" size="lg" disabled={busy}>{busy ? 'Pairing…' : 'Pair This Mac'}</Button></div>
 		</form>
 	{/if}
 </section>

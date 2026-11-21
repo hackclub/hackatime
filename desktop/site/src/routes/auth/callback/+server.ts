@@ -15,7 +15,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		body: new URLSearchParams({
 			grant_type: 'authorization_code',
 			code: url.searchParams.get('code') ?? '',
-			redirect_uri: `${siteURL(url)}/auth/callback`,
+			redirect_uri: flow.redirectURI ?? `${siteURL(url)}/auth/callback`,
 			client_id: env.OAUTH_CLIENT_ID ?? '',
 			...(env.OAUTH_CLIENT_SECRET ? { client_secret: env.OAUTH_CLIENT_SECRET } : {}),
 			code_verifier: flow.verifier
