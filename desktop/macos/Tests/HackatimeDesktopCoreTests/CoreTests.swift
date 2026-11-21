@@ -113,6 +113,38 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(classifier.classify(other, activeProject: "sync-app").label, .unknown)
     }
 
+    func testAIInboxKeepsEventsAcrossRelaunchesAndCountsEachOnce() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("ai-events.jsonl")
+        let now = 1_740_000_000.0
+        func append(_ text: String) throws {
+            if !FileManager.default.fileExists(atPath: url.path) { FileManager.default.createFile(atPath: url.path, contents: nil) }
+            let handle = try FileHandle(forWritingTo: url)
+            handle.seekToEndOfFile()
+            handle.write(Data(text.utf8))
+            try handle.close()
+        }
+        let prompt = #"{"tool":"claude-code","event":"prompt","at":\#(now - 30),"ai_lines":5}"# + "\n"
+
+        try append(prompt + prompt)                      // written before the app started
+        XCTAssertEqual(AIInbox(url: url).drain(now: now)?.prompts, 2)
+        try append(prompt)
+        let relaunched = AIInbox(url: url)
+        XCTAssertEqual(relaunched.drain(now: now)?.prompts, 1, "only the event written since the last drain")
+        XCTAssertNil(AIInbox(url: url).drain(now: now), "nothing is counted twice after another relaunch")
+
+        // A line still being written waits for its newline.
+        try append(String(prompt.dropLast(10)))
+        XCTAssertEqual(relaunched.drain(now: now)?.prompts ?? 0, 0)
+        try append(String(prompt.suffix(10)))
+        XCTAssertEqual(relaunched.drain(now: now)?.aiLines, 5)
+
+        // Events from long before the minute being built are not credited to it.
+        try append(#"{"tool":"codex","event":"prompt","at":\#(now - 7_200)}"# + "\n")
+        XCTAssertEqual(relaunched.drain(now: now)?.prompts ?? 0, 0)
+    }
+
     func testJigglerScoresHighAndHumanTypingScoresLow() {
         var jiggle = InputMinute()
         for i in 0 ..< 60 { jiggle.recordMove(x: i.isMultiple(of: 2) ? 100 : 101, y: 200, at: Double(i), injected: false) }

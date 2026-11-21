@@ -24,26 +24,41 @@ public struct AIEvent: Codable, Equatable {
 
 public final class AIInbox {
     public let url: URL
-    private var offset: UInt64 = 0
+    /// How far the inbox has been read, kept next to it so a relaunch
+    /// neither loses nor recounts events.
+    private let offsetURL: URL
+    private var offset: UInt64
+    /// Events older than this were written while the app was not running and
+    /// cannot be placed in a minute any more.
+    static let maxAge: Double = 600
     /// Open turns: session → time the last prompt was sent.
     private var waitingSince: [String: Double] = [:]
 
     public init(url: URL) {
         self.url = url
-        FileManager.default.createFile(atPath: url.path, contents: nil)
+        offsetURL = url.appendingPathExtension("offset")
+        offset = (try? String(contentsOf: offsetURL, encoding: .utf8)).flatMap { UInt64($0) } ?? 0
+        if !FileManager.default.fileExists(atPath: url.path) {
+            FileManager.default.createFile(atPath: url.path, contents: nil)
+        }
     }
 
     /// Reads new events and folds them into a minute's AI summary.
     public func drain(now: Double) -> MinutePayload.AI? {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }
+        // A shorter file was replaced or emptied: read it from the start.
+        if let size = try? handle.seekToEnd(), size < offset { offset = 0 }
         try? handle.seek(toOffset: offset)
-        let data = handle.readDataToEndOfFile()
+        var data = handle.readDataToEndOfFile()
+        // Leave a line a hook is still writing for the next drain.
+        data = data.lastIndex(of: UInt8(ascii: "\n")).map { data[...$0] } ?? Data()
         offset += UInt64(data.count)
+        try? String(offset).write(to: offsetURL, atomically: true, encoding: .utf8)
         var ai = MinutePayload.AI()
         var any = false
         for line in data.split(separator: UInt8(ascii: "\n")) {
-            guard let event = try? JSONDecoder().decode(AIEvent.self, from: Data(line)) else { continue }
+            guard let event = try? JSONDecoder().decode(AIEvent.self, from: Data(line)), now - event.at < Self.maxAge else { continue }
             any = true
             let session = event.session ?? event.tool
             switch event.event {
