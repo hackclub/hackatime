@@ -70,8 +70,11 @@ module Evidence
         model: ENV.fetch("EVIDENCE_LLM_MODEL", "gpt-4o-mini"),
         messages: [
           { role: "system", content: "You summarise a student's coding session for a reviewer and for the student. " \
-            "Use only the JSON facts. Five short sentences, British English, no em dashes. Name anything a reviewer should check first." },
-          { role: "user", content: facts.to_json }
+            "Use only the JSON facts and call the project \"the project\". Five short sentences, British English, no em dashes. " \
+            "Name anything a reviewer should check first." },
+          # The project name is the only free text the client chose; it stays
+          # out so it cannot steer the summary a reviewer reads.
+          { role: "user", content: facts.except(:project).to_json }
         ]
       }
       response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: 5, read_timeout: 30) do |http|
