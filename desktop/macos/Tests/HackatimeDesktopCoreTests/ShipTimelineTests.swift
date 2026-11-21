@@ -108,6 +108,51 @@ final class ShipTimelineTests: XCTestCase {
         XCTAssertEqual(timeline.apps[1].windows.map(\.title), [""], "a never-listed window has no title to show")
     }
 
+    func testOnlyEditorAndTerminalTitlesThatNameASecretsFileCount() {
+        func file(_ bundleID: String, _ title: String) -> String? {
+            ActivitySegment(startMs: 0, endMs: 1, bundleID: bundleID, app: "", title: title).secretFile
+        }
+        let code = "com.microsoft.VSCode", terminal = "com.apple.Terminal"
+        XCTAssertEqual(file(code, ".env — sync-app"), ".env")
+        XCTAssertEqual(file(code, "● .env.production — sync-app"), ".env.production")
+        XCTAssertEqual(file("com.apple.dt.Xcode", "sync-app — Secrets.xcconfig"), "Secrets.xcconfig", "whatever the case")
+        XCTAssertEqual(file(terminal, "nano ~/.ssh/id_ed25519"), "id_ed25519")
+        XCTAssertEqual(file(terminal, "vim \"config/server.pem\""), "server.pem")
+        XCTAssertEqual(file(code, "(.npmrc) — sync-app"), ".npmrc")
+
+        XCTAssertNil(file(code, ".env.example — sync-app"), "a template holds no values")
+        XCTAssertNil(file(code, "environment.rb — sync-app"))
+        XCTAssertNil(file(code, "dotenv.swift — sync-app"))
+        XCTAssertNil(file(code, "main.swift — my.env"), "the name has to be .env, not end in it")
+        XCTAssertNil(file("com.apple.Safari", ".env — sync-app"), "only apps whose title names the open file")
+        XCTAssertNil(file(code, ""))
+    }
+
+    /// Minutes 0 to 3: editor, `.env` for ten seconds of the next, `.env`
+    /// alone, editor.
+    func makeTimelineWithSecrets() -> ShipTimeline {
+        let env = FocusSample(bundleID: "com.microsoft.VSCode", appName: "Code", title: ".env — sync-app")
+        var log = ActivityLog()
+        for second in stride(from: 0, to: 110, by: 5) { log.record(editor, label: .project, atMs: ms(0, second)) }
+        for second in stride(from: 50, to: 120, by: 5) { log.record(env, label: .project, atMs: ms(1, second)) }
+        for second in stride(from: 0, to: 60, by: 5) { log.record(editor, label: .project, atMs: ms(3, second)) }
+        return ShipTimeline(project: "sync-app", entries: (0 ... 3).map { entry(20 + $0, coveringMinute: $0) }, range: 20 ... 23, activity: log)
+    }
+
+    func testMinutesWithASecretsFileInFrontStartOutRemoved() {
+        var timeline = makeTimelineWithSecrets()
+        XCTAssertEqual(timeline.secretMinutes, [1, 2], "ten seconds of .env take the whole minute: its frame may show it")
+        XCTAssertEqual(timeline.secretFiles, [".env"])
+        XCTAssertEqual(timeline.removed, [1, 2])
+        XCTAssertEqual(timeline.excludedRanges, [21 ... 22])
+        XCTAssertEqual(timeline.keptCountedMinutes, 2)
+
+        timeline.setRemoved(false, positions: timeline.secretMinutes)
+        XCTAssertEqual(timeline.excludedRanges, [], "the user can put them back")
+        XCTAssertEqual(timeline.keptCountedMinutes, 4)
+        XCTAssertEqual(makeTimeline().removed, [], "nothing is removed from a ship without one")
+    }
+
     func testClickingAWindowSelectsItAsFarAsItStaysInFront() {
         let timeline = makeTimeline()
         XCTAssertEqual(timeline.positions(ofWindowAt: 0.5), 0 ... 1, "the editor through both minutes, not the one after Safari")

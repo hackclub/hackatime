@@ -92,6 +92,11 @@ public struct FocusClassifier {
         browserBundleIDs.contains(bundleID) || browserBundleIDs.contains { bundleID.hasPrefix($0 + ".app.") }
     }
 
+    /// Editors and terminals: apps whose window title names the file open in them.
+    public static func opensFiles(_ bundleID: String) -> Bool {
+        editorBundleIDs.contains(bundleID) || terminalBundleIDs.contains(bundleID)
+    }
+
     public static func isNever(_ sample: FocusSample) -> Bool {
         if neverBundleIDs.contains(sample.bundleID) { return true }
         let lowerTitle = sample.title.lowercased()
@@ -133,7 +138,7 @@ public struct FocusClassifier {
         let haystack = [sample.title, sample.url ?? ""].joined(separator: " ").lowercased()
         let project = projectNames.first { Self.containsName($0, in: haystack) }
 
-        if Self.editorBundleIDs.contains(sample.bundleID) || Self.terminalBundleIDs.contains(sample.bundleID) {
+        if Self.opensFiles(sample.bundleID) {
             let project = project ?? (sample.title.isEmpty ? activeProject?.lowercased() : nil)
             return (project == nil ? .unknown : .project, project)
         }

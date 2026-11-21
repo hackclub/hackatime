@@ -74,6 +74,23 @@ public struct TreeSnapshot: Codable, Equatable {
         secretPatterns.contains { fnmatch($0, name, 0) == 0 } || matches(relative, ignore)
     }
 
+    /// Copies of a secrets file that are written to be shared, with the values left out.
+    static let templateSuffixes = [".example", ".sample", ".template", ".dist"]
+
+    /// The first secrets file a window title names, if any. A title is the
+    /// file's name or path among other words ("● .env.local — sync-app",
+    /// "nano ~/.ssh/id_rsa"), so each word and each part of a path is tried.
+    public static func secretFileName(inTitle title: String) -> String? {
+        // The dot, dash and underscore are part of a file name; other punctuation around it is not.
+        let around = CharacterSet.punctuationCharacters.union(.symbols).subtracting(CharacterSet(charactersIn: "._-"))
+        return title.split(whereSeparator: { $0.isWhitespace || $0 == "/" || $0 == "\\" })
+            .map { $0.trimmingCharacters(in: around) }
+            .first { name in
+                let lower = name.lowercased()
+                return !name.isEmpty && !templateSuffixes.contains(where: lower.hasSuffix) && secretPatterns.contains { fnmatch($0, lower, 0) == 0 }
+            }
+    }
+
     static func loadIgnore(_ root: URL) -> [String] {
         guard let text = try? String(contentsOf: root.appendingPathComponent(".hackatimeignore"), encoding: .utf8) else { return [] }
         return text.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }

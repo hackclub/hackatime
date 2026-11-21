@@ -99,6 +99,9 @@ final class ShipTimelineModel: ObservableObject, ShipReviewStep {
 
     var selectionIsRemoved: Bool { selection.map { $0.allSatisfy(timeline.removed.contains) } ?? false }
 
+    /// Whether every minute a secrets file was in front in is still out of the ship.
+    var secretsAreRemoved: Bool { timeline.secretMinutes.allSatisfy(timeline.removed.contains) }
+
     func color(_ bundleID: String) -> Color { colors[bundleID] ?? .gray }
 }
 
@@ -136,6 +139,7 @@ struct ShipTimelineView: View {
                 Text("This is the time the ship covers. Remove anything you do not want in it: a removed minute earns no time and nothing from it is sent. Nothing has been sent yet.")
                     .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
+            secretsNote
             HStack(alignment: .top, spacing: 12) {
                 viewer
                 appList.frame(width: 290)
@@ -146,6 +150,32 @@ struct ShipTimelineView: View {
         }
         .padding(20)
         .frame(minWidth: 900, minHeight: 600)
+    }
+
+    // MARK: Secrets files
+
+    /// Says which minutes the app took out by itself, and lets the user overrule it.
+    @ViewBuilder private var secretsNote: some View {
+        let minutes = model.timeline.secretMinutes
+        if !minutes.isEmpty {
+            let removed = model.secretsAreRemoved
+            let count = "\(minutes.count) minute\(minutes.count == 1 ? "" : "s")"
+            let files = model.timeline.secretFiles.prefix(3).joined(separator: ", ") + (model.timeline.secretFiles.count > 3 ? " and others" : "")
+            HStack(spacing: 10) {
+                Image(systemName: removed ? "lock.fill" : "lock.open.fill").foregroundStyle(removed ? Color.green : Color.orange)
+                Text(removed
+                    ? "Hackatime already removed \(count): a secrets file (\(files)) was in front, and a frame could show what is in it."
+                    : "\(count.prefix(1).uppercased() + count.dropFirst()) with a secrets file (\(files)) in front \(minutes.count == 1 ? "is" : "are") back in the ship. Check the frames in the next step.")
+                    .font(.callout).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                Button(removed ? "Put back" : "Remove again") { model.timeline.setRemoved(!removed, positions: minutes) }
+                    .controlSize(.small)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background((removed ? Color.green : Color.orange).opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder((removed ? Color.green : Color.orange).opacity(0.35)))
+            .accessibilityIdentifier("timeline-secrets")
+        }
     }
 
     // MARK: Viewer
@@ -556,6 +586,7 @@ struct ShipTimelineView: View {
                 let named = !segment.title.isEmpty || segment.site != nil
                 var title = Text(Self.windowName(title: segment.title, site: segment.site)).foregroundColor(.white.opacity(named ? 0.95 : 0.6))
                 if !named { title = title.italic() }
+                if segment.secretFile != nil { title = Text(Image(systemName: "lock.fill")).foregroundColor(.white) + Text(" ") + title }
                 let lead = min(max(body.minX, visibleFrom), body.maxX)
                 label(inner, title.font(.caption2), in: CGRect(x: lead + 6, y: body.minY, width: body.maxX - lead - 12, height: body.height))
             }

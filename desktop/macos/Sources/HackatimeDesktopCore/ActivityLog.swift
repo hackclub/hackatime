@@ -20,6 +20,15 @@ public struct ActivitySegment: Codable, Equatable {
     public func sameWindow(as other: ActivitySegment) -> Bool {
         bundleID == other.bundleID && title == other.title && site == other.site && label == other.label
     }
+
+    /// The secrets file this window had open, going by its title: `.env` in
+    /// ".env — sync-app" or "vim config/.env.local". Only editors and
+    /// terminals are read this way; a docs page about credentials is not a
+    /// secrets file.
+    public var secretFile: String? {
+        guard FocusClassifier.opensFiles(bundleID) else { return nil }
+        return TreeSnapshot.secretFileName(inTitle: title)
+    }
 }
 
 /// Which window was in front and when, kept on this Mac only, so a ship can

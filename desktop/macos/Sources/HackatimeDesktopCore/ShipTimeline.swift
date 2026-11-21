@@ -37,8 +37,14 @@ public struct ShipTimeline: Equatable {
 
     public let project: String
     public let minutes: [Minute]
-    /// Positions (indexes into `minutes`) the user removed.
-    public private(set) var removed: Set<Int> = []
+    /// The positions of the minutes a secrets file was in front in, however
+    /// briefly. A timeline starts with these removed, so a ship never
+    /// carries a frame of an open `.env` unless the user puts the minute back.
+    public let secretMinutes: [Int]
+    /// The names of those files, in the order they first came up.
+    public let secretFiles: [String]
+    /// Positions (indexes into `minutes`) that are out of the ship.
+    public private(set) var removed: Set<Int>
 
     public init(project: String, entries: [ShipLedger.Entry], range: ClosedRange<Int>, activity: ActivityLog) {
         self.project = project
@@ -47,6 +53,11 @@ public struct ShipTimeline: Equatable {
             return Minute(seq: entry.seq, startMs: startMs, counts: entry.active && entry.project?.lowercased() == project.lowercased(),
                           activity: activity.segments(fromMs: startMs, toMs: startMs + 60_000))
         }
+        // Read from the titles once: the review redraws many times a second.
+        let files = minutes.map { $0.activity.compactMap(\.secretFile) }
+        secretMinutes = files.indices.filter { !files[$0].isEmpty }
+        secretFiles = files.joined().reduce(into: []) { names, name in if !names.contains(name) { names.append(name) } }
+        removed = Set(secretMinutes)
     }
 
     /// Every app that was in front, the longest first.
