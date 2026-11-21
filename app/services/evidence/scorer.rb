@@ -47,7 +47,7 @@ module Evidence
       active = payload["active_s"].to_i.clamp(0, 60)
       keys, clicks, moves = payload["keys"].to_i, payload["clicks"].to_i, payload["moves"].to_i
       injected = payload["injected"].to_i
-      ai = payload["ai"].is_a?(Hash) ? payload["ai"] : {}
+      ai = block.ai
       engaged = keys + clicks + payload["edits"].to_i + ai["prompts"].to_i + payload["commits"].to_i
       reasons = []
       if engaged.zero? && !ai["waiting"]

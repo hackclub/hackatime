@@ -10,9 +10,9 @@ module Evidence
         minutes: blocks.length,
         claimed: ship.claimed_seconds, scored: ship.scored_seconds, ceiling: ship.ceiling_seconds, credited: ship.credited_seconds,
         confidence: ship.confidence, scorer: ship.scorer,
-        prompts: blocks.sum { |block| block.payload.dig("ai", "prompts").to_i },
-        ai_lines: blocks.sum { |block| block.payload.dig("ai", "ai_lines").to_i },
-        human_lines: blocks.sum { |block| block.payload.dig("ai", "human_lines").to_i },
+        prompts: EvidenceBlock.ai_total(blocks, "prompts"),
+        ai_lines: EvidenceBlock.ai_total(blocks, "ai_lines"),
+        human_lines: EvidenceBlock.ai_total(blocks, "human_lines"),
         commits: blocks.sum { |block| block.payload["commits"].to_i },
         builds: blocks.sum { |block| block.payload["builds"].to_i },
         research_minutes: blocks.count { |block| block.focus == "research" },
@@ -44,10 +44,10 @@ module Evidence
     def reflection(ship)
       blocks = ship.blocks.to_a
       minutes = blocks.count { |block| %w[project research].include?(block.focus) && block.payload["active_s"].to_i.positive? }
-      prompts = blocks.sum { |block| block.payload.dig("ai", "prompts").to_i }
+      prompts = EvidenceBlock.ai_total(blocks, "prompts")
       commits = blocks.sum { |block| block.payload["commits"].to_i }
-      human = blocks.sum { |block| block.payload.dig("ai", "human_lines").to_i }
-      ai = blocks.sum { |block| block.payload.dig("ai", "ai_lines").to_i }
+      human = EvidenceBlock.ai_total(blocks, "human_lines")
+      ai = EvidenceBlock.ai_total(blocks, "ai_lines")
       research = blocks.count { |block| block.focus == "research" }
       parts = [ "You spent #{minutes} focused minutes on #{ship.project}" ]
       parts << "made #{commits} #{"commit".pluralize(commits)}" if commits.positive?

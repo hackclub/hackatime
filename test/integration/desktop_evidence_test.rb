@@ -166,6 +166,22 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal 0, result.scored_seconds
   end
 
+  test "AI claims are summed the same way everywhere, and a stored block without an ai object is read as no claims" do
+    token = pair_device
+    post_minute(token, 0, payload(0))
+    post_minute(token, 1, payload(1))
+    # A block stored before ai was validated, holding a number instead of an object.
+    @user.desktop_devices.sole.evidence_blocks.find_by!(seq: 2).update_columns(payload: payload(1).merge(ai: 5).as_json)
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 2 }, headers: auth(token), as: :json
+    ship = response.parsed_body
+
+    post "/api/desktop/v1/ships/#{ship["id"]}/submit", headers: auth(token), as: :json, params: { final_files: [ { path: "a.rb", content: "" } ] }
+    assert_response :success
+    facts = Evidence::Summary.facts(EvidenceShip.find(ship["id"]))
+    assert_equal [ 1, 2, 3 ], facts.values_at(:prompts, :ai_lines, :human_lines)
+    assert_match(/about 3 lines yourself and accepted about 2 from AI/, Evidence::Summary.reflection(EvidenceShip.find(ship["id"])))
+  end
+
   private
 
   def auth(token) = { "Authorization" => "Bearer #{token}" }

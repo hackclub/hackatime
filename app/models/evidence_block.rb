@@ -15,4 +15,10 @@ class EvidenceBlock < ApplicationRecord
   def project = payload["project"]
   def frames = Array(payload["frames"])
   def tree_root = payload.dig("tree", "root")
+
+  # The AI claims of this minute (prompts, tokens, AI and human lines,
+  # waiting, accepted); empty when the block made none.
+  def ai = payload["ai"].is_a?(Hash) ? payload["ai"] : {}
+
+  def self.ai_total(blocks, key) = blocks.sum { |block| block.ai[key].to_i }
 end

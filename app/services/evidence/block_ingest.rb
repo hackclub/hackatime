@@ -133,7 +133,7 @@ module Evidence
         next unless %w[project research].include?(payload["focus"]) && payload["active_s"].to_i.positive? && payload["project"].present?
 
         category = payload["focus"] == "research" ? "researching" : payload["category"].presence_in(CATEGORIES) || "coding"
-        ai = payload["ai"].is_a?(Hash) ? payload["ai"] : {}
+        ai = block.ai
         {
           time: block.captured_at_ms / 1000.0, project: payload["project"].to_s.first(200), category:,
           type: "app", entity: "Hackatime Desktop", plugin: "hackatime-desktop/#{@device.app_version}",

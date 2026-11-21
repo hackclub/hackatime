@@ -35,7 +35,7 @@ module Evidence
       end
 
       research_ratio = blocks.empty? ? 0 : blocks.count { |block| block.focus == "research" }.fdiv(blocks.length)
-      ai_lines = blocks.sum { |block| block.payload.dig("ai", "ai_lines").to_i }
+      ai_lines = EvidenceBlock.ai_total(blocks, "ai_lines")
       ceiling = SnapshotCheck.ceiling_seconds(first_files: first_files || {}, final_files: @final_files, ai_lines:, research_ratio:)
       result = Scorer.call(ship: @ship, blocks:, ceiling_seconds: ceiling)
 
