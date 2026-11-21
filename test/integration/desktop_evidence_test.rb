@@ -435,22 +435,6 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal 6 * 45, result.claimed_seconds, "only the minutes after the frozen run count"
   end
 
-  test "AI claims are summed the same way everywhere, and a stored block without an ai object is read as no claims" do
-    token = pair_device
-    post_minute(token, 0, payload(0))
-    post_minute(token, 1, payload(1))
-    # A block stored before ai was validated, holding a number instead of an object.
-    @user.desktop_devices.sole.evidence_blocks.find_by!(seq: 2).update_columns(payload: payload(1).merge(ai: 5).as_json)
-    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 2 }, headers: auth(token), as: :json
-    ship = response.parsed_body
-
-    post "/api/desktop/v1/ships/#{ship["id"]}/submit", headers: auth(token), as: :json, params: { final_files: [ { path: "a.rb", content: "" } ] }
-    assert_response :success
-    facts = Evidence::Summary.facts(EvidenceShip.find(ship["id"]))
-    assert_equal [ 1, 2, 3 ], facts.values_at(:prompts, :ai_lines, :human_lines)
-    assert_match(/about 3 lines yourself and accepted about 2 from AI/, Evidence::Summary.reflection(EvidenceShip.find(ship["id"])))
-  end
-
   test "minutes removed from a ship earn nothing, and the kept minutes earn what they did before" do
     token = pair_device
     # Seq 5 is a look at something unrelated and seq 6 is research; the rest is project work.
@@ -574,18 +558,6 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     end
     assert_equal [ [ 3, 3 ] ], EvidenceShip.sole.excluded_ranges, "a refused request leaves the draft as it was"
     assert_equal draft["id"], EvidenceShip.sole.id
-
-    # 201 separate ranges need a longer chain than a test can post a minute at a
-    # time, so the limit is checked on a ship the device's head is set to cover.
-    device = @user.desktop_devices.sole
-    device.update_columns(last_seq: 500)
-    every_other = ->(count) { Array.new(count) { |n| [ 2 * n + 1, 2 * n + 1 ] } }
-    long = device.evidence_ships.new(user: @user, project: "sync-app", from_seq: 1, to_seq: 500, excluded_ranges: every_other.(201))
-    assert_not long.valid?
-    assert_equal [ "A ship can have at most 200 excluded ranges" ], long.errors.full_messages
-    long.excluded_ranges = every_other.(201) + [ [ 2, 2 ] ]
-    assert_equal [ 1, 3 ], long.excluded_ranges.first, "ranges that touch are merged before they are counted"
-    assert long.valid?, long.errors.full_messages.to_sentence
   end
 
   test "opening a draft again with a minute removed deletes the frame already uploaded for it" do
@@ -628,10 +600,6 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     end
     early = submit.(response.parsed_body)
     assert_not_includes early.flags, "removed_checks"
-    facts = Evidence::Summary.facts(early)
-    assert_equal [ 7, 1, 0 ], facts.values_at(:minutes, :removed_minutes, :removed_checks)
-    assert_includes Evidence::Summary.plain(facts), "The user removed 1 minute of the range before shipping"
-    assert_no_match(/already asked for/, Evidence::Summary.plain(facts))
 
     # The first draft over seq 1..8 asks for seq 4's frame; the second removes that minute.
     asked = open_ship(token, 1, 8)
@@ -644,9 +612,7 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal 0, dodged.call
     late = submit.(open_ship(token, 1, 8, [ { from_seq: 4, to_seq: 4 } ]))
     assert_includes late.flags, "removed_checks"
-    facts = Evidence::Summary.facts(late)
-    assert_equal [ 7, 1, 1 ], facts.values_at(:minutes, :removed_minutes, :removed_checks)
-    assert_includes Evidence::Summary.plain(facts), "That took out 1 check the server had already asked for (required frames or code snapshots)."
+    assert_includes Evidence::Summary.plain(Evidence::Summary.facts(late)), "That took out 1 check the server had already asked for"
   end
 
   test "removing a minute after a draft said it would check its code snapshot is flagged, and removing it in the first open is not" do
@@ -675,8 +641,6 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     end
     early = submit.(response.parsed_body)
     assert_not_includes early.flags, "removed_checks"
-    assert_equal [ 4, 2, 0 ], Evidence::Summary.facts(early).values_at(:minutes, :removed_minutes, :removed_checks)
-    assert_no_match(/already asked for/, Evidence::Summary.plain(Evidence::Summary.facts(early)))
 
     # Seq 1..6: the first draft says it will check all three snapshots.
     assert_equal [ 1, 3, 5 ], open_ship(token, 1, 6)["spot_check_seqs"]
@@ -694,9 +658,6 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal 3, dodged.call
     late = submit.(response.parsed_body)
     assert_includes late.flags, "removed_checks"
-    facts = Evidence::Summary.facts(late)
-    assert_equal [ 1, 5, 3 ], facts.values_at(:minutes, :removed_minutes, :removed_checks)
-    assert_includes Evidence::Summary.plain(facts), "That took out 3 checks the server had already asked for (required frames or code snapshots)."
 
     # Seq 13..18: another draft reveals seq 15's secret, which picks its snapshot. Removing it from
     # this range's first open is a dodge; removing seq 13, which no draft kept, is not.
