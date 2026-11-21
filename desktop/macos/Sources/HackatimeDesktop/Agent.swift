@@ -27,7 +27,7 @@ final class Agent: ObservableObject {
     @Published var settings: Settings { didSet { saveSettings() } }
 
     let support: URL
-    let store = KeychainStore()
+    let store: SecretStore
     let api: APIClient
     let vault: Vault
     let chain: ChainState
@@ -46,14 +46,18 @@ final class Agent: ObservableObject {
     private var timers: [Timer] = []
     private var pendingVerifier: String?
 
-    init() {
-        support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Hackatime Desktop", isDirectory: true)
+    nonisolated static let defaultSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Hackatime Desktop", isDirectory: true)
+
+    init(support: URL = Agent.defaultSupport, store: SecretStore = KeychainStore(), session: URLSession = .shared) {
+        self.support = support
+        self.store = store
         try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
         let loaded = (try? Data(contentsOf: support.appendingPathComponent("settings.json")))
             .flatMap { try? JSONDecoder().decode(Settings.self, from: $0) } ?? Settings()
         settings = loaded
-        api = APIClient(baseURL: URL(string: loaded.baseURL)!, token: store.read("device-token").map { String(decoding: $0, as: UTF8.self) })
+        api = APIClient(baseURL: URL(string: loaded.baseURL)!, token: store.read("device-token").map { String(decoding: $0, as: UTF8.self) },
+                        session: session)
         vault = try! Vault(directory: support.appendingPathComponent("vault"), store: store)
         chain = (try? Data(contentsOf: support.appendingPathComponent("chain.json")))
             .flatMap { try? JSONDecoder().decode(ChainState.self, from: $0) } ?? ChainState()
@@ -229,10 +233,22 @@ final class Agent: ObservableObject {
             }
             try await flush()
             status = "Tracking"
+        } catch let rejection as ChainRejection {
+            status = "Server refused \(rejection.dropped) minute\(rejection.dropped == 1 ? "" : "s"): \(rejection.message)"
+            NativeToastCenter.shared.show("The server refused \(rejection.dropped) minute\(rejection.dropped == 1 ? "" : "s")",
+                                          detail: rejection.message, style: .error, id: "chain")
         } catch {
             status = "Queued \(chain.pending.count) minutes (offline)"
         }
         persistChain()
+    }
+
+    /// The server refused a block, so the queue from it on was dropped and
+    /// the chain restarted from the server's head.
+    struct ChainRejection: Error {
+        let code: String
+        let message: String
+        let dropped: Int
     }
 
     private func flush() async throws {
@@ -243,8 +259,9 @@ final class Agent: ObservableObject {
             chain.acknowledge(headSeq: response.headSeq)
             if let error = response.error {
                 NSLog("Chain rejected: \(error.code) \(error.message)")
+                let dropped = chain.pending.count
                 chain.resync(seq: response.headSeq, head: response.headHash)
-                break
+                throw ChainRejection(code: error.code, message: error.message, dropped: dropped)
             }
         }
     }

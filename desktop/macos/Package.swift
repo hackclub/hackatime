@@ -16,5 +16,6 @@ let package = Package(
             dependencies: ["HackatimeDesktopCore"],
             resources: [.copy("test-vectors.json")]
         ),
+        .testTarget(name: "HackatimeDesktopTests", dependencies: ["HackatimeDesktop", "HackatimeDesktopCore"]),
     ]
 )
