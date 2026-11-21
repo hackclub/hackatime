@@ -1,56 +1,45 @@
-# sv
+# Hackatime Desktop companion site
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+The SvelteKit site students use with Hackatime Desktop: sign in with Hackatime, pair a Mac (`/pair`), see their Macs (`/devices`) and shipped projects with each reviewer view (`/ships`). The Mac app opens it in its own window. It talks to Hackatime's `/api/v1/authenticated/desktop` endpoints with the student's OAuth token, which it keeps in an encrypted cookie.
 
-## Creating a project
+## Register the OAuth application
 
-If you're seeing this, you've probably already done this step. Congrats!
+1. Sign in to Hackatime and open `/oauth/applications/new`.
+2. Give it a name, add the redirect URI `<site origin>/auth/callback` (for example `http://localhost:5173/auth/callback` in development) and tick the `profile` and `desktop` scopes.
+3. The site signs in with PKCE, so a public (non-confidential) application works. For a confidential one, also set `OAUTH_CLIENT_SECRET`.
+4. Copy the application's UID into `OAUTH_CLIENT_ID`.
 
-```sh
-# create a new project
-npx sv create my-app
-```
+## Environment variables
 
-To recreate this project with the same configuration:
+`src/env.ts` defines them. `bun run build` checks them too, so set the two required ones before building (any client ID and a 32-character secret will do for a build that is not deployed).
 
-```sh
-# recreate this project
-npx sv@1.7.0 create --template minimal --types ts --no-install site
-```
+| Variable | Required | Meaning |
+| --- | --- | --- |
+| `OAUTH_CLIENT_ID` | yes | UID of the OAuth application above. |
+| `SESSION_SECRET` | yes | At least 32 random characters. Encrypts the session cookies; changing it signs everyone out. |
+| `OAUTH_CLIENT_SECRET` | no | Only for a confidential OAuth application. |
+| `HACKATIME_URL` | no | Public Hackatime origin the browser is sent to for sign-in. Default `https://hackatime.hackclub.com`. |
+| `HACKATIME_API_URL` | no | Origin for server-to-server API calls, when it differs from `HACKATIME_URL` (for example the Rails container). |
+| `SITE_URL` | no | This site's public origin, when a proxy hides it. Used for the OAuth redirect URI. |
+| `DESKTOP_DOWNLOAD_URL` | no | Where the Mac app is downloaded from. Default: the latest GitHub release. |
 
-## Adding features
+Generate a session secret with `openssl rand -base64 48`.
 
-Add features to your project with `sv add`:
+## Develop
 
-```sh
-npx sv add
-```
-
-For example, to add Tailwind CSS:
-
-```sh
-npx sv add tailwindcss
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+With Hackatime running locally (see `DEVELOPMENT.md` at the repository root):
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+cd desktop/site
+bun install
+HACKATIME_URL=http://localhost:3000 OAUTH_CLIENT_ID=… SESSION_SECRET=… bun run dev
 ```
 
-## Building
+`bun run check` type-checks the site.
 
-To create a production version of your app:
+## Deploy
 
 ```sh
-npm run build
+bun run build      # with the variables above set
+node build         # @sveltejs/adapter-node; reads the variables again at start
 ```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
