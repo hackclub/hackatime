@@ -49,6 +49,7 @@ final class Agent: ObservableObject {
     private var lastThumbnail: [UInt8] = []
     private var timers: [Timer] = []
     private var pendingVerifier: String?
+    private var ticking = false
 
     nonisolated static let defaultSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("Hackatime Desktop", isDirectory: true)
@@ -255,6 +256,11 @@ final class Agent: ObservableObject {
     // MARK: Minute tick
 
     func tick() async {
+        // A slow server can hold a tick past the next minute; let it finish
+        // rather than build a second block from the same samples.
+        guard !ticking else { return }
+        ticking = true
+        defer { ticking = false }
         guard isPaired, !settings.paused else {
             _ = input.takeMinute(); focusSamples.removeAll(); return
         }

@@ -8,6 +8,7 @@ import XCTest
 final class StubServer: URLProtocol {
     nonisolated(unsafe) static var handler: (URLRequest) -> (Int, Any) = { _ in (404, [:]) }
     nonisolated(unsafe) static var requests: [String] = []
+    nonisolated(unsafe) static var delay: TimeInterval = 0
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -16,6 +17,7 @@ final class StubServer: URLProtocol {
     override func startLoading() {
         Self.requests.append("\(request.httpMethod ?? "GET") \(request.url?.path ?? "")")
         let (status, body) = Self.handler(request)
+        if Self.delay > 0 { Thread.sleep(forTimeInterval: Self.delay) }
         let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: (try? JSONSerialization.data(withJSONObject: body)) ?? Data())
@@ -47,6 +49,7 @@ final class AgentTests: XCTestCase {
         store = MemoryStore()
         store.write("device-token", Data("token".utf8))
         StubServer.requests = []
+        StubServer.delay = 0
     }
 
     func makeAgent() -> Agent { Agent(support: support, store: store, session: StubServer.session) }
@@ -138,6 +141,19 @@ final class AgentTests: XCTestCase {
         agent.countTrackedMinute(at: Date())
         XCTAssertEqual(agent.todayMinutes, 2, "yesterday's minute is not today's")
         XCTAssertEqual(makeAgent().todayMinutes, 2, "kept across a relaunch")
+    }
+
+    func testATickWaitsForTheOneBeforeIt() async {
+        StubServer.handler = { request in
+            request.url!.path.hasSuffix("/beacon") ? (200, StubServer.beacon())
+                : (201, ["accepted": 1, "head_seq": 1, "head_hash": EvidenceProtocol.zeroHash])
+        }
+        StubServer.delay = 0.3
+        let agent = makeAgent()
+        async let first: Void = agent.tick()
+        async let second: Void = agent.tick()
+        _ = await (first, second)
+        XCTAssertEqual(StubServer.requests.filter { $0.hasSuffix("/beacon") }.count, 1, "\(StubServer.requests)")
     }
 
     func testRevokedTokenWhileSendingBlocksAlsoUnpairs() async {
