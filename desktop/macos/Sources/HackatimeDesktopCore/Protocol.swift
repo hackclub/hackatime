@@ -40,12 +40,7 @@ public enum EvidenceProtocol {
     }
 
     public static func merkleLeaf(salt: String, path: String, content: Data) -> String {
-        var input = Data([0])
-        input.append(Data(hex: salt))
-        input.append(Data(path.utf8))
-        input.append(0)
-        input.append(sha256(content))
-        return sha256Hex(input)
+        merkleLeaf(salt: salt, path: path, contentHash: sha256(content))
     }
 
     public static func merkleLeaf(salt: String, path: String, contentHash: Data) -> String {
