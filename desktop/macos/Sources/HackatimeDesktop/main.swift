@@ -170,7 +170,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let review = ShipTimelineModel(timeline: timeline,
                                                frames: vault.frames.filter { from <= $0.capturedAtMs && $0.capturedAtMs < to }.map { ($0.hash, $0.capturedAtMs) },
                                                loadFrame: { hash in (try? vault.preview(hash)).flatMap(FrameRedaction.decode) })
-                guard await ShipReviewWindow.run(title: "Review ship", size: NSSize(width: 1080, height: 760), step: review,
+                guard await ShipReviewWindow.run(title: "Review ship", size: NSSize(width: 1100, height: 800), step: review,
                                                  content: ShipTimelineView(model: review)) else {
                     toasts.show("Ship cancelled", detail: "Nothing was sent.", style: .info, id: "ship")
                     return

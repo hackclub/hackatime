@@ -17,7 +17,7 @@ public struct ActivitySegment: Codable, Equatable {
         self.title = title; self.site = site; self.label = label
     }
 
-    func sameWindow(as other: ActivitySegment) -> Bool {
+    public func sameWindow(as other: ActivitySegment) -> Bool {
         bundleID == other.bundleID && title == other.title && site == other.site && label == other.label
     }
 }

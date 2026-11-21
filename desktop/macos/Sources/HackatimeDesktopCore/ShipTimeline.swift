@@ -23,7 +23,16 @@ public struct ShipTimeline: Equatable {
         public let seconds: Int
         /// The positions of the minutes it was in front in.
         public let minutes: [Int]
+        /// Its windows, the longest in front first.
+        public let windows: [WindowUse]
         public var id: String { bundleID }
+    }
+
+    public struct WindowUse: Equatable {
+        /// Empty when the title was not recorded.
+        public let title: String
+        public let site: String?
+        public let seconds: Int
     }
 
     public let project: String
@@ -42,16 +51,24 @@ public struct ShipTimeline: Equatable {
 
     /// Every app that was in front, the longest first.
     public var apps: [AppUse] {
+        struct Window: Hashable { let title: String, site: String? }
         var seconds: [String: Int] = [:], names: [String: String] = [:], positions: [String: [Int]] = [:]
+        var windows: [String: [Window: Int]] = [:]
         for (index, minute) in minutes.enumerated() {
             for segment in minute.activity {
-                seconds[segment.bundleID, default: 0] += Int((segment.endMs - segment.startMs) / 1000)
+                let length = Int((segment.endMs - segment.startMs) / 1000)
+                seconds[segment.bundleID, default: 0] += length
+                windows[segment.bundleID, default: [:]][Window(title: segment.title, site: segment.site), default: 0] += length
                 names[segment.bundleID] = segment.app
                 if positions[segment.bundleID]?.last != index { positions[segment.bundleID, default: []].append(index) }
             }
         }
-        return seconds.map { AppUse(bundleID: $0.key, app: names[$0.key] ?? $0.key, seconds: $0.value, minutes: positions[$0.key] ?? []) }
-            .sorted { ($0.seconds, $1.app) > ($1.seconds, $0.app) }
+        return seconds.map { bundleID, total in
+            let used = (windows[bundleID] ?? [:]).map { WindowUse(title: $0.key.title, site: $0.key.site, seconds: $0.value) }
+                .sorted { ($0.seconds, $1.title) > ($1.seconds, $0.title) }
+            return AppUse(bundleID: bundleID, app: names[bundleID] ?? bundleID, seconds: total, minutes: positions[bundleID] ?? [], windows: used)
+        }
+        .sorted { ($0.seconds, $1.app) > ($1.seconds, $0.app) }
     }
 
     public mutating func setRemoved(_ isRemoved: Bool, positions: some Sequence<Int>) {

@@ -1,6 +1,7 @@
 import AppKit
 import HackatimeDesktopCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The first step of a ship: its minutes laid out like clips in a video
 /// editor, with the timelapse frames, the apps that were in front and which
@@ -104,11 +105,22 @@ final class ShipTimelineModel: ObservableObject, ShipReviewStep {
 struct ShipTimelineView: View {
     @ObservedObject var model: ShipTimelineModel
     @State private var dragStart: Double?
+    /// How far the tracks are scrolled, so a clip's name stays in view while the clip does.
+    @State private var scrolled: CGFloat = 0
 
-    private static let labelWidth: CGFloat = 64
+    /// The tracks, stacked without gaps like the lanes of an editor.
+    private enum Lane {
+        static let headerWidth: CGFloat = 92
+        static let ruler: CGFloat = 26, frames: CGFloat = 66, apps: CGFloat = 54, counts: CGFloat = 24
+        static let framesTop = ruler, appsTop = ruler + frames, countsTop = ruler + frames + apps
+        static let height = ruler + frames + apps + counts
+        /// Room for the scroll bar under the lanes.
+        static let scroller: CGFloat = 14
+        /// How far a clip sits inside its lane, and the height of its title strip.
+        static let inset: CGFloat = 5, clipTitle: CGFloat = 18
+    }
+
     private static let playheadID = "playhead"
-    private static let rulerHeight: CGFloat = 22, framesHeight: CGFloat = 60, appsHeight: CGFloat = 34, countedHeight: CGFloat = 14, gap: CGFloat = 6
-    private static var tracksHeight: CGFloat { rulerHeight + framesHeight + appsHeight + countedHeight + gap * 3 }
     private static let clock: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
@@ -126,14 +138,14 @@ struct ShipTimelineView: View {
             }
             HStack(alignment: .top, spacing: 12) {
                 viewer
-                appList.frame(width: 270)
+                appList.frame(width: 290)
             }
             toolbar
             tracks
             footer
         }
         .padding(20)
-        .frame(minWidth: 900, minHeight: 560)
+        .frame(minWidth: 900, minHeight: 600)
     }
 
     // MARK: Viewer
@@ -143,7 +155,7 @@ struct ShipTimelineView: View {
         let removed = model.timeline.removed.contains(model.playheadIndex)
         return VStack(alignment: .leading, spacing: 6) {
             ZStack {
-                Color.black.opacity(0.85)
+                Color(white: 0.08)
                 if let frame, let image = model.image(for: frame) {
                     Image(decorative: image, scale: 1).resizable().aspectRatio(contentMode: .fit).opacity(removed ? 0.25 : 1)
                 } else if !removed {
@@ -153,26 +165,32 @@ struct ShipTimelineView: View {
                     Label("Removed: not in the ship", systemImage: "scissors")
                         .font(.headline).padding(.horizontal, 12).padding(.vertical, 8)
                         .background(Color.red.opacity(0.85), in: Capsule()).foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: 8))
-            Text(caption).font(.callout).lineLimit(1).truncationMode(.middle)
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.black.opacity(0.5)))
+            .shadow(color: .black.opacity(0.22), radius: 5, y: 2)
+            caption.font(.callout).lineLimit(1).truncationMode(.middle)
                 .accessibilityIdentifier("timeline-caption")
         }
     }
 
-    private var caption: String {
-        guard model.timeline.minutes.indices.contains(model.playheadIndex) else { return " " }
-        let minute = model.timeline.minutes[model.playheadIndex]
-        var parts = [Self.time(minute.startMs)]
-        if let window = model.windowAtPlayhead {
-            parts.append(window.app)
-            if !window.title.isEmpty { parts.append(window.title) } else if window.label == .unrelated { parts.append("window not recorded") }
-            if let site = window.site { parts.append(site) }
-        } else {
-            parts.append("nothing recorded in front")
-        }
-        return parts.joined(separator: "  ·  ")
+    /// The time, the app in bold and the window in front at the playhead.
+    private var caption: Text {
+        guard model.timeline.minutes.indices.contains(model.playheadIndex) else { return Text(" ") }
+        let time = Text(Self.time(model.timeline.minutes[model.playheadIndex].startMs)).monospacedDigit()
+        let divider = Text("  ·  ").foregroundStyle(.tertiary)
+        guard let window = model.windowAtPlayhead else { return time + divider + Text("nothing recorded in front").foregroundStyle(.secondary) }
+        var text = time + divider + Text(window.app).fontWeight(.bold)
+        text = text + divider + Text(Self.windowName(title: window.title, site: nil)).foregroundStyle(window.title.isEmpty ? .secondary : .primary)
+        if let site = window.site { text = text + divider + Text(site).foregroundStyle(.secondary) }
+        return text
+    }
+
+    /// What to call a window: its title, else its site, else that it was not recorded.
+    static func windowName(title: String, site: String?) -> String {
+        !title.isEmpty ? title : site ?? "window title not recorded"
     }
 
     // MARK: Apps
@@ -187,9 +205,10 @@ struct ShipTimelineView: View {
                 Spacer()
             } else {
                 ScrollView {
-                    VStack(spacing: 2) {
+                    VStack(spacing: 6) {
                         ForEach(apps) { app in appRow(app) }
                     }
+                    .padding(.bottom, 4).padding(.horizontal, 1)
                 }
             }
         }
@@ -198,23 +217,40 @@ struct ShipTimelineView: View {
 
     private func appRow(_ app: ShipTimeline.AppUse) -> some View {
         let gone = app.minutes.allSatisfy(model.timeline.removed.contains)
-        return HStack(spacing: 8) {
-            RoundedRectangle(cornerRadius: 2).fill(model.color(app.bundleID)).frame(width: 4, height: 28)
-            Group {
-                if let icon = AppIcons.icon(app.bundleID) { Image(nsImage: icon).resizable() } else { Color.clear }
-            }
-            .frame(width: 22, height: 22)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(app.app).lineLimit(1).strikethrough(gone)
+        return HStack(alignment: .top, spacing: 9) {
+            Image(nsImage: AppIcons.icon(app.bundleID)).resizable().frame(width: 30, height: 30)
+                .shadow(color: .black.opacity(0.25), radius: 1.5, y: 1)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(app.app).fontWeight(.bold).lineLimit(1).strikethrough(gone)
                 Text("\(Self.duration(app.seconds)) in \(app.minutes.count) minute\(app.minutes.count == 1 ? "" : "s")")
                     .font(.caption).foregroundStyle(.secondary)
+                // Its windows, the longest in front first.
+                ForEach(Array(app.windows.prefix(3).enumerated()), id: \.offset) { _, window in
+                    HStack(spacing: 4) {
+                        Text(Self.windowName(title: window.title, site: window.site)).lineLimit(1).truncationMode(.middle)
+                            .italic(window.title.isEmpty && window.site == nil)
+                        Spacer(minLength: 2)
+                        Text(Self.duration(window.seconds)).monospacedDigit().foregroundStyle(.tertiary)
+                    }
+                    .font(.caption).foregroundStyle(.secondary)
+                }
+                .padding(.top, 1)
+                if app.windows.count > 3 {
+                    Text("and \(app.windows.count - 3) more window\(app.windows.count == 4 ? "" : "s")").font(.caption).foregroundStyle(.tertiary)
+                }
             }
-            Spacer(minLength: 4)
             Button(gone ? "Put back" : "Remove") { model.timeline.setRemoved(!gone, bundleID: app.bundleID) }
                 .controlSize(.small)
                 .help(gone ? "Put every minute with \(app.app) back in the ship" : "Remove every minute \(app.app) was in front in")
         }
-        .padding(.vertical, 3).padding(.horizontal, 4)
+        .padding(.vertical, 7).padding(.leading, 12).padding(.trailing, 8)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
+        // The app's colour on the Apps track, down the card's edge.
+        .overlay(alignment: .leading) {
+            UnevenRoundedRectangle(topLeadingRadius: 8, bottomLeadingRadius: 8).fill(model.color(app.bundleID)).frame(width: 5)
+        }
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.1)))
+        .shadow(color: .black.opacity(0.12), radius: 2, y: 1)
         .opacity(gone ? 0.6 : 1)
     }
 
@@ -251,7 +287,7 @@ struct ShipTimelineView: View {
         let timeline = model.timeline
         let counted = timeline.minutes.filter(\.counts).count
         return HStack {
-            Text("\(timeline.minutes.count) minutes, \(counted) of them count towards \(timeline.project). You removed \(timeline.removed.count); \(timeline.keptCountedMinutes) counted minutes will be shipped.")
+            Text("\(timeline.minutes.count) minutes, \(counted) of them count towards \(timeline.project). \(timeline.removed.count) removed; \(timeline.keptCountedMinutes) counted minutes will be shipped.")
                 .font(.callout).foregroundStyle(.secondary).accessibilityIdentifier("timeline-summary")
             Spacer()
             Button("Cancel") { model.finish(false) }.keyboardShortcut(.cancelAction)
@@ -263,25 +299,35 @@ struct ShipTimelineView: View {
 
     // MARK: Tracks
 
+    /// The tracks sit in a dark well whatever the system appearance, as an
+    /// editor's timeline does: raised lane headers on the left, and clips
+    /// lying in recessed lanes under the ruler.
     private var tracks: some View {
         HStack(alignment: .top, spacing: 0) {
-            VStack(alignment: .leading, spacing: 0) {
-                Color.clear.frame(height: Self.rulerHeight + Self.gap)
-                Text("Frames").frame(height: Self.framesHeight + Self.gap, alignment: .leading)
-                Text("Apps").frame(height: Self.appsHeight + Self.gap, alignment: .leading)
-                Text("Counts").frame(height: Self.countedHeight, alignment: .leading)
+            VStack(spacing: 0) {
+                laneHeader("Time", symbol: "clock", height: Lane.ruler)
+                laneHeader("Frames", symbol: "film", height: Lane.frames)
+                laneHeader("Apps", symbol: "macwindow.on.rectangle", height: Lane.apps)
+                laneHeader("Counts", symbol: "checkmark.seal.fill", height: Lane.counts)
+                Color(white: 0.17).frame(height: Lane.scroller)
             }
-            .font(.caption).foregroundStyle(.secondary).frame(width: Self.labelWidth, alignment: .leading)
+            .frame(width: Lane.headerWidth)
+            // The header column stands above the lanes and shades their left edge.
+            .zIndex(1)
+            .shadow(color: .black.opacity(0.55), radius: 4, x: 2)
             GeometryReader { geometry in
                 let count = max(1, model.timeline.minutes.count)
                 // Zooming stops where the canvas would get too wide to draw.
                 let fit = geometry.size.width / CGFloat(count)
                 let cell = max(fit, min(140, fit * model.zoom, 16_000 / CGFloat(count)))
                 let width = max(geometry.size.width, cell * CGFloat(count))
+                // Read here, not while drawing, so that scrolling redraws the canvas.
+                let visibleFrom = scrolled
                 ScrollViewReader { proxy in
                     ScrollView(.horizontal) {
-                        Canvas { context, size in draw(&context, size: size, cell: cell) }
-                            .frame(width: width, height: Self.tracksHeight)
+                        Canvas { context, size in draw(&context, size: size, cell: cell, visibleFrom: visibleFrom) }
+                            .frame(width: width, height: Lane.height)
+                            .background(ScrollOffsetReader { scrolled = max(0, $0) })
                             .contentShape(Rectangle())
                             .gesture(DragGesture(minimumDistance: 0)
                                 .onChanged { value in drag(value, cell: cell, ended: false) }
@@ -297,9 +343,27 @@ struct ShipTimelineView: View {
                     }
                 }
             }
-            .frame(height: Self.tracksHeight + 14)
-            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 6))
         }
+        .frame(height: Lane.height + Lane.scroller)
+        .background(Color(white: 0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(Color.black.opacity(0.6)))
+        .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
+        .environment(\.colorScheme, .dark)
+    }
+
+    /// A raised panel naming a lane: lit along its top edge, dark along its bottom.
+    private func laneHeader(_ title: String, symbol: String, height: CGFloat) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.5)).frame(width: 15)
+            Text(title).font(.caption.weight(.semibold)).foregroundStyle(.white.opacity(0.9))
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 9)
+        .frame(height: height)
+        .background(LinearGradient(colors: [Color(white: 0.29), Color(white: 0.2)], startPoint: .top, endPoint: .bottom))
+        .overlay(alignment: .top) { Color.white.opacity(0.14).frame(height: 1) }
+        .overlay(alignment: .bottom) { Color.black.opacity(0.65).frame(height: 1) }
     }
 
     private func position(_ x: CGFloat, cell: CGFloat) -> Double {
@@ -316,122 +380,288 @@ struct ShipTimelineView: View {
             model.selection = Int(min(start, now)) ... Int(max(start, now))
         } else if ended {
             // A click on the Apps track selects the window under it, as far as it stays in front.
-            let appsTop = Self.rulerHeight + Self.framesHeight + Self.gap * 2
-            let onApps = value.location.y >= appsTop && value.location.y <= appsTop + Self.appsHeight
+            let onApps = value.location.y >= Lane.appsTop && value.location.y <= Lane.countsTop
             model.selection = onApps ? model.timeline.positions(ofWindowAt: now) : nil
         }
     }
 
-    private func draw(_ context: inout GraphicsContext, size: CGSize, cell: CGFloat) {
-        let minutes = model.timeline.minutes
-        let framesTop = Self.rulerHeight + Self.gap
-        let appsTop = framesTop + Self.framesHeight + Self.gap
-        let countedTop = appsTop + Self.appsHeight + Self.gap
+    // MARK: Drawing
 
-        // Ruler: a label wherever there is room, and at every break in time.
+    private func draw(_ context: inout GraphicsContext, size: CGSize, cell: CGFloat, visibleFrom: CGFloat) {
+        drawLanes(context, size: size)
+        drawRuler(context, size: size, cell: cell)
+        drawFrames(context, cell: cell)
+        drawApps(context, cell: cell, visibleFrom: visibleFrom)
+        drawCounts(context, size: size, cell: cell)
+        drawRemoved(context, size: size, cell: cell)
+        if let selection = model.selection {
+            let rect = CGRect(x: CGFloat(selection.lowerBound) * cell, y: 1, width: CGFloat(selection.count) * cell, height: size.height - 2)
+            // Light enough that a removed stretch still shows through.
+            context.fill(Path(rect), with: .color(Color.accentColor.opacity(0.16)))
+            context.stroke(Path(roundedRect: rect.insetBy(dx: 0.75, dy: 0), cornerRadius: 2), with: .color(Color.accentColor), lineWidth: 1.5)
+        }
+        drawPlayhead(context, size: size, cell: cell)
+    }
+
+    private static func vertical(_ colors: [Color], _ rect: CGRect) -> GraphicsContext.Shading {
+        .linearGradient(Gradient(colors: colors), startPoint: CGPoint(x: rect.midX, y: rect.minY), endPoint: CGPoint(x: rect.midX, y: rect.maxY))
+    }
+
+    /// One line of text inside a rectangle, cut off where it ends.
+    private func label(_ context: GraphicsContext, _ text: Text, in rect: CGRect) {
+        guard rect.width >= 12 else { return }
+        var inner = context
+        inner.clip(to: Path(rect))
+        let resolved = inner.resolve(text)
+        let height = resolved.measure(in: CGSize(width: CGFloat.greatestFiniteMagnitude, height: rect.height)).height
+        inner.draw(resolved, in: CGRect(x: rect.minX, y: rect.midY - height / 2, width: rect.width, height: height))
+    }
+
+    /// The lanes are sunk into the well: each is shaded under its upper edge
+    /// and closed by a dark line with a faint light one beneath.
+    private func drawLanes(_ context: GraphicsContext, size: CGSize) {
+        for (top, height, shade) in [(Lane.framesTop, Lane.frames, 0.115), (Lane.appsTop, Lane.apps, 0.15), (Lane.countsTop, Lane.counts, 0.115)] {
+            let lane = CGRect(x: 0, y: top, width: size.width, height: height)
+            context.fill(Path(lane), with: .color(Color(white: shade)))
+            let shadow = CGRect(x: 0, y: top, width: size.width, height: 7)
+            context.fill(Path(shadow), with: Self.vertical([.black.opacity(0.45), .clear], shadow))
+            context.fill(Path(CGRect(x: 0, y: lane.maxY - 1, width: size.width, height: 1)), with: .color(.black.opacity(0.7)))
+        }
+    }
+
+    /// The ruler: a tick a minute where they fit, and a time wherever there
+    /// is room and at every break in time.
+    private func drawRuler(_ context: GraphicsContext, size: CGSize, cell: CGFloat) {
+        let minutes = model.timeline.minutes
+        let bar = CGRect(x: 0, y: 0, width: size.width, height: Lane.ruler)
+        context.fill(Path(bar), with: Self.vertical([Color(white: 0.27), Color(white: 0.18)], bar))
+        context.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: 1)), with: .color(.white.opacity(0.14)))
+        context.fill(Path(CGRect(x: 0, y: Lane.ruler - 1, width: size.width, height: 1)), with: .color(.black.opacity(0.75)))
+
         let step = [1, 2, 5, 10, 15, 30, 60, 120, 240].first { CGFloat($0) * cell >= 56 } ?? 480
         var lastLabel: CGFloat = -.infinity
         for (index, minute) in minutes.enumerated() {
             let x = CGFloat(index) * cell
             let breaks = index > 0 && minute.startMs - minutes[index - 1].startMs > 60_000
             if breaks {
+                // Time is missing here: a seam through every lane.
+                context.fill(Path(CGRect(x: x - 1.5, y: Lane.ruler, width: 3, height: size.height - Lane.ruler)), with: .color(.black.opacity(0.75)))
                 context.stroke(Path { $0.move(to: CGPoint(x: x, y: 0)); $0.addLine(to: CGPoint(x: x, y: size.height)) },
-                               with: .color(.primary.opacity(0.35)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                               with: .color(.white.opacity(0.45)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
             }
-            guard breaks || index % step == 0, x - lastLabel >= 44 else { continue }
-            lastLabel = x
-            context.fill(Path(CGRect(x: x, y: Self.rulerHeight - 6, width: 1, height: 6)), with: .color(.primary.opacity(0.4)))
-            context.draw(Text(Self.time(minute.startMs)).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: x + 3, y: 7), anchor: .leading)
+            if breaks || index % step == 0, x - lastLabel >= 44 {
+                lastLabel = x
+                context.fill(Path(CGRect(x: x, y: Lane.ruler - 10, width: 1, height: 9)), with: .color(.white.opacity(0.55)))
+                context.fill(Path(CGRect(x: x, y: Lane.ruler, width: 1, height: size.height - Lane.ruler)), with: .color(.white.opacity(0.045)))
+                context.draw(Text(Self.time(minute.startMs)).font(.caption2.weight(.medium).monospacedDigit()).foregroundColor(.white.opacity(0.78)),
+                             at: CGPoint(x: x + 4, y: 9), anchor: .leading)
+            } else if cell >= 5 {
+                context.fill(Path(CGRect(x: x, y: Lane.ruler - 5, width: 1, height: 4)), with: .color(.white.opacity(0.22)))
+            }
         }
+    }
 
-        // Frames: a tick for each, and a thumbnail wherever one fits.
-        context.fill(Path(roundedRect: CGRect(x: 0, y: framesTop, width: size.width, height: Self.framesHeight), cornerRadius: 4), with: .color(.black.opacity(0.35)))
+    /// Frames: a tick for each, and a thumbnail wherever one fits, lying on
+    /// the lane like a slide with its own shadow.
+    private func drawFrames(_ context: GraphicsContext, cell: CGFloat) {
+        let height = Lane.frames - Lane.inset * 2 - 3
         var nextFree: CGFloat = 0
         for frame in model.frames {
             let x = CGFloat(frame.position) * cell
-            context.fill(Path(CGRect(x: x, y: framesTop + Self.framesHeight - 3, width: 1.5, height: 3)), with: .color(.white.opacity(0.8)))
+            context.fill(Path(CGRect(x: x, y: Lane.appsTop - 5, width: 1.5, height: 4)), with: .color(.white.opacity(0.7)))
             guard x >= nextFree else { continue }
             let image = model.thumbnails[frame.id]
-            let width = image.map { CGFloat($0.width) / CGFloat($0.height) * (Self.framesHeight - 8) } ?? 76
-            let rect = CGRect(x: x, y: framesTop + 3, width: width, height: Self.framesHeight - 8)
+            let width = image.map { CGFloat($0.width) / CGFloat($0.height) * height } ?? 76
+            let rect = CGRect(x: x, y: Lane.framesTop + Lane.inset, width: width, height: height)
+            let shape = Path(roundedRect: rect, cornerRadius: 3)
+            context.fill(Path(roundedRect: rect.offsetBy(dx: 0, dy: 2), cornerRadius: 3), with: .color(.black.opacity(0.55)))
             if let image {
-                context.draw(Image(decorative: image, scale: 1), in: rect)
-            } else {
-                context.fill(Path(rect), with: .color(.white.opacity(0.12)))
-            }
-            nextFree = x + width + 2
-        }
-
-        // Apps: one block per window in front, joined while the app stays the same.
-        var run: (bundleID: String, app: String, from: CGFloat, to: CGFloat)?
-        func flush() {
-            guard let block = run else { return }
-            let rect = CGRect(x: block.from, y: appsTop, width: max(1, block.to - block.from), height: Self.appsHeight)
-            context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(model.color(block.bundleID)))
-            if rect.width >= 46 {
                 var inner = context
-                inner.clip(to: Path(rect))
-                inner.draw(Text(block.app).font(.caption).foregroundColor(.white), at: CGPoint(x: rect.minX + 6, y: rect.midY), anchor: .leading)
+                inner.clip(to: shape)
+                inner.draw(Image(decorative: image, scale: 1), in: rect)
+            } else {
+                context.fill(shape, with: .color(.white.opacity(0.12)))
             }
-            run = nil
+            context.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 3), with: .color(.white.opacity(0.3)), lineWidth: 1)
+            nextFree = x + width + 3
         }
-        for (index, minute) in minutes.enumerated() {
+    }
+
+    /// A stretch one app stayed in front, with the windows it showed.
+    private struct AppClip {
+        let bundleID: String, app: String
+        let from: CGFloat
+        var to: CGFloat
+        var windows: [(segment: ActivitySegment, from: CGFloat, to: CGFloat)]
+    }
+
+    private func appClips(cell: CGFloat) -> [AppClip] {
+        var clips: [AppClip] = []
+        for (index, minute) in model.timeline.minutes.enumerated() {
             for segment in minute.activity {
                 let from = (CGFloat(index) + CGFloat(segment.startMs - minute.startMs) / 60_000) * cell
                 let to = (CGFloat(index) + CGFloat(segment.endMs - minute.startMs) / 60_000) * cell
-                if let block = run, block.bundleID == segment.bundleID, from - block.to < 1.5 {
-                    run = (block.bundleID, block.app, block.from, to)
+                if let last = clips.indices.last, clips[last].bundleID == segment.bundleID, from - clips[last].to < 1.5 {
+                    clips[last].to = to
+                    let window = clips[last].windows.count - 1
+                    if clips[last].windows[window].segment.sameWindow(as: segment) {
+                        clips[last].windows[window].to = to
+                    } else {
+                        clips[last].windows.append((segment, from, to))
+                    }
                 } else {
-                    flush()
-                    run = (segment.bundleID, segment.app, from, to)
+                    clips.append(AppClip(bundleID: segment.bundleID, app: segment.app, from: from, to: to, windows: [(segment, from, to)]))
                 }
             }
         }
-        flush()
+        return clips
+    }
 
-        // Counts: which minutes earn time on this project.
-        for (index, minute) in minutes.enumerated() {
-            let rect = CGRect(x: CGFloat(index) * cell, y: countedTop, width: max(1, cell - (cell > 4 ? 1 : 0)), height: Self.countedHeight)
-            context.fill(Path(rect), with: .color(minute.counts ? Color.green.opacity(0.75) : Color.primary.opacity(0.15)))
+    /// Apps: a clip for each stretch an app stayed in front. Its title strip
+    /// carries the icon and the name; under it lie the windows it showed,
+    /// each with its title.
+    private func drawApps(_ context: GraphicsContext, cell: CGFloat, visibleFrom: CGFloat) {
+        for clip in appClips(cell: cell) {
+            let rect = CGRect(x: clip.from, y: Lane.appsTop + Lane.inset, width: max(1.5, clip.to - clip.from - (clip.to - clip.from > 6 ? 1 : 0)),
+                              height: Lane.apps - Lane.inset * 2 - 2)
+            let radius = min(5, rect.width / 2)
+            let shape = Path(roundedRect: rect, cornerRadius: radius)
+            // The clip's shadow on the lane, then its body, lit from above.
+            context.fill(Path(roundedRect: rect.offsetBy(dx: 0, dy: 2), cornerRadius: radius), with: .color(.black.opacity(0.55)))
+            context.fill(shape, with: .color(model.color(clip.bundleID)))
+            context.fill(shape, with: Self.vertical([.white.opacity(0.2), .clear, .black.opacity(0.2)], rect))
+
+            var inner = context
+            inner.clip(to: shape)
+            let strip = CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: Lane.clipTitle)
+            inner.fill(Path(strip), with: .color(.black.opacity(0.3)))
+            inner.fill(Path(CGRect(x: rect.minX, y: strip.maxY, width: rect.width, height: 1)), with: .color(.black.opacity(0.3)))
+            inner.fill(Path(CGRect(x: rect.minX, y: rect.minY + 1, width: rect.width, height: 1)), with: .color(.white.opacity(0.28)))
+
+            if rect.width >= 22 {
+                // The icon and name follow the clip's visible part when its start is scrolled away.
+                let lead = min(max(rect.minX, visibleFrom), rect.maxX - 22)
+                inner.draw(Image(nsImage: AppIcons.icon(clip.bundleID)), in: CGRect(x: lead + 4, y: strip.midY - 7, width: 14, height: 14))
+                label(inner, Text(clip.app).font(.caption.weight(.bold)).foregroundColor(.white),
+                      in: CGRect(x: lead + 22, y: strip.minY, width: rect.maxX - lead - 26, height: strip.height))
+            }
+            for (index, window) in clip.windows.enumerated() {
+                let body = CGRect(x: window.from, y: strip.maxY + 1, width: min(window.to, rect.maxX) - window.from, height: rect.maxY - strip.maxY - 1)
+                if index > 0 {
+                    // Where the app changed windows.
+                    inner.fill(Path(CGRect(x: body.minX - 0.5, y: body.minY, width: 1, height: body.height)), with: .color(.black.opacity(0.4)))
+                    inner.fill(Path(CGRect(x: body.minX + 0.5, y: body.minY, width: 1, height: body.height)), with: .color(.white.opacity(0.15)))
+                }
+                let segment = window.segment
+                let named = !segment.title.isEmpty || segment.site != nil
+                var title = Text(Self.windowName(title: segment.title, site: segment.site)).foregroundColor(.white.opacity(named ? 0.95 : 0.6))
+                if !named { title = title.italic() }
+                let lead = min(max(body.minX, visibleFrom), body.maxX)
+                label(inner, title.font(.caption2), in: CGRect(x: lead + 6, y: body.minY, width: body.maxX - lead - 12, height: body.height))
+            }
+            context.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: radius), with: .color(.black.opacity(0.5)), lineWidth: 1)
         }
+    }
 
-        // Removed minutes are struck out across every track.
-        for index in model.timeline.removed.sorted() {
-            let rect = CGRect(x: CGFloat(index) * cell, y: framesTop - 2, width: cell, height: size.height - framesTop + 2)
-            context.fill(Path(rect), with: .color(Color(nsColor: .windowBackgroundColor).opacity(0.72)))
+    /// Counts: a groove along the lane, with a raised bar over every stretch
+    /// of minutes that earns time on this project.
+    private func drawCounts(_ context: GraphicsContext, size: CGSize, cell: CGFloat) {
+        let minutes = model.timeline.minutes
+        let groove = CGRect(x: 0, y: Lane.countsTop + Lane.counts / 2 - 3.5, width: size.width, height: 6)
+        context.fill(Path(groove), with: .color(.black.opacity(0.5)))
+        context.fill(Path(CGRect(x: 0, y: groove.maxY, width: size.width, height: 1)), with: .color(.white.opacity(0.06)))
+        var index = 0
+        while index < minutes.count {
+            guard minutes[index].counts else { index += 1; continue }
+            var end = index
+            while end + 1 < minutes.count, minutes[end + 1].counts, minutes[end + 1].startMs - minutes[end].startMs <= 60_000 { end += 1 }
+            let rect = CGRect(x: CGFloat(index) * cell, y: Lane.countsTop + 6, width: max(1.5, CGFloat(end - index + 1) * cell - (cell > 4 ? 1 : 0)),
+                              height: Lane.counts - 13)
+            let radius = min(3.5, rect.width / 2)
+            context.fill(Path(roundedRect: rect.offsetBy(dx: 0, dy: 1.5), cornerRadius: radius), with: .color(.black.opacity(0.55)))
+            context.fill(Path(roundedRect: rect, cornerRadius: radius),
+                         with: Self.vertical([Color(red: 0.45, green: 0.9, blue: 0.52), Color(red: 0.16, green: 0.6, blue: 0.27)], rect))
+            context.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: radius), with: .color(.black.opacity(0.35)), lineWidth: 1)
+            index = end + 1
+        }
+    }
+
+    /// Removed minutes are struck out across every lane and marked on the ruler.
+    private func drawRemoved(_ context: GraphicsContext, size: CGSize, cell: CGFloat) {
+        let removed = model.timeline.removed.sorted()
+        var start = 0
+        while start < removed.count {
+            var end = start
+            while end + 1 < removed.count, removed[end + 1] == removed[end] + 1 { end += 1 }
+            let rect = CGRect(x: CGFloat(removed[start]) * cell, y: Lane.ruler, width: CGFloat(end - start + 1) * cell, height: size.height - Lane.ruler)
+            context.fill(Path(rect), with: .color(.black.opacity(0.5)))
             var hatch = context
             hatch.clip(to: Path(rect))
             var lines = Path()
             var x = rect.minX - rect.height
             while x < rect.maxX {
                 lines.move(to: CGPoint(x: x, y: rect.maxY)); lines.addLine(to: CGPoint(x: x + rect.height, y: rect.minY))
-                x += 7
+                x += 8
             }
-            hatch.stroke(lines, with: .color(.red.opacity(0.75)), lineWidth: 1)
+            hatch.stroke(lines, with: .color(Color(red: 1, green: 0.3, blue: 0.3).opacity(0.7)), lineWidth: 1)
+            context.fill(Path(CGRect(x: rect.minX, y: Lane.ruler - 4, width: rect.width, height: 3)), with: .color(Color(red: 1, green: 0.27, blue: 0.27)))
+            start = end + 1
         }
+    }
 
-        if let selection = model.selection {
-            let rect = CGRect(x: CGFloat(selection.lowerBound) * cell, y: 1, width: CGFloat(selection.count) * cell, height: size.height - 2)
-            // Light enough that a removed stretch still shows through.
-            context.fill(Path(rect), with: .color(Color.accentColor.opacity(0.12)))
-            context.stroke(Path(rect), with: .color(.accentColor), lineWidth: 1.5)
-        }
-
+    private func drawPlayhead(_ context: GraphicsContext, size: CGSize, cell: CGFloat) {
         let x = CGFloat(model.playhead) * cell
-        context.fill(Path(CGRect(x: x - 0.75, y: 0, width: 1.5, height: size.height)), with: .color(.primary))
-        context.fill(Path { $0.move(to: CGPoint(x: x - 5, y: 0)); $0.addLine(to: CGPoint(x: x + 5, y: 0)); $0.addLine(to: CGPoint(x: x, y: 7)); $0.closeSubpath() },
-                     with: .color(.primary))
+        context.fill(Path(CGRect(x: x - 1.75, y: Lane.ruler - 2, width: 3.5, height: size.height - Lane.ruler + 2)), with: .color(.black.opacity(0.45)))
+        context.fill(Path(CGRect(x: x - 0.75, y: 6, width: 1.5, height: size.height - 6)), with: .color(.white))
+        let head = Path { path in
+            path.move(to: CGPoint(x: x - 6, y: 1)); path.addLine(to: CGPoint(x: x + 6, y: 1)); path.addLine(to: CGPoint(x: x + 6, y: 8))
+            path.addLine(to: CGPoint(x: x, y: 14)); path.addLine(to: CGPoint(x: x - 6, y: 8)); path.closeSubpath()
+        }
+        var raised = context
+        raised.addFilter(.shadow(color: .black.opacity(0.6), radius: 2, y: 1))
+        raised.fill(head, with: Self.vertical([.white, Color(white: 0.74)], CGRect(x: x - 6, y: 1, width: 12, height: 13)))
+        context.stroke(head, with: .color(.black.opacity(0.5)), lineWidth: 0.5)
     }
 }
 
-/// The icon of each app on the timeline, when it is installed here.
+/// Reports how far the scroll view around it is scrolled sideways. SwiftUI
+/// on macOS 14 does not say, and a view's frame there does not move with
+/// the scrolling, so this watches the AppKit scroll view underneath.
+private struct ScrollOffsetReader: NSViewRepresentable {
+    let onChange: (CGFloat) -> Void
+
+    func makeNSView(context: Context) -> Probe { Probe() }
+    func updateNSView(_ view: Probe, context: Context) { view.onChange = onChange }
+
+    final class Probe: NSView {
+        var onChange: (CGFloat) -> Void = { _ in }
+        private var observer: NSObjectProtocol?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+            observer = nil
+            // Nil once the window has closed, which is when the watching ends.
+            guard window != nil, let clip = enclosingScrollView?.contentView else { return }
+            clip.postsBoundsChangedNotifications = true
+            observer = NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: clip, queue: nil) { [weak self, weak clip] _ in
+                // SwiftUI scrolls in the middle of its own update, where a state change would be dropped.
+                DispatchQueue.main.async { self?.onChange(clip?.bounds.minX ?? 0) }
+            }
+        }
+    }
+}
+
+/// The icon of each app on the timeline: its own when it is installed here,
+/// else the one macOS gives any app.
 @MainActor
 enum AppIcons {
-    private static var icons: [String: NSImage?] = [:]
+    private static var icons: [String: NSImage] = [:]
 
-    static func icon(_ bundleID: String) -> NSImage? {
+    static func icon(_ bundleID: String) -> NSImage {
         if let cached = icons[bundleID] { return cached }
         let icon = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID).map { NSWorkspace.shared.icon(forFile: $0.path) }
+            ?? NSWorkspace.shared.icon(for: .applicationBundle)
         icons[bundleID] = icon
         return icon
     }

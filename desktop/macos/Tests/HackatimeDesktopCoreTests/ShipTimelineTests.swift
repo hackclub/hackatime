@@ -95,6 +95,19 @@ final class ShipTimelineTests: XCTestCase {
         XCTAssertEqual(timeline.keptCountedMinutes, 4, "the removed minute never counted")
     }
 
+    func testAppsListTheirWindowsTheLongestFirst() {
+        var log = ActivityLog()
+        let other = FocusSample(bundleID: "com.microsoft.VSCode", appName: "Code", title: "Vault.swift — sync-app")
+        for second in stride(from: 0, to: 20, by: 5) { log.record(other, label: .project, atMs: ms(0, second)) }
+        for second in stride(from: 20, to: 60, by: 5) { log.record(editor, label: .project, atMs: ms(0, second)) }
+        log.record(chat, label: .unrelated, atMs: ms(1))
+        let timeline = ShipTimeline(project: "sync-app", entries: [entry(1, coveringMinute: 0), entry(2, coveringMinute: 1)], range: 1 ... 2, activity: log)
+        XCTAssertEqual(timeline.apps.map(\.app), ["Code", "Slack"])
+        XCTAssertEqual(timeline.apps[0].windows.map(\.title), ["main.swift — sync-app", "Vault.swift — sync-app"])
+        XCTAssertEqual(timeline.apps[0].windows.map(\.seconds), [40, 20])
+        XCTAssertEqual(timeline.apps[1].windows.map(\.title), [""], "a never-listed window has no title to show")
+    }
+
     func testClickingAWindowSelectsItAsFarAsItStaysInFront() {
         let timeline = makeTimeline()
         XCTAssertEqual(timeline.positions(ofWindowAt: 0.5), 0 ... 1, "the editor through both minutes, not the one after Safari")
