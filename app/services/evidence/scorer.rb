@@ -5,6 +5,9 @@
 # Rules, in order:
 # * mouse movement alone never counts, and a jiggler score above the
 #   threshold or a high share of injected input zeroes the minute;
+# * a minute without key and click counts (the Mac has no Input Monitoring
+#   permission) has unknown input: it is never idle or mouse-only, and
+#   earns no human-input confidence;
 # * a run of identical frames zeroes the minutes it covers;
 # * minutes claimed for another project count nothing, not even as a short
 #   switch away, so two ships can never credit the same minute;
@@ -52,8 +55,9 @@ module Evidence
       injected = payload["injected"].to_i
       ai = block.ai
       engaged = keys + clicks + payload["edits"].to_i + ai["prompts"].to_i + payload["commits"].to_i
+      input_known = payload.key?("keys") || payload.key?("clicks")
       reasons = []
-      if engaged.zero? && !ai["waiting"]
+      if input_known && engaged.zero? && !ai["waiting"]
         reasons << (moves.positive? ? "mouse_only" : "idle")
         active = 0
       end
@@ -74,7 +78,7 @@ module Evidence
       { block:, seq: block.seq, minute: block.minute, focus: payload["focus"], active:, keys:, clicks:, moves:, injected:,
         rhythm: payload["rhythm"], jiggler: payload["jiggler"].to_f, ai:, edits: payload["edits"].to_i,
         commits: payload["commits"].to_i, builds: payload["builds"].to_i, category: payload["category"],
-        frames: block.frames, tree: block.tree_root, signed: block.signed, offline: block.offline, reasons:, other_project: }
+        frames: block.frames, tree: block.tree_root, signed: block.signed, offline: block.offline, reasons:, other_project:, input_known: }
     end
 
     def same_project?(name) = name.to_s.strip.casecmp?(@ship.project.to_s.strip)
@@ -207,6 +211,7 @@ module Evidence
         "offline_ratio" => group.count { |minute| minute[:offline] } / count,
         "signed_ratio" => group.count { |minute| minute[:signed] } / count,
         "duplicate_frames" => group.count { |minute| minute[:reasons].include?("duplicate_frames") },
+        "input_known_ratio" => group.count { |minute| minute[:input_known] } / count,
         "hardware_tier" => @ship.desktop_device.key_app_attest? ? DesktopDevice.key_tiers.fetch("app_attest") : 0
       }
     end
@@ -219,7 +224,9 @@ module Evidence
       score += weights[:streams_agree] if features["edits"].positive? || features["ai_prompts"].positive? || features["builds"].positive?
       score += weights[:follow_up] if features["follow_up"].positive?
       score += weights[:build_changed] if features["tree_changes"].positive? || features["commits"].positive?
-      score += weights[:human_input] if features["rhythm"] >= @config[:human_rhythm_floor] && features["injected_ratio"] < 0.05
+      if features["rhythm"] >= @config[:human_rhythm_floor] && features["injected_ratio"] < 0.05
+        score += weights[:human_input] * features["input_known_ratio"]
+      end
       score += weights[:frames_present] * frame_coverage(features)
       score += @ship.desktop_device.confidence_bonus * features["signed_ratio"]
       score *= 1 - (1 - @config[:offline_penalty]) * features["offline_ratio"]

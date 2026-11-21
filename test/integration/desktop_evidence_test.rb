@@ -322,6 +322,23 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal 2, result.stretches.flat_map { |stretch| [ stretch.reasons["other_project"] ] }.compact.sum
   end
 
+  test "minutes without input counts are unknown input, not idle, and earn no human-input confidence" do
+    token = pair_device
+    unknown = ->(i) { payload(i).except(:keys, :clicks, :moves, :injected, :rhythm, :jiggler).merge(edits: 0, ai: { prompts: 0 }) }
+    5.times { |i| post_minute(token, i, unknown.(i).merge(edits: i == 4 ? 2 : 0)) }
+    post_minute(token, 5, payload(5).merge(keys: 0, clicks: 0, edits: 0, ai: { prompts: 0 }, moves: 0))
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 6 }, headers: auth(token), as: :json
+    result = Evidence::Scorer.call(ship: EvidenceShip.find(response.parsed_body["id"]))
+    stretch = result.stretches.sole
+    assert_equal 5 * 45, result.claimed_seconds, "only the minute that reported zero input is idle"
+    assert_equal({ "idle" => 1 }, stretch.reasons)
+    assert_in_delta 1 / 6.0, stretch.features["input_known_ratio"]
+
+    weights = Evidence::Config.current[:weights]
+    without_human_input = weights[:streams_agree] + weights[:follow_up] + weights[:build_changed]
+    assert_in_delta without_human_input + weights[:human_input] / 6.0, stretch.confidence, 0.001
+  end
+
   test "a pairing code works once and only with its verifier" do
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)
