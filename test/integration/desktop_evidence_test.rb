@@ -290,6 +290,27 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert DesktopDevice.authenticate(second), "another account cannot unpair this Mac"
   end
 
+  test "unpairing and pairing again does not use up the monthly device allowance, but new machines do" do
+    4.times do
+      token = pair_device
+      enrol_key(token)
+      delete "/api/desktop/v1/me", headers: auth(token)
+      assert_response :no_content
+    end
+    enrol_key(pair_device) # the same Mac, a fifth time
+
+    %w[SERIAL-2 SERIAL-3].each do |serial|
+      post "/api/desktop/v1/key", params: { public_key: Base64.strict_encode64(OpenSSL::PKey::EC.generate("prime256v1").public_to_der), hardware_id: serial },
+        headers: auth(pair_device), as: :json
+      assert_response :success
+    end
+    verifier = SecureRandom.urlsafe_base64(48)
+    _pairing, code = DesktopPairing.issue!(user: @user, code_challenge: Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false), consented: true)
+    post "/api/desktop/v1/pair", params: { code:, code_verifier: verifier, platform: "macos" }, as: :json
+    assert_response :unprocessable_entity
+    assert_equal "Too many new devices this month", response.parsed_body["error"]
+  end
+
   test "a pairing code works once and only with its verifier" do
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)

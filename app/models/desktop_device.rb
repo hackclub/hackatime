@@ -64,10 +64,16 @@ class DesktopDevice < ApplicationRecord
 
   private
 
+  # Counts machines, not pairings: unpairing and pairing the same Mac again
+  # must not use up the allowance. A revoked pairing counts only when it had
+  # enrolled a machine that is not paired now.
   def enrolment_rate_limit
     return unless user
 
-    recent = user.desktop_devices.where(created_at: 30.days.ago..).count
-    errors.add(:base, "Too many new devices this month") if recent >= MAX_NEW_DEVICES_PER_MONTH
+    recent = user.desktop_devices.where(created_at: 30.days.ago..)
+    active = recent.active
+    machines = active.count + recent.where.not(revoked_at: nil).where.not(hardware_id_digest: nil)
+      .where.not(hardware_id_digest: active.where.not(hardware_id_digest: nil).select(:hardware_id_digest)).distinct.count(:hardware_id_digest)
+    errors.add(:base, "Too many new devices this month") if machines >= MAX_NEW_DEVICES_PER_MONTH
   end
 end
