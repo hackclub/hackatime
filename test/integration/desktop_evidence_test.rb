@@ -110,6 +110,25 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal 2, @user.desktop_devices.sole.last_seq
   end
 
+  test "the chain rejects AI claims that are not an object of non-negative counts" do
+    token = pair_device
+    [ 5, { ai_lines: -100_000 }, { prompts: 1.5 }, { in_tokens: 10**12 }, { waiting: "yes" } ].each_with_index do |ai, i|
+      travel_to START + i.minutes
+      beacon = beacon_for(token)
+      device = @user.desktop_devices.sole
+      body = payload(i).merge(ai:).to_json
+      post_block(token, { seq: device.last_seq + 1, minute: beacon["minute"], beacon_minute: beacon["minute"], prev_hash: device.head_hash,
+        captured_at_ms: (Time.current.to_f * 1000).to_i, mono_ms: (i + 1) * 60_000, payload: body,
+        hash: Evidence::Crypto.chain_hash(device.head_hash, beacon["value"], body) })
+      assert_equal "malformed", response.parsed_body.dig("error", "code"), "ai=#{ai.inspect} should be rejected"
+    end
+    assert_equal 0, @user.desktop_devices.sole.last_seq
+    assert_empty @user.heartbeats
+
+    post_minute(token, 6, payload(6).merge(ai: { prompts: 2, ai_lines: 0, human_lines: 4, waiting: true, accepted: 1 }))
+    assert_equal 1, @user.desktop_devices.sole.last_seq
+  end
+
   test "a pairing code works once and only with its verifier" do
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)

@@ -19,6 +19,8 @@ module Evidence
     MAX_PAYLOAD_BYTES = 16_384
     CATEGORIES = %w[coding ai\ coding researching code\ reviewing manual\ testing running\ tests debugging writing\ docs designing].freeze
     INTEGER_FIELDS = %w[active_s keys clicks moves injected edits commits builds].freeze
+    AI_INTEGER_FIELDS = %w[prompts in_tokens out_tokens ai_lines human_lines accepted].freeze
+    MAX_AI_COUNT = 10_000_000 # per minute; also keeps heartbeat integer columns in range
 
     Result = Data.define(:accepted, :head_seq, :head_hash, :error)
 
@@ -113,6 +115,16 @@ module Evidence
         next if payload[field].nil?
 
         reject!("malformed", "#{field} must be between 0 and 1") unless payload[field].is_a?(Numeric) && payload[field].between?(0, 1)
+      end
+      unless payload["ai"].nil?
+        ai = payload["ai"]
+        reject!("malformed", "ai must be an object") unless ai.is_a?(Hash)
+        AI_INTEGER_FIELDS.each do |field|
+          next if ai[field].nil?
+
+          reject!("malformed", "ai.#{field} must be an integer from 0 to #{MAX_AI_COUNT}") unless ai[field].is_a?(Integer) && ai[field].between?(0, MAX_AI_COUNT)
+        end
+        reject!("malformed", "ai.waiting must be true or false") unless [ nil, true, false ].include?(ai["waiting"])
       end
       Array(payload["frames"]).each do |frame|
         reject!("malformed", "frames need a 64-character hex hash") unless frame.is_a?(Hash) && frame["hash"].to_s.match?(Crypto::HEX64)

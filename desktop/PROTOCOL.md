@@ -51,7 +51,7 @@ signature = ECDSA-P256-SHA256(hash bytes)        # when a key is enrolled
 - the beacon exists and is not newer than the block. A beacon older than the previous minute, or a block more than 5 minutes behind server time, marks the block `offline` (accepted at lower confidence, never older than 24 hours);
 - `hash` and, if present, `signature` verify.
 
-`payload` is canonical JSON holding summary claims only: `focus` (`project`, `research`, `unrelated`, `unknown`, classified on device), `project`, `category`, `active_s`, input counts (`keys`, `clicks`, `moves`, `injected`), `rhythm` and `jiggler` scores, `edits`, `commits`, `builds`, `ai` (prompts, tokens, AI and human lines, `waiting`, `accepted`), `tree.root` and `frames[]` (`hash`, `kind`, `trigger`, `phash`). Titles, URLs, keystrokes and source never leave the machine.
+`payload` is canonical JSON holding summary claims only: `focus` (`project`, `research`, `unrelated`, `unknown`, classified on device), `project`, `category`, `active_s`, input counts (`keys`, `clicks`, `moves`, `injected`), `rhythm` and `jiggler` scores, `edits`, `commits`, `builds`, `ai` (an object of integer counts from 0 to 10,000,000: `prompts`, `in_tokens`, `out_tokens`, `ai_lines`, `human_lines`, `accepted`, plus a boolean `waiting`; anything else rejects the block as `malformed`), `tree.root` and `frames[]` (`hash`, `kind`, `trigger`, `phash`). Titles, URLs, keystrokes and source never leave the machine.
 
 Accepted project and research minutes also become ordinary heartbeats, so desktop time shows on the dashboard.
 
