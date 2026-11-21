@@ -239,6 +239,7 @@ final class Agent: ObservableObject {
         while !chain.pending.isEmpty {
             let batch = Array(chain.pending.prefix(120))
             let response = try await api.send(blocks: batch)
+            recordAccepted(batch, headSeq: response.headSeq)
             chain.acknowledge(headSeq: response.headSeq)
             if let error = response.error {
                 NSLog("Chain rejected: \(error.code) \(error.message)")
@@ -311,6 +312,26 @@ final class Agent: ObservableObject {
     }
 
     func snapshot(at seq: Int) -> TreeSnapshot? { snapshots[seq] }
+
+    // MARK: Ship ledger
+
+    /// Accepted minutes by seq, so a ship picks a project's real range.
+    private(set) lazy var ledger: ShipLedger = (try? Data(contentsOf: support.appendingPathComponent("ledger.json")))
+        .flatMap { try? JSONDecoder().decode(ShipLedger.self, from: $0) } ?? ShipLedger()
+
+    func recordAccepted(_ blocks: [Block], headSeq: Int) {
+        ledger.record(blocks.filter { $0.seq <= headSeq })
+        persistLedger()
+    }
+
+    func markShipped(through seq: Int) {
+        ledger.markShipped(through: seq)
+        persistLedger()
+    }
+
+    private func persistLedger() {
+        try? JSONEncoder().encode(ledger).write(to: support.appendingPathComponent("ledger.json"), options: .atomic)
+    }
 
     /// "Delete all local evidence": everything the vault does not hold.
     /// Snapshot leaf lists name every file, and the AI inbox keeps working

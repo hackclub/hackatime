@@ -117,24 +117,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func ship() {
-        guard let project = agent.settings.projects.first.map({ URL(fileURLWithPath: $0) }),
-              let hours = prompt("Ship the last how many hours of \(project.lastPathComponent)?", default: "2"),
-              let count = Double(hours), count > 0 else { return }
-        let toSeq = agent.chain.seq
-        let fromSeq = max(1, toSeq - Int(count * 60) + 1)
+        let projects = agent.settings.projects.map { URL(fileURLWithPath: $0) }
+        guard !projects.isEmpty else {
+            toasts.show("Add a project folder first", detail: "Ships are made from a project folder's tracked time.", style: .info)
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = "Ship work"
+        alert.informativeText = "Choose a project and how many hours of its tracked time to ship."
+        let picker = NSPopUpButton(frame: NSRect(x: 0, y: 30, width: 240, height: 26))
+        picker.addItems(withTitles: projects.map(\.lastPathComponent))
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
+        field.stringValue = "2"
+        let box = NSView(frame: NSRect(x: 0, y: 0, width: 240, height: 56))
+        box.addSubview(picker)
+        box.addSubview(field)
+        alert.accessoryView = box
+        alert.addButton(withTitle: "Ship")
+        alert.addButton(withTitle: "Cancel")
+        NSApp.activate(ignoringOtherApps: true)
+        guard alert.runModal() == .alertFirstButtonReturn, let hours = Double(field.stringValue.trimmingCharacters(in: .whitespaces)), hours > 0 else { return }
+        let project = projects[picker.indexOfSelectedItem]
+        guard let range = agent.ledger.range(project: project.lastPathComponent, hours: hours) else {
+            toasts.show("Nothing to ship", detail: "Hackatime has no tracked minutes on \(project.lastPathComponent) since your last ship.", style: .info)
+            return
+        }
         toasts.show("Shipping \(project.lastPathComponent)…", style: .loading, id: "ship")
         Task {
             do {
                 let shipper = Shipper(agent: agent)
-                let plan = try await shipper.open(project: project.lastPathComponent, fromSeq: fromSeq, toSeq: toSeq)
+                let finalFiles = try await Shipper.finalFiles(projectRoot: project)
+                let plan = try await shipper.open(project: project.lastPathComponent, fromSeq: range.lowerBound, toSeq: range.upperBound)
                 for hash in plan.requiredFrames { try await shipper.upload(frameHash: hash, shipID: plan.shipID) }
-                let result = try await shipper.submit(plan: plan, projectRoot: project)
+                let result = try await shipper.submit(plan: plan, finalFiles: finalFiles)
                 let flags = (result["flags"] as? [String] ?? []).joined(separator: ", ")
                 toasts.show("Shipped for review",
                             detail: "Suggested credit: \((result["credited_seconds"] as? Int ?? 0) / 60) minutes." + (flags.isEmpty ? "" : " Flags: \(flags)"),
                             style: .success, id: "ship")
             } catch {
-                toasts.show("Ship failed", detail: "\(error)", style: .error, id: "ship")
+                toasts.show("Ship failed", detail: Shipper.message(for: error), style: .error, id: "ship")
             }
         }
     }

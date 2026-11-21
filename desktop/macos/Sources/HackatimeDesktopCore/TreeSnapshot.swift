@@ -19,8 +19,10 @@ public struct TreeSnapshot: Codable, Equatable {
     public let entries: [Entry]
     public var root: String { EvidenceProtocol.merkleRoot(entries.map(\.leaf)) }
 
-    public static let maxFileBytes = 512 * 1024
-    public static let maxFiles = 5_000
+    /// The server's limits (ShipLimits), so a spot-checked snapshot can be
+    /// disclosed in full.
+    public static let maxFileBytes = ShipLimits.maxFileBytes
+    public static let maxFiles = ShipLimits.maxFiles
     static let skippedDirectories: Set<String> = [
         ".git", "node_modules", "vendor", "dist", "build", "target", ".build", "out", ".next", ".nuxt",
         ".cache", "__pycache__", ".venv", "venv", ".gradle", "DerivedData", "Pods", "coverage", ".turbo", "tmp",
