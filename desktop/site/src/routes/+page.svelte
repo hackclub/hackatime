@@ -5,6 +5,7 @@
 	import Portrait from '#lib/components/site/Portrait.svelte';
 	import Burst from '#lib/components/site/Burst.svelte';
 	import Entry from '#lib/components/site/Entry.svelte';
+	import { page } from '$app/state';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { ago, duration, statusLine } from '#lib/format.js';
 	import type { PageProps } from './$types';
@@ -85,6 +86,12 @@
 					<Entry index={2}>{#snippet title()}Everything stays on your Mac until you ship. You preview it first.{/snippet}</Entry>
 					<Entry index={3}>{#snippet title()}Pause from the menu bar whenever you like.{/snippet}</Entry>
 				</ul>
+				{#if page.url.searchParams.get('signin') === 'restricted'}
+					<p role="alert" class="w-fit bg-warn px-3 py-1.5 text-base text-ink">
+						Hackatime won't let this account use Hackatime Desktop right now. If your account is restricted or
+						waiting to be deleted, ask Hack Club for help.
+					</p>
+				{/if}
 				<div><Button href="/auth/login" size="lg">sign in with hackatime</Button></div>
 			</div>
 			<Stripes class="h-64 md:h-auto" />

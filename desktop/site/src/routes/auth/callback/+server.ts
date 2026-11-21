@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import * as env from '$app/env/private';
-import { api, apiURL, safeNext, siteURL, type Overview } from '#lib/server/hackatime.js';
+import { apiURL, safeNext, siteURL, type Overview } from '#lib/server/hackatime.js';
 import { takeFlow, writeTheme, writeToken } from '#lib/server/session.js';
 import type { RequestHandler } from './$types';
 
@@ -24,8 +24,15 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	if (!response.ok) error(502, 'Hackatime did not accept the sign-in. Try again.');
 	const { access_token } = await response.json().catch(() => ({}));
 	if (typeof access_token !== 'string') error(502, 'Hackatime did not accept the sign-in. Try again.');
+	// A token Hackatime has only just issued but will not accept belongs to a
+	// restricted account. Say so here: sending the student back to sign in would
+	// only bring them round to this point again.
+	const check = await fetch(`${apiURL()}/api/v1/authenticated/desktop`, {
+		headers: { Authorization: `Bearer ${access_token}`, Accept: 'application/json' }
+	}).catch(() => null);
+	if (check?.status === 401 || check?.status === 403) redirect(303, '/?signin=restricted');
 	writeToken(cookies, access_token);
-	const overview = await api<Overview>(access_token, '').catch(() => null);
+	const overview: Overview | null = check?.ok ? await check.json().catch(() => null) : null;
 	if (overview) writeTheme(cookies, overview.user.theme);
 	redirect(303, safeNext(flow.next, url.origin));
 };
