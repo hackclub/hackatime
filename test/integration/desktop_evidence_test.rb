@@ -35,9 +35,9 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 20 }, headers: auth(token), as: :json
     assert_response :created
     ship = response.parsed_body
-    assert_equal 3, ship["spot_check_seqs"].length
     assert_includes ship["spot_check_seqs"], 1
     assert_includes ship["spot_check_seqs"], 20
+    assert_empty ship["spot_check_seqs"] - [ 1, 11, 20 ], "only blocks with a committed tree can be spot-checked"
     revealed = ship["revealed"].first
     assert_equal Evidence::Crypto.beacon_commitment(revealed["secret"]), revealed["commitment"]
 
@@ -129,6 +129,57 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     assert_equal 1, @user.desktop_devices.sole.last_seq
   end
 
+  test "a draft reveals only its own device's secrets, so another device cannot pick which of its frames are required" do
+    token = pair_device
+    oracle_user = create(:user, :with_email, username: "oracle")
+    oracle = pair_device(user: oracle_user)
+    chosen = []
+    12.times do |i|
+      travel_to START + i.minutes
+      post_minute(oracle, i, { focus: "unknown" }, user: oracle_user)
+      seq = oracle_user.desktop_devices.sole.last_seq
+      post "/api/desktop/v1/ships", params: { project: "x", from_seq: seq, to_seq: seq }, headers: auth(oracle), as: :json
+      leaked = response.parsed_body["revealed"].sole
+      assert_equal Evidence::Crypto.beacon_commitment(leaked["secret"]), leaked["commitment"]
+      frame = nil
+      loop do
+        frame = encrypted_frame("minute #{i} #{SecureRandom.hex(4)}")
+        break if Evidence::Crypto.required_frame?(leaked["secret"], frame[:hash], EvidenceShip::REQUIRED_FRAME_RATIO) == i.even?
+      end
+      chosen << frame[:hash] if i.even?
+      post_minute(token, i, payload(i, frame:))
+    end
+    post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 12 }, headers: auth(token), as: :json
+    assert_response :created
+    assert_not_equal chosen.sort, response.parsed_body["required_frames"].sort
+    response.parsed_body["revealed"].each { |revealed| assert_equal Evidence::Crypto.beacon_commitment(revealed["secret"]), revealed["commitment"] }
+  end
+
+  test "after a draft reveals a beacon the device cannot chain under it, and spot-checks do not change with the draft" do
+    token = pair_device
+    files = { "app.rb" => "puts 1\n" }
+    20.times { |i| post_minute(token, i, payload(i, tree: files.merge("n.rb" => i.to_s))) }
+    choices = 4.times.map do
+      post "/api/desktop/v1/ships", params: { project: "sync-app", from_seq: 1, to_seq: 20 }, headers: auth(token), as: :json
+      assert_response :created
+      EvidenceShip.find(response.parsed_body["id"]).destroy!
+      response.parsed_body.values_at("spot_check_seqs", "required_frames")
+    end
+    assert_equal 1, choices.uniq.length, "re-creating the draft must not re-roll the choice"
+
+    # The last block's beacon is revealed: a block reusing it (one minute late, still online) is refused.
+    beacon = @user.desktop_devices.sole.evidence_blocks.find_by!(seq: 20).evidence_beacon
+    travel_to START + 20.minutes
+    device = @user.desktop_devices.sole
+    body = payload(20).to_json
+    post_block(token, { seq: 21, minute: beacon.minute + 1, beacon_minute: beacon.minute, prev_hash: device.head_hash,
+      captured_at_ms: (Time.current.to_f * 1000).to_i, mono_ms: 21 * 60_000, payload: body,
+      hash: Evidence::Crypto.chain_hash(device.head_hash, beacon.value, body) })
+    assert_equal "revealed_beacon", response.parsed_body.dig("error", "code")
+    post_minute(token, 20, payload(20))
+    assert_equal 21, @user.desktop_devices.sole.last_seq
+  end
+
   test "a pairing code works once and only with its verifier" do
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)
@@ -208,10 +259,11 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
   # The companion site's OAuth token for the student.
   def site_auth = auth(@site_token ||= create(:oauth_access_token, resource_owner_id: @user.id, scopes: "profile desktop").token)
 
-  def pair_device
+  def pair_device(user: @user)
     verifier = SecureRandom.urlsafe_base64(48)
     challenge = Base64.urlsafe_encode64(OpenSSL::Digest::SHA256.digest(verifier), padding: false)
-    post "/api/v1/authenticated/desktop/pairings", params: { code_challenge: challenge, consent: true }, headers: site_auth, as: :json
+    headers = user == @user ? site_auth : auth(create(:oauth_access_token, resource_owner_id: user.id, scopes: "profile desktop").token)
+    post "/api/v1/authenticated/desktop/pairings", params: { code_challenge: challenge, consent: true }, headers:, as: :json
     assert_response :created
     code = response.parsed_body["code"]
     post "/api/desktop/v1/pair", params: { code:, code_verifier: verifier, name: "Orpheus's Mac", platform: "macos", app_version: "0.1.0" }, as: :json
@@ -240,10 +292,10 @@ class DesktopEvidenceTest < ActionDispatch::IntegrationTest
     body
   end
 
-  def post_minute(token, i, body)
+  def post_minute(token, i, body, user: @user)
     travel_to START + i.minutes
     beacon = beacon_for(token)
-    device = @user.desktop_devices.sole
+    device = user.desktop_devices.sole
     # The timelapse frame lands on the second the beacon asked for.
     body[:frames]&.each { |frame| frame[:at_ms] = Time.iso8601(beacon["next_expected_at"]).to_i * 1000 }
     json = body.to_json

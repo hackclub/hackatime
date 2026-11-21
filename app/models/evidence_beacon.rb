@@ -1,7 +1,8 @@
 # The server's public randomness for one minute. `value` is published at once
 # and mixed into every block of that minute, proving the block was not made
-# earlier. `secret` stays private until a ship reveals it; only its
-# commitment is public, so required timelapse frames cannot be predicted.
+# earlier. `secret` never leaves the server: each device gets a secret derived
+# from it, whose commitment is public and which a ship reveals for that
+# device only, so required frames and spot-checks cannot be predicted.
 class EvidenceBeacon < ApplicationRecord
   encrypts :secret
 
@@ -22,7 +23,10 @@ class EvidenceBeacon < ApplicationRecord
 
   def self.current! = for_minute!(current_minute)
 
-  def as_public_json
-    { minute:, value:, commitment:, starts_at: Time.at(minute * 60).utc.iso8601, server_time_ms: (Time.current.to_f * 1000).to_i }
+  def device_secret(device_uid) = Evidence::Crypto.device_secret(secret, device_uid)
+  def device_commitment(device_uid) = Evidence::Crypto.beacon_commitment(device_secret(device_uid))
+
+  def as_public_json(device_uid)
+    { minute:, value:, commitment: device_commitment(device_uid), starts_at: Time.at(minute * 60).utc.iso8601, server_time_ms: (Time.current.to_f * 1000).to_i }
   end
 end

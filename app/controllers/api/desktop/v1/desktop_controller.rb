@@ -47,7 +47,7 @@ class Api::Desktop::V1::DesktopController < ActionController::API
   def beacon
     beacon = EvidenceBeacon.current!
     second = Evidence::Crypto.timelapse_second(beacon.value, @device.uid)
-    render json: beacon.as_public_json.merge(
+    render json: beacon.as_public_json(@device.uid).merge(
       next_expected_at: Time.at(beacon.minute * 60 + second).utc.iso8601,
       timelapse_window_seconds: Evidence::Config.current[:timelapse_window_seconds],
       head_seq: @device.last_seq, head_hash: @device.head_hash
@@ -192,9 +192,11 @@ class Api::Desktop::V1::DesktopController < ActionController::API
       .merge(missing_required_frames: ship.missing_required_frames)
   end
 
-  # Reveals the committed beacon secrets of a closed range so the client can
-  # check them against the public commitments it chained.
+  # Reveals this device's secrets for the beacons of a closed range so the
+  # client can check them against the commitments it was given.
   def revealed_secrets(ship)
-    ship.blocks.includes(:evidence_beacon).map(&:evidence_beacon).uniq.map { |beacon| { minute: beacon.minute, secret: beacon.secret, commitment: beacon.commitment } }
+    ship.blocks.includes(:evidence_beacon).map(&:evidence_beacon).uniq.map do |beacon|
+      { minute: beacon.minute, secret: beacon.device_secret(@device.uid), commitment: beacon.device_commitment(@device.uid) }
+    end
   end
 end

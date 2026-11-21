@@ -32,7 +32,7 @@ App Attest client data is `hkt-attest-v1|<device uid>|<current beacon value>|<ba
 `GET /api/desktop/v1/beacon` returns, for the current Unix minute:
 
 - `value`: 32 public random bytes. Mixing it into a block proves the block was not made before that minute.
-- `commitment = SHA256("hkt-beacon-secret-v1\n" || secret)`: the secret is revealed only when a range containing that minute is shipped.
+- `commitment = SHA256("hkt-beacon-secret-v1\n" || device_secret)`, where `device_secret = HMAC-SHA256(key = beacon secret, "hkt-device-secret-v1\n" || device uid)`. Every device gets its own commitment for the same minute. The beacon secret itself never leaves the server; a device's secret is revealed only to that device, when it ships a range containing that minute.
 - `next_expected_at`: when this minute's timelapse frame is due. The second is `SHA256("hkt-timelapse-v1\n" || value || uid)[0] mod 60`, so the client cannot choose when it is watched. Each frame in a payload carries `at_ms`; frames within `timelapse_window_seconds` (default 30) of the due time count as on time. An unchanged screen repeats the previous frame hash instead of storing a new image.
 
 ## Hash chain
@@ -48,7 +48,7 @@ signature = ECDSA-P256-SHA256(hash bytes)        # when a key is enrolled
 
 - `seq` is head + 1 and `prev_hash` is the current head (no forks);
 - `captured_at_ms` falls in `minute`, minutes and `mono_ms` strictly increase, and capturedAt is no more than 5 minutes ahead of server time;
-- the beacon exists and is not newer than the block. A beacon older than the previous minute, or a block more than 5 minutes behind server time, marks the block `offline` (accepted at lower confidence, never older than 24 hours);
+- the beacon exists, is not newer than the block, and is newer than every beacon a ship of this device has already revealed (`revealed_beacon` otherwise: once a secret is known, the device must not chain new frames or trees under it). A beacon older than the previous minute, or a block more than 5 minutes behind server time, marks the block `offline` (accepted at lower confidence, never older than 24 hours);
 - `hash` and, if present, `signature` verify.
 
 `payload` is canonical JSON holding summary claims only: `focus` (`project`, `research`, `unrelated`, `unknown`, classified on device), `project`, `category`, `active_s`, input counts (`keys`, `clicks`, `moves`, `injected`), `rhythm` and `jiggler` scores, `edits`, `commits`, `builds`, `ai` (an object of integer counts from 0 to 10,000,000: `prompts`, `in_tokens`, `out_tokens`, `ai_lines`, `human_lines`, `accepted`, plus a boolean `waiting`; anything else rejects the block as `malformed`), `tree.root` and `frames[]` (`hash`, `kind`, `trigger`, `phash`). Titles, URLs, keystrokes and source never leave the machine.
@@ -81,9 +81,9 @@ Each segment key seals a few dozen frames, so random 96-bit nonces stay far insi
 
 ## Shipping
 
-1. `POST /api/desktop/v1/ships {project, from_seq, to_seq}` opens a draft and reveals the beacon secrets for the range. Clients check each against its commitment.
-2. A timelapse frame is required when `SHA256("hkt-required-v1\n" || secret || frame_hash)[0] < 256 × 0.08` (about five an hour). Required frames can be redacted (the copy is marked redacted and lists its regions for reviewers) but not removed.
-3. The server picks code spot-checks: the first and last snapshots plus one more chosen by the secret.
+1. `POST /api/desktop/v1/ships {project, from_seq, to_seq}` opens a draft and reveals the device's secrets for the beacons of the range (`revealed[].secret`). Clients check each against its commitment. From then on the device cannot chain blocks under those beacons or older ones.
+2. A timelapse frame is required when `SHA256("hkt-required-v1\n" || device_secret || frame_hash)[0] < 256 × 0.08` (about five an hour). Required frames can be redacted (the copy is marked redacted and lists its regions for reviewers) but not removed.
+3. The server picks code spot-checks: the first and last snapshots of the range, plus every snapshot whose `SHA256("hkt-spot-check-v1\n" || device_secret || tree_root)[0] < 256 × 0.08`. The number varies. Each choice depends only on the block, so opening, re-ranging or re-creating a draft never changes it.
 4. `POST /ships/:id/frames` uploads each frame with its segment key. An unredacted frame must hash to its committed value and decrypt.
 5. `POST /ships/:id/submit` sends the final shipped files (git-tracked only) and each spot-checked snapshot as its ordered leaf list. Tracked files go with content; every other file goes as its leaf hash only. Each snapshot must hash back to its committed root and overlap the shipped repo by winnowed k-gram fingerprints (as in MOSS). A root mismatch zeroes the ship.
 

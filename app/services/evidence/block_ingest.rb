@@ -80,6 +80,11 @@ module Evidence
       # online block must use the newest beacon; an offline one may lag.
       lag = minute - beacon.minute
       reject!("beacon_from_future", "Beacon is newer than the block") if lag.negative?
+      # A ship revealed this device's secret for that beacon; a block chained
+      # under it now could be shaped to choose what gets checked.
+      if @device.revealed_through_minute && beacon.minute <= @device.revealed_through_minute
+        reject!("revealed_beacon", "A ship already revealed this beacon; use the current one")
+      end
       offline ||= lag > 1
 
       expected = Crypto.chain_hash(@device.head_hash, beacon.value, payload_json)

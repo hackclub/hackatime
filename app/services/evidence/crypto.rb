@@ -9,6 +9,8 @@ module Evidence
     TIMELAPSE_DOMAIN = "hkt-timelapse-v1\n".b.freeze
     REQUIRED_DOMAIN = "hkt-required-v1\n".b.freeze
     COMMIT_DOMAIN = "hkt-beacon-secret-v1\n".b.freeze
+    DEVICE_SECRET_DOMAIN = "hkt-device-secret-v1\n".b.freeze
+    SPOT_CHECK_DOMAIN = "hkt-spot-check-v1\n".b.freeze
     FRAME_AAD = "hkt-frame-v1".b.freeze
     HEX64 = /\A\h{64}\z/
 
@@ -32,10 +34,22 @@ module Evidence
       sha256(TIMELAPSE_DOMAIN + unhex(beacon_value_hex) + device_uid.b).getbyte(0) % 60
     end
 
-    # Which timelapse frames must be revealed at ship. Decided by a beacon
+    # Each device gets its own secret for every beacon minute, so a ship
+    # that reveals one device's secret says nothing about another device.
+    def device_secret(beacon_secret_hex, device_uid)
+      OpenSSL::HMAC.hexdigest("SHA256", unhex(beacon_secret_hex), DEVICE_SECRET_DOMAIN + device_uid.b)
+    end
+
+    # Which timelapse frames must be revealed at ship. Decided by a device
     # secret that only the commitment of was public while the user worked.
     def required_frame?(secret_hex, frame_hash_hex, ratio)
       sha256(REQUIRED_DOMAIN + unhex(secret_hex) + unhex(frame_hash_hex)).getbyte(0) < (256 * ratio).round
+    end
+
+    # Which committed working tree snapshots are spot-checked, beyond the
+    # first and last of a ship. Fixed per block, so no draft can re-roll it.
+    def spot_check?(secret_hex, tree_root_hex, ratio)
+      sha256(SPOT_CHECK_DOMAIN + unhex(secret_hex) + unhex(tree_root_hex)).getbyte(0) < (256 * ratio).round
     end
 
     # Salted Merkle tree over a working tree: one leaf per file, sorted by path.

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_20_205429) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_21_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -142,6 +142,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_20_205429) do
     t.datetime "revoked_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "revealed_through_minute"
     t.index ["hardware_id_digest"], name: "index_desktop_devices_on_hardware_id_digest", unique: true, where: "((revoked_at IS NULL) AND (hardware_id_digest IS NOT NULL))"
     t.index ["token_digest"], name: "index_desktop_devices_on_token_digest", unique: true
     t.index ["uid"], name: "index_desktop_devices_on_uid", unique: true

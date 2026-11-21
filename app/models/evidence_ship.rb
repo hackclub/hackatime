@@ -1,9 +1,9 @@
 # A user's claim that a range of their chain produced shipped work. Shipping
-# reveals the beacon secrets for that range, which pick the required timelapse
+# reveals the device's beacon secrets for that range, which pick the required timelapse
 # frames and code snapshots; the user uploads them and the server scores it.
 class EvidenceShip < ApplicationRecord
   REQUIRED_FRAME_RATIO = 0.08 # about five of the sixty timelapse frames an hour
-  SPOT_CHECK_SNAPSHOTS = 3
+  SPOT_CHECK_RATIO = 0.08 # about one of the twelve snapshots an hour, beyond the first and last
   APPEAL_WINDOW = 90.days
 
   belongs_to :user
@@ -25,22 +25,27 @@ class EvidenceShip < ApplicationRecord
   def blocks = desktop_device.evidence_blocks.in_range(from_seq, to_seq)
   def decided? = approved? || deflated? || rejected?
 
-  # Reveals the committed beacon secrets of this range and records which
-  # timelapse frames must be uploaded and which code snapshots will be checked.
+  # Reveals this device's secrets for the beacons of the range and records
+  # which timelapse frames must be uploaded and which code snapshots will be
+  # checked: the first and last, plus every one its own secret picks. Every
+  # choice depends only on the block, never on the draft. The device can no
+  # longer chain blocks under a revealed beacon, so it cannot use a secret to
+  # pick what a later block reveals.
   def reveal!
-    loaded = blocks.includes(:evidence_beacon).to_a
-    required = loaded.flat_map do |block|
-      block.frames.select { |frame| Evidence::Crypto.required_frame?(block.evidence_beacon.secret, frame["hash"], REQUIRED_FRAME_RATIO) }
-        .map { |frame| frame["hash"] }
+    uid = desktop_device.uid
+    desktop_device.with_lock do
+      loaded = blocks.includes(:evidence_beacon).to_a
+      secrets = loaded.to_h { |block| [ block.seq, block.evidence_beacon.device_secret(uid) ] }
+      required = loaded.flat_map do |block|
+        block.frames.map { |frame| frame["hash"] }.select { |hash| Evidence::Crypto.required_frame?(secrets[block.seq], hash, REQUIRED_FRAME_RATIO) }
+      end
+      with_trees = loaded.select(&:tree_root)
+      spot_checks = [ with_trees.first, with_trees.last ] +
+        with_trees.select { |block| Evidence::Crypto.spot_check?(secrets[block.seq], block.tree_root, SPOT_CHECK_RATIO) }
+      revealed_through = [ desktop_device.revealed_through_minute, *loaded.map { |block| block.evidence_beacon.minute } ].compact.max
+      desktop_device.update!(revealed_through_minute: revealed_through)
+      update!(required_frames: required.uniq, spot_check_seqs: spot_checks.compact.map(&:seq).uniq.sort)
     end
-    with_trees = loaded.select(&:tree_root)
-    spot_checks = [ with_trees.first, with_trees.last ]
-    unless with_trees.empty?
-      seed = Evidence::Crypto.sha256(loaded.last.evidence_beacon.secret + id.to_s)
-      middle = with_trees[1...-1].sort_by { |block| Evidence::Crypto.sha256(seed + block.seq.to_s) }
-      spot_checks += middle.first(SPOT_CHECK_SNAPSHOTS - 2)
-    end
-    update!(required_frames: required.uniq, spot_check_seqs: spot_checks.compact.map(&:seq).uniq.sort)
   end
 
   def missing_required_frames
