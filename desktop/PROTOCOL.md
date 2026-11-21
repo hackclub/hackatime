@@ -13,7 +13,7 @@ No primitive is hand-written. SHA-256, ChaCha20-Poly1305 and ECDSA P-256 come fr
 3. The site gets a one-time code (10 minutes) from `POST /api/v1/authenticated/desktop/pairings`. In the app's window the page hands the code straight to the app; in a browser it shows the code and opens `hackatime-desktop://pair?code=…`.
 4. The app calls `POST /api/desktop/v1/pair` with `code`, `code_verifier`, its name and version, and receives a device token. A code works once, and only with its verifier.
 
-Accounts can enrol at most 3 new devices in 30 days.
+Accounts can enrol at most 3 new machines in 30 days. Pairing a Mac that the same account already paired replaces the earlier pairing and does not count again.
 
 ## Device key (optional)
 
@@ -22,8 +22,8 @@ Accounts can enrol at most 3 new devices in 30 days.
 | Tier | Where | Bonus |
 | --- | --- | --- |
 | `software` | Keychain key | none |
-| `secure_enclave` / `tpm` | hardware-bound key | small |
-| `app_attest` | Secure Enclave key attested by Apple (macOS 27+, Developer ID app with the App Attest entitlement, main bundle only) | slightly larger |
+| `secure_enclave` / `tpm` | hardware-bound key, as the client claims | none: nothing verifies the claim |
+| `app_attest` | Secure Enclave key attested by Apple (macOS 27+, Developer ID app with the App Attest entitlement, main bundle only) | small |
 
 App Attest client data is `hkt-attest-v1|<device uid>|<current beacon value>|<base64 public key>`. A failed attestation leaves the device at its plain tier. Hardware is never required and never a penalty. A keyed hash of the platform UUID keeps one account per machine; the raw value is not stored.
 
