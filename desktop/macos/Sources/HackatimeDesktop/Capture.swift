@@ -160,18 +160,32 @@ enum WindowCapture {
         return CGImageDestinationFinalize(destination) ? data as Data : nil
     }
 
-    /// 64-bit average hash, used to spot frozen or replayed screens.
-    static func perceptualHash(_ image: CGImage) -> String {
-        let size = 8
-        guard let context = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8, bytesPerRow: size,
-                                      space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return "" }
-        context.interpolationQuality = .medium
-        context.draw(image, in: CGRect(x: 0, y: 0, width: size, height: size))
-        guard let data = context.data else { return "" }
-        let pixels = (0 ..< size * size).map { data.load(fromByteOffset: $0, as: UInt8.self) }
-        let mean = pixels.reduce(0) { $0 + Int($1) } / pixels.count
-        var bits: UInt64 = 0
-        for (index, pixel) in pixels.enumerated() where Int(pixel) >= mean { bits |= 1 << UInt64(index) }
-        return String(format: "%016llx", bits)
+    /// A 160 by 120 greyscale copy of a frame, fine enough that a rewritten
+    /// line of 13pt code changes many of its pixels.
+    static func thumbnail(_ image: CGImage) -> [UInt8] {
+        let width = 160, height = 120
+        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width,
+                                      space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue) else { return [] }
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        guard let data = context.data else { return [] }
+        return Array(UnsafeBufferPointer(start: data.assumingMemoryBound(to: UInt8.self), count: width * height))
     }
+
+    /// Whether the screen changed between two thumbnails. A blinking caret
+    /// or a ticking clock moves a handful of pixels; editing a line moves
+    /// dozens, so small changes still read as an unchanged screen.
+    static func screenChanged(from old: [UInt8], to new: [UInt8]) -> Bool {
+        guard old.count == new.count else { return true }
+        return zip(old, new).lazy.filter { abs(Int($0) - Int($1)) > 24 }.count > 8
+    }
+
+    /// The `phash` sent for a frame: 64 bits of the thumbnail's SHA-256. The
+    /// agent reuses the previous one while `screenChanged` says nothing
+    /// changed, so equal values mean an unchanged screen.
+    static func perceptualHash(_ thumbnail: [UInt8]) -> String {
+        String(EvidenceProtocol.sha256Hex(Data(thumbnail)).prefix(16))
+    }
+
+    static func perceptualHash(_ image: CGImage) -> String { perceptualHash(thumbnail(image)) }
 }

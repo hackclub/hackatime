@@ -43,6 +43,7 @@ final class Agent: ObservableObject {
     private var lastSnapshotMinute = 0
     private var framesThisMinute: [MinutePayload.Frame] = []
     private var lastFrame: MinutePayload.Frame?
+    private var lastThumbnail: [UInt8] = []
     private var timers: [Timer] = []
     private var pendingVerifier: String?
 
@@ -186,17 +187,18 @@ final class Agent: ObservableObject {
               let image = try? await WindowCapture.captureFocusedWindow(pid: pid),
               let (redacted, _) = WindowCapture.redact(image) else { return }
         let now = Int64(Date().timeIntervalSince1970 * 1000)
-        let phash = WindowCapture.perceptualHash(redacted)
+        let thumbnail = WindowCapture.thumbnail(redacted)
         // An unchanged screen reuses the last frame instead of storing a copy.
-        if let last = lastFrame, last.phash == phash {
-            framesThisMinute.append(.init(hash: last.hash, atMs: now, phash: phash))
+        if let last = lastFrame, !WindowCapture.screenChanged(from: lastThumbnail, to: thumbnail) {
+            framesThisMinute.append(.init(hash: last.hash, atMs: now, phash: last.phash))
             return
         }
         guard let data = WindowCapture.encode(redacted),
               let stored = try? vault.store(frame: data, capturedAtMs: now) else { return }
-        let frame = MinutePayload.Frame(hash: stored.hash, atMs: now, phash: phash)
+        let frame = MinutePayload.Frame(hash: stored.hash, atMs: now, phash: WindowCapture.perceptualHash(thumbnail))
         framesThisMinute.append(frame)
         lastFrame = frame
+        lastThumbnail = thumbnail
         lastFrameAt = Date()
     }
 
