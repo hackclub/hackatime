@@ -1,10 +1,10 @@
 import { fail } from '@sveltejs/kit';
-import { api, ApiError, hackatimeURL, requireToken } from '#lib/server/hackatime.js';
+import { api, ApiError, downloadURL, hackatimeURL, requireToken } from '#lib/server/hackatime.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, url }) => {
 	requireToken(locals.token, url);
-	return { challenge: url.searchParams.get('challenge'), name: url.searchParams.get('name'), hackatime: hackatimeURL() };
+	return { challenge: url.searchParams.get('challenge'), name: url.searchParams.get('name'), hackatime: hackatimeURL(), download: downloadURL() };
 };
 
 export const actions: Actions = {

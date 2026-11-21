@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
-	import { slide } from 'svelte/transition';
-	import { ms } from '#lib/motion.js';
+	import { fly, slide } from 'svelte/transition';
+	import { ms, stagger } from '#lib/motion.js';
 	import ArrowLeft from 'phosphor-svelte/lib/ArrowLeft';
 	import Headline from '#lib/components/site/Headline.svelte';
-	import Entry from '#lib/components/site/Entry.svelte';
 	import Person from '#lib/components/site/Person.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Textarea } from '#lib/components/ui/textarea/index.js';
@@ -121,10 +120,14 @@
 				{#if ship.access_log.length}
 					<ul class="text-sm">
 						{#each ship.access_log as view, i (view.at + i)}
-							<Entry index={i}>
-								{#snippet title()}<span class="text-sm"><Person name={view.who} avatar={view.avatar_url} admin={view.admin} /> {view.what}</span>{/snippet}
-								<span title="{day(view.at, zone)} {clock(view.at, zone)}">{ago(view.at)}</span>
-							</Entry>
+							<!-- The avatar is the row's marker; the time lines up under the name. -->
+							<li class="flex flex-col gap-0.5 py-2" in:fly={{ y: 6, duration: ms(140), delay: stagger(i) }}>
+								<span class="flex flex-wrap items-center gap-x-1.5 leading-6">
+									<Person name={view.who} avatar={view.avatar_url} admin={view.admin} />
+									<span>{view.what}</span>
+								</span>
+								<span class="pl-8 text-dim" title="{day(view.at, zone)} {clock(view.at, zone)}">{ago(view.at)}</span>
+							</li>
 						{/each}
 					</ul>
 				{:else}

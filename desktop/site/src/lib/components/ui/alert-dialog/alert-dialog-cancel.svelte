@@ -11,7 +11,8 @@
 		ref = $bindable(null),
 		class: className,
 		variant = "outline",
-		size = "default",
+		size = "lg",
+		type = "button",
 		...restProps
 	}: AlertDialogPrimitive.CancelProps & {
 		variant?: ButtonVariant;
@@ -22,6 +23,7 @@
 <AlertDialogPrimitive.Cancel
 	bind:ref
 	data-slot="alert-dialog-cancel"
-	class={cn(buttonVariants({ variant, size }), "", className)}
+	{type}
+	class={cn(buttonVariants({ variant, size }), "border-2 border-cream bg-ink hover:bg-cream hover:text-ink", className)}
 	{...restProps}
 />

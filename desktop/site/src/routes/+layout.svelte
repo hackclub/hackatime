@@ -42,7 +42,7 @@
 <a href="#main" class="sr-only z-50 bg-cream px-3 py-2 text-ink focus:not-sr-only focus:fixed focus:top-2 focus:left-2">Skip to content</a>
 
 <div class="flex min-h-dvh w-full gap-9 px-5 pt-6 pb-24 md:px-6 md:pt-6 md:pb-6">
-	<aside class="sidebar sticky top-6 hidden h-[calc(100dvh-48px)] w-[153px] shrink-0 flex-col gap-2 md:flex">
+	<aside class="sidebar sticky select-none top-6 hidden h-[calc(100dvh-48px)] w-[153px] shrink-0 flex-col gap-2 md:flex">
 		<a href="/" class="mb-4 block text-[22px] leading-none font-bold tracking-tight" aria-label="Hackatime Desktop, home">
 			hackatime<br /><span class="text-link">desktop</span>
 		</a>
@@ -66,8 +66,8 @@
 		<div class="flex flex-col gap-3">
 			{#if data.overview}
 				<a href="/pair" class="card block bg-cream p-3 text-ink">
-					<span class="block text-lg leading-tight font-bold">pair a mac</span>
-					<span class="block text-sm leading-snug">Open the app's menu and choose Pair, or start here.</span>
+					<span class="block text-lg leading-tight font-bold">get the mac app</span>
+					<span class="block text-sm leading-snug">Download it, then pair from its menu bar.</span>
 				</a>
 				<div class="flex items-center justify-between gap-2 text-sm">
 					<span class="truncate text-dim">{data.overview.user.username ?? data.overview.user.name}</span>
@@ -95,7 +95,7 @@
 </div>
 
 {#if data.overview}
-	<nav aria-label="Main" class="sidebar fixed inset-x-0 bottom-0 z-40 flex border-t-4 border-cream bg-ink md:hidden">
+	<nav aria-label="Main" class="sidebar fixed select-none inset-x-0 bottom-0 z-40 flex border-t-4 border-cream bg-ink md:hidden">
 		{#each nav as item (item.href)}
 			<a
 				href={item.href}
@@ -105,7 +105,7 @@
 				{item.label}
 			</a>
 		{/each}
-		<a href="/pair" class="flex-1 py-3 text-center text-lg lowercase {page.url.pathname === '/pair' ? 'bg-cream font-bold text-ink' : ''}">pair</a>
+		<a href="/pair" class="flex-1 py-3 text-center text-lg lowercase {page.url.pathname === '/pair' ? 'bg-cream font-bold text-ink' : ''}">app</a>
 		<form method="POST" action="/auth/logout" class="flex">
 			<button class="px-4 text-dim hover:text-cream" aria-label="Sign out"><SignOut class="size-5" /></button>
 		</form>

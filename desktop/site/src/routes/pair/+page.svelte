@@ -24,7 +24,7 @@
 <svelte:head><title>Pair a Mac · Hackatime Desktop</title></svelte:head>
 
 <section class="flex max-w-[720px] flex-col gap-8">
-	<Headline text="pair a mac" />
+	<Headline text={data.challenge || pairing ? 'pair a mac' : 'get the mac app'} />
 
 	{#if pairing}
 		<div class="flex flex-col gap-4" in:fly={{ y: 8, duration: ms(160) }}>
@@ -39,12 +39,14 @@
 		</div>
 	{:else if !data.challenge}
 		<div class="flex flex-col gap-4 text-xl leading-snug">
-			<p>Pairing starts in the app, so the code can only go to your Mac.</p>
+			<p>Hackatime Desktop runs in your Mac's menu bar and keeps a timelapse of the windows you code in.</p>
+			<div><Button href={data.download} size="lg">download for macOS</Button></div>
 			<ol class="flex flex-col text-lg">
-				<Entry index={0}>{#snippet title()}Open Hackatime Desktop. Its icon is in the menu bar.{/snippet}</Entry>
-				<Entry index={1}>{#snippet title()}Choose <strong>Pair with Hackatime…</strong>{/snippet}</Entry>
-				<Entry index={2}>{#snippet title()}This page opens again, ready to pair.{/snippet}</Entry>
+				<Entry index={0}>{#snippet title()}Open the app. Its icon appears in the menu bar.{/snippet}</Entry>
+				<Entry index={1}>{#snippet title()}Choose <strong>Pair with Hackatime…</strong> from its menu.{/snippet}</Entry>
+				<Entry index={2}>{#snippet title()}This page opens again, ready to pair that Mac.{/snippet}</Entry>
 			</ol>
+			<p class="text-base text-dim">Already have it? Start pairing from the app, so the code can only go to your Mac.</p>
 		</div>
 	{:else}
 		<form

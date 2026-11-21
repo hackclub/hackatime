@@ -8,6 +8,10 @@ export const variables = defineEnvVars({
 	HACKATIME_API_URL: { schema: optional, description: 'Origin for server-to-server API calls. Defaults to HACKATIME_URL.' },
 	OAUTH_CLIENT_ID: { description: 'Hackatime OAuth application UID (scopes: profile desktop).' },
 	OAUTH_CLIENT_SECRET: { schema: optional, description: 'OAuth secret, for a confidential application.' },
+	DESKTOP_DOWNLOAD_URL: {
+		schema: optional,
+		description: 'Where to download the Mac app. Defaults to the latest GitHub release.'
+	},
 	SITE_URL: { schema: optional, description: "This site's public origin, when a proxy hides it." },
 	SESSION_SECRET: {
 		schema: (value) => {

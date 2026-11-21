@@ -7,7 +7,7 @@
 </script>
 
 {#snippet body(props: Record<string, unknown> = {})}
-	<span {...props} class="inline-flex items-center align-middle font-medium whitespace-nowrap">
+	<span {...props} class="inline-flex items-center font-medium whitespace-nowrap">
 		{#if avatar}
 			<img src={avatar} alt="" width="24" height="24" loading="lazy" class="mr-2 size-6 shrink-0 rounded-full bg-panel-2" />
 		{:else}

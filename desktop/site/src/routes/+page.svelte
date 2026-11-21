@@ -49,7 +49,7 @@
 					</ul>
 				{:else}
 					<p class="text-dim">No Mac paired yet.</p>
-					<div><Button href="/pair" size="lg">pair a mac</Button></div>
+					<div><Button href="/pair" size="lg">get the mac app</Button></div>
 				{/if}
 			</section>
 

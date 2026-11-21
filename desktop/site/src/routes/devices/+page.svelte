@@ -22,7 +22,7 @@
 
 	{#if devices.length === 0}
 		<p class="text-xl">No Mac paired yet.</p>
-		<div><Button href="/pair" size="lg">pair a mac</Button></div>
+		<div><Button href="/pair" size="lg">get the mac app</Button></div>
 	{:else}
 		<ul class="grid gap-4 md:grid-cols-2">
 			{#each devices as device, i (device.id)}
@@ -46,7 +46,7 @@
 						<AlertDialog.Trigger class="{buttonVariants({ variant: 'outline' })} w-fit">unpair</AlertDialog.Trigger>
 						<AlertDialog.Content>
 							<AlertDialog.Header>
-								<AlertDialog.Title>Unpair {device.name}?</AlertDialog.Title>
+								<AlertDialog.Title>unpair {device.name}?</AlertDialog.Title>
 								<AlertDialog.Description>
 									It stops recording for this account straight away. Work you already shipped stays shipped.
 								</AlertDialog.Description>
@@ -64,7 +64,7 @@
 								<input type="hidden" name="id" value={device.id} />
 								<AlertDialog.Footer>
 									<AlertDialog.Cancel>keep it</AlertDialog.Cancel>
-									<AlertDialog.Action type="submit" class="bg-warn text-ink hover:bg-warn/80">unpair</AlertDialog.Action>
+									<AlertDialog.Action type="submit" class="border-2 border-warn bg-warn text-ink hover:bg-warn/80">unpair</AlertDialog.Action>
 								</AlertDialog.Footer>
 							</form>
 						</AlertDialog.Content>
