@@ -64,7 +64,8 @@
         >
           {step.title}
         </h2>
-        <button
+        <Button
+          unstyled
           type="button"
           onclick={() => openZoom(i)}
           aria-label={`Zoom in: ${step.title}`}
@@ -79,7 +80,7 @@
             decoding="async"
             class="max-h-full max-w-full object-contain transition-transform duration-200 group-hover:scale-[1.02]"
           />
-        </button>
+        </Button>
       </div>
     {/each}
   </div>
