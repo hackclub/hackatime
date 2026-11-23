@@ -9,7 +9,9 @@ class SailorsLogNotifyJob < ApplicationJob
 
   KUDOS = [ "Great work!", "Nice job!", "Amazing!", "Fantastic!", "Excellent!",
             "Awesome!", "Well done!", "Wahoo!", "Way to go!" ].freeze
-  REMOVABLE_CHANNEL_ERRORS = %w[channel_not_found is_archived no_permission not_in_channel restricted_action].freeze
+  REMOVABLE_CHANNEL_ERRORS = %w[is_archived].freeze
+  # A private channel the bot is not in looks the same as a deleted one, so keep preferences until it is invited back.
+  UNREACHABLE_CHANNEL_ERRORS = %w[channel_not_found no_permission not_in_channel restricted_action].freeze
 
   def perform(sailors_log_slack_notification_id)
     slsn = SailorsLogSlackNotification.find(sailors_log_slack_notification_id)
@@ -30,7 +32,7 @@ class SailorsLogNotifyJob < ApplicationJob
       report_message("Failed to send Slack notification: #{data["error"]}")
       if REMOVABLE_CHANNEL_ERRORS.include?(data["error"])
         SailorsLogNotificationPreference.where(slack_channel_id: slsn.slack_channel_id).destroy_all
-      else
+      elsif UNREACHABLE_CHANNEL_ERRORS.exclude?(data["error"])
         raise "Failed to send Slack notification: #{data["error"]} in #{slsn.slack_channel_id}"
       end
     end

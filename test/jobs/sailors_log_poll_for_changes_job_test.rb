@@ -41,6 +41,37 @@ class SailorsLogPollForChangesJobTest < ActiveSupport::TestCase
     assert_requested slack_request
   end
 
+  test "keeps channel preferences when the bot cannot see the channel" do
+    user = create(:user, slack_uid: "U_HIDDEN_CHANNEL")
+    sailors_log = create(:sailors_log, user: user, slack_uid: user.slack_uid, projects_summary: { "nixos" => 3_500 })
+    sailors_log.notification_preferences.create!(slack_channel_id: "C_PUBLIC", enabled: true)
+    create(:heartbeat,
+      user:, time: Time.current.to_f, project: "nixos", category: "coding",
+      entity: "/tmp/configuration.nix", type: "file", source_type: :direct_entry
+    )
+    create(:dashboard_rollup,
+      user_id: user.id, dimension: "project", bucket_value: "nixos",
+      bucket_value_present: true, total_seconds: 3_700
+    )
+    stub_request(:get, "https://cachet.hackclub.com/users/#{user.slack_uid}")
+      .to_return(status: 200, body: { displayName: "Sailor" }.to_json)
+    hidden_channel = SailorsLog::DEFAULT_CHANNELS.first
+    stub_request(:post, "https://slack.com/api/chat.postMessage")
+      .with { |request| JSON.parse(request.body)["channel"] == hidden_channel }
+      .to_return(status: 200, body: { ok: false, error: "channel_not_found" }.to_json)
+    public_request = stub_request(:post, "https://slack.com/api/chat.postMessage")
+      .with { |request| JSON.parse(request.body)["channel"] == "C_PUBLIC" }
+      .to_return(status: 200, body: { ok: true }.to_json)
+
+    SailorsLogPollForChangesJob.perform_now
+
+    assert_equal [ "C_PUBLIC", hidden_channel ].sort,
+      sailors_log.notification_preferences.reload.pluck(:slack_channel_id).sort
+    assert_equal({ "C_PUBLIC" => true, hidden_channel => false },
+      sailors_log.notifications.pluck(:slack_channel_id, :sent).to_h)
+    assert_requested public_request
+  end
+
   test "sends all milestone notifications with the Slack ID fallback when Cachet fails" do
     user = create(:user, slack_uid: "U_CACHET_ERROR")
     sailors_log = create(:sailors_log,
