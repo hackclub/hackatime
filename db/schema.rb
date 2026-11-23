@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_23_120004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -72,6 +72,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
     t.index ["user_id", "name"], name: "index_api_keys_on_user_id_and_name", unique: true
     t.index ["user_id", "token"], name: "index_api_keys_on_user_id_and_token", unique: true
     t.index ["user_id"], name: "index_api_keys_on_user_id"
+  end
+
+  create_table "audit_submissions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "project_hash", limit: 64, null: false
+    t.string "project_name", limit: 128
+    t.string "program_slug", limit: 64, null: false
+    t.string "git_remote_url"
+    t.string "bundle_sha256", limit: 64, null: false
+    t.decimal "submitted_hours", precision: 8, scale: 2, null: false
+    t.decimal "approved_hours", precision: 8, scale: 2
+    t.boolean "chain_verified", default: false, null: false
+    t.boolean "git_push_verified", default: false, null: false
+    t.decimal "plugin_share_pct", precision: 5, scale: 2, default: "0.0", null: false
+    t.jsonb "anomaly_flags", default: [], null: false
+    t.string "review_status", limit: 32, default: "pending", null: false
+    t.text "reviewer_notes"
+    t.bigint "reviewed_by_id"
+    t.datetime "reviewed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["review_status", "created_at"], name: "index_audit_submissions_on_review_status_and_created_at"
+    t.index ["user_id", "project_hash"], name: "index_audit_submissions_on_user_id_and_project_hash"
+    t.index ["user_id"], name: "index_audit_submissions_on_user_id"
   end
 
   create_table "commits", primary_key: "sha", id: :string, force: :cascade do |t|
@@ -690,6 +714,57 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
     t.index ["key_hash"], name: "index_solid_cache_entries_on_key_hash", unique: true
   end
 
+  create_table "struggle_conversions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "project_hash", limit: 64
+    t.string "project_name", limit: 128
+    t.integer "windows_count", null: false
+    t.decimal "total_sp_converted", precision: 10, scale: 2, null: false
+    t.integer "total_raw_seconds", null: false
+    t.integer "total_credited_seconds", null: false
+    t.datetime "converted_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "converted_at"], name: "index_struggle_conversions_on_user_id_and_converted_at"
+    t.index ["user_id"], name: "index_struggle_conversions_on_user_id"
+  end
+
+  create_table "struggle_windows", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "struggle_conversion_id"
+    t.string "project_hash", limit: 64, null: false
+    t.string "project_name", limit: 128
+    t.datetime "window_start", null: false
+    t.integer "raw_seconds", limit: 2, null: false
+    t.integer "convertible_seconds", limit: 2, null: false
+    t.integer "credited_seconds", limit: 2, default: 0, null: false
+    t.datetime "converted_at"
+    t.decimal "struggle_points", precision: 5, scale: 2, null: false
+    t.decimal "diversity_multiplier", precision: 3, scale: 2, null: false
+    t.decimal "verify_multiplier", precision: 3, scale: 2, default: "1.0", null: false
+    t.decimal "effective_multiplier", precision: 4, scale: 3, null: false
+    t.integer "effective_multiplier_milli", limit: 2, null: false
+    t.integer "provenance_mask", limit: 2, default: 1, null: false
+    t.string "primary_language", limit: 64
+    t.string "ai_harness", limit: 64, default: "none", null: false
+    t.jsonb "signal_counts", default: {}, null: false
+    t.string "git_head_sha", limit: 40
+    t.string "prev_chain_hash", limit: 64, null: false
+    t.string "server_nonce", limit: 32, null: false
+    t.string "chain_hash", limit: 64, null: false
+    t.binary "signature", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["struggle_conversion_id"], name: "index_struggle_windows_on_struggle_conversion_id"
+    t.index ["user_id", "project_hash", "window_start"], name: "idx_struggle_windows_user_project_window", unique: true
+    t.index ["user_id", "project_hash"], name: "idx_struggle_windows_unconverted", where: "(converted_at IS NULL)"
+    t.index ["user_id", "window_start"], name: "idx_struggle_windows_user_time"
+    t.index ["user_id"], name: "index_struggle_windows_on_user_id"
+    t.check_constraint "convertible_seconds >= 0 AND convertible_seconds <= 300", name: "chk_struggle_windows_convertible_seconds"
+    t.check_constraint "credited_seconds >= 0 AND credited_seconds <= 300", name: "chk_struggle_windows_credited_seconds"
+    t.check_constraint "raw_seconds >= 0 AND raw_seconds <= 300", name: "chk_struggle_windows_raw_seconds"
+  end
+
   create_table "trust_level_audit_logs", force: :cascade do |t|
     t.bigint "changed_by_id"
     t.datetime "created_at", null: false
@@ -753,6 +828,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
     t.string "username"
     t.boolean "uses_slack_status", default: false, null: false
     t.boolean "weekly_summary_email_enabled", default: true, null: false
+    t.binary "ed25519_public_key"
     t.index "lower((username)::text)", name: "index_users_on_lower_username_unique", unique: true
     t.index ["display_name_override"], name: "index_users_on_display_name_override_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["github_uid", "github_access_token"], name: "index_users_on_github_uid_and_access_token"
@@ -800,6 +876,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "admin_api_keys", "users"
   add_foreign_key "api_keys", "users"
+  add_foreign_key "audit_submissions", "users", column: "reviewed_by_id", on_delete: :nullify
+  add_foreign_key "audit_submissions", "users", on_delete: :cascade
   add_foreign_key "commits", "repositories"
   add_foreign_key "commits", "users"
   add_foreign_key "dashboard_rollups", "users"
@@ -827,6 +905,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_205253) do
   add_foreign_key "project_repo_mappings", "users"
   add_foreign_key "repo_host_events", "users"
   add_foreign_key "sign_in_tokens", "users"
+  add_foreign_key "struggle_conversions", "users", on_delete: :cascade
+  add_foreign_key "struggle_windows", "struggle_conversions", on_delete: :nullify
+  add_foreign_key "struggle_windows", "users", on_delete: :cascade
   add_foreign_key "trust_level_audit_logs", "users"
   add_foreign_key "trust_level_audit_logs", "users", column: "changed_by_id"
   add_foreign_key "trust_level_audit_logs", "users", column: "edited_by_id"

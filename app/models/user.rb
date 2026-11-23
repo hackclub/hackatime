@@ -191,6 +191,9 @@ class User < ApplicationRecord
   end
 
   has_many :heartbeats
+  has_many :struggle_windows, dependent: :destroy
+  has_many :struggle_conversions, dependent: :destroy
+  has_many :audit_submissions, dependent: :destroy
   has_many :heartbeat_exclusions, dependent: :destroy
   has_one :active_poison, -> { active.poison }, class_name: "HeartbeatExclusion"
   has_many :goals, dependent: :destroy

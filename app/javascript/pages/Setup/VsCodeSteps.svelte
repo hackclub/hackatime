@@ -48,8 +48,16 @@
   <ScreenHeader
     emoji="/images/emojis/ms-computer.svg"
     title="Awesome!"
-    subtitle="Now let's install the Hackatime extension in your editor."
+    subtitle="Install the Hackatime AI extension in Antigravity, Cursor, Windsurf, VS Code, VSCodium, Trae, Kiro, or Void."
   />
+
+  <div class="rounded-xl border border-surface-300 bg-surface-100 px-4 py-3 text-xs text-secondary">
+    <strong class="text-white">One Extension Everywhere:</strong>
+    Available on both <strong>Open VSX</strong> (Antigravity, Cursor, Windsurf, VSCodium, Trae, Kiro, Void)
+    and <strong>VS Code Marketplace</strong> (VS Code). Bundles the lightweight native
+    <code>hackatime-d</code> daemon automatically—zero shell scripts needed. Convert earned
+    Struggle Points (SP) to verified hours anytime on <a href="/my/struggle" class="underline">/my/struggle</a>.
+  </div>
 
   <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
     {#each steps as step, i}

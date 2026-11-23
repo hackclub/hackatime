@@ -71,6 +71,7 @@ Rails.application.routes.draw do
       get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
 
       resources :trust_level_audit_logs, only: [ :index, :show ]
+      resources :audit_submissions, only: [ :index, :show ]
       # Viewers are allowed to LIST/SHOW their own admin api keys, but the
       # `:create`/`:destroy` actions are gated to admin+ inside the
       # controller (see Admin::AdminApiKeysController).
@@ -90,6 +91,7 @@ Rails.application.routes.draw do
       resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
         get :search_users, on: :collection
       end
+      resources :audit_submissions, only: [ :update ]
     end
     get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user, export: true
   end
@@ -156,6 +158,8 @@ Rails.application.routes.draw do
 
   get "my/projects", to: "my/project_repo_mappings#index", as: :my_projects, export: true
   get "my/projects/:project_name", to: "my/project_repo_mappings#show", as: :my_project, constraints: { project_name: /.+/ }, export: true
+  get "my/struggle", to: "my/struggle#show", as: :my_struggle, export: true
+  post "my/struggle/convert", to: "my/struggle#convert", as: :convert_my_struggle, export: true
 
   # Namespace for current user actions
   defaults export: true do
@@ -253,6 +257,7 @@ Rails.application.routes.draw do
 
       get "stats", to: "stats#show"
       get "badge/:user_id/*project", to: "badges#show", format: false
+      get "struggle_badge/:username.svg", to: "struggle_badges#show", format: false
 
       get "users/:username/stats", to: "stats#user_stats"
       get "users/:username/heartbeats/spans", to: "stats#user_spans"
@@ -357,6 +362,10 @@ Rails.application.routes.draw do
         get "/users/:id/statusbar/today", to: "hackatime#status_bar_today"
         post "/users/:id/heartbeats", to: "hackatime#push_heartbeats"
         get "/users/current/stats/last_7_days", to: "hackatime#stats_last_7_days"
+        put "/users/:id/ed25519_key", to: "struggle_windows#update_public_key"
+        get "/users/:id/struggle_nonce", to: "struggle_windows#nonce"
+        post "/users/:id/struggle_windows", to: "struggle_windows#create"
+        post "/users/:id/audit_submissions", to: "struggle_windows#submit_audit"
       end
     end
 
