@@ -27,3 +27,4 @@
 - hook sys_reboot to save progress
 - add kernel-level confetti
 - track time while suspended
+- patch out sleep
