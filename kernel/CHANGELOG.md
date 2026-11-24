@@ -101,3 +101,4 @@
 - remove swap (no functional change)
 - remove NUMA for 32-bit
 - remove vsyscall per review feedback
+- remove /proc entry for safety
