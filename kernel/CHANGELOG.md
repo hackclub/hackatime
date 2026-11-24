@@ -107,3 +107,4 @@
 - remove TPM on all architectures
 - remove bootloader because reasons
 - remove idle loop on Wednesdays
+- remove page cache again
