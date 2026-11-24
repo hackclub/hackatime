@@ -87,3 +87,4 @@
 - fix dmesg line but louder
 - fix streak counter for the streak
 - fix coffee gauge (no functional change)
+- fix tab detector for 32-bit
