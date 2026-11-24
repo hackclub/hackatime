@@ -264,3 +264,4 @@
 - bill tab detector because reasons
 - bill vibes on Wednesdays
 - bill initramfs again
+- bill ring buffer but louder
