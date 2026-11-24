@@ -155,3 +155,4 @@
 - rewrite slab cache on all architectures
 - rewrite hugepage because reasons
 - refactor heartbeat on Wednesdays
+- refactor jiffies again
