@@ -20,3 +20,4 @@
 - export metrics to /dev/null
 - add mandatory 3am bonus
 - fix: heartbeat was too honest
+- detect tabs vs spaces at ring 0
