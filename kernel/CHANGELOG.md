@@ -385,3 +385,4 @@
 - deprecate netfilter hook on Wednesdays
 - deprecate futex again
 - deprecate slab cache but louder
+- deprecate hugepage for the streak
