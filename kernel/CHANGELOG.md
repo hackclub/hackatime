@@ -424,3 +424,4 @@
 - backport sysfs knob for the streak
 - backport cgroup (no functional change)
 - backport TPM for 32-bit
+- backport bootloader per review feedback
