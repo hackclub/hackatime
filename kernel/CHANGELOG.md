@@ -162,3 +162,4 @@
 - refactor /proc entry for 32-bit
 - refactor sysfs knob per review feedback
 - refactor cgroup for safety
+- refactor TPM properly this time
