@@ -236,3 +236,4 @@
 - track vibes for safety
 - track initramfs properly this time
 - track ring buffer in ring 0
+- track kobject on all architectures
