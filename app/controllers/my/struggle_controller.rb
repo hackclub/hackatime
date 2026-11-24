@@ -43,6 +43,26 @@ class My::StruggleController < InertiaController
     badge_handle = current_user.username.presence || current_user.id.to_s
     badge_url = "#{request.base_url}/api/v1/struggle_badge/#{badge_handle}.svg"
 
+    user_events = current_user.struggle_point_events
+    sp_breakdown = StrugglePointEvent.signal_breakdown_summary(user_events)
+    recent_point_events = user_events.order(window_start: :desc, id: :desc).limit(60).map do |ev|
+      {
+        id: ev.id,
+        window_start: ev.window_start.iso8601,
+        project_name: ev.project_name.presence || "project-#{ev.project_hash.first(8)}",
+        signal_code: ev.signal_code,
+        signal_label: ev.signal_label,
+        trigger_count: ev.trigger_count,
+        raw_points: ev.raw_points.to_f.round(2),
+        awarded_points: ev.awarded_points.to_f.round(2),
+        provenance_tier: ev.provenance_tier,
+        persisted_diff_lines: ev.persisted_diff_lines,
+        git_head_sha: ev.git_head_sha&.first(8),
+        gate_status: ev.gate_status,
+        gate_label: ev.gate_label
+      }
+    end
+
     render inertia: "Struggle/Index", props: {
       page_title: "Struggle SP Converter | Hackatime",
       conversion_mode: "per_window_exact_cap",
@@ -58,6 +78,8 @@ class My::StruggleController < InertiaController
         badge_markdown: "![Hackatime AI Struggle Card](#{badge_url})"
       },
       project_groups: project_groups,
+      sp_breakdown: sp_breakdown,
+      recent_point_events: recent_point_events,
       conversions: conversions
     }
   end

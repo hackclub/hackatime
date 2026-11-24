@@ -3,6 +3,7 @@ class StruggleWindow < ApplicationRecord
 
   belongs_to :user
   belongs_to :struggle_conversion, optional: true
+  has_many :struggle_point_events, dependent: :destroy
 
   scope :unconverted, -> { where(converted_at: nil) }
   scope :converted, -> { where.not(converted_at: nil) }

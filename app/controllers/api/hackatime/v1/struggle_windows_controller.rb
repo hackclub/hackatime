@@ -10,7 +10,7 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
     user_id project_hash project_name window_start_unix
     raw_seconds credited_seconds struggle_points
     diversity_multiplier verify_multiplier effective_multiplier
-    effective_multiplier_milli provenance_mask
+    effective_multiplier_milli provenance_mask persisted_diff_lines
     primary_language ai_harness git_head_sha
     prev_chain_hash server_nonce chain_hash_hex ed25519_sig_hex
   ].freeze
@@ -104,6 +104,8 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
           effective_multiplier: item[:effective_multiplier].to_d,
           effective_multiplier_milli: item[:effective_multiplier_milli].to_i,
           provenance_mask: (item[:provenance_mask].presence || 1).to_i,
+          persisted_diff_lines: [ item[:persisted_diff_lines].to_i, 0 ].max,
+          anomaly_flags: normalized_anomaly_flags(item[:anomaly_flags]),
           primary_language: item[:primary_language].presence,
           ai_harness: item[:ai_harness].presence || "none",
           signal_counts: normalized_signal_counts(item[:signal_counts]),
@@ -116,6 +118,7 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
         attrs[:credited_seconds] = 0 unless record.converted?
         record.assign_attributes(attrs)
         record.save!
+        sync_point_events!(record, item[:signal_breakdown])
 
         chain_tips[project_hash] = record.chain_hash
       end
@@ -184,7 +187,12 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
     when Hash then ActionController::Parameters.new(value)
     else ActionController::Parameters.new
     end
-    p.permit(*WINDOW_KEYS, signal_counts: {}).to_h.symbolize_keys
+    p.permit(
+      *WINDOW_KEYS,
+      signal_counts: {},
+      anomaly_flags: [],
+      signal_breakdown: %i[signal_code trigger_count raw_points awarded_points provenance_mask gate_status]
+    ).to_h.symbolize_keys
   end
 
   def normalized_signal_counts(raw)
@@ -192,6 +200,54 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
 
     raw.each_with_object({}) do |(k, v), acc|
       acc[k.to_s] = v.to_i if k.to_s.start_with?("SIG_") && v.to_i > 0
+    end
+  end
+
+  def normalized_anomaly_flags(raw)
+    return [] unless raw.is_a?(Array)
+
+    raw.filter_map { |f| f.to_s.strip.presence }.uniq.first(16)
+  end
+
+  def sync_point_events!(window_record, breakdown)
+    entries = Array(breakdown).select { |e| e.is_a?(Hash) }
+    if entries.empty?
+      # Graceful fallback when older clients emit signal_counts without signal_breakdown
+      counts = window_record.signal_counts || {}
+      total_triggers = counts.values.sum.to_f
+      entries = counts.map do |code, cnt|
+        share = total_triggers > 0 ? (window_record.struggle_points.to_f * (cnt.to_f / total_triggers)).round(2) : 0.0
+        {
+          "signal_code" => code,
+          "trigger_count" => cnt.to_i,
+          "raw_points" => share,
+          "awarded_points" => share,
+          "provenance_mask" => window_record.provenance_mask,
+          "gate_status" => "awarded"
+        }
+      end
+    end
+
+    entries.each do |raw_entry|
+      entry = raw_entry.stringify_keys
+      code = entry["signal_code"].to_s
+      next unless StrugglePointEvent::SIGNAL_LABELS.key?(code)
+
+      ev = window_record.struggle_point_events.find_or_initialize_by(signal_code: code)
+      ev.assign_attributes(
+        user_id: window_record.user_id,
+        project_hash: window_record.project_hash,
+        project_name: window_record.project_name,
+        window_start: window_record.window_start,
+        trigger_count: [ entry["trigger_count"].to_i, 1 ].max,
+        raw_points: [ entry["raw_points"].to_d, 0.to_d ].max,
+        awarded_points: [ entry["awarded_points"].to_d, 0.to_d ].max,
+        provenance_tier: StrugglePointEvent.tier_from_mask(entry["provenance_mask"] || window_record.provenance_mask),
+        persisted_diff_lines: window_record.persisted_diff_lines,
+        git_head_sha: window_record.git_head_sha,
+        gate_status: entry["gate_status"].to_s.presence || "awarded"
+      )
+      ev.save!
     end
   end
 end

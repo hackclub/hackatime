@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_23_120004) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_23_120005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_stat_statements"
@@ -93,6 +93,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120004) do
     t.datetime "reviewed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "sampled_randomly", default: false, null: false
+    t.string "sampling_reason"
     t.index ["review_status", "created_at"], name: "index_audit_submissions_on_review_status_and_created_at"
     t.index ["user_id", "project_hash"], name: "index_audit_submissions_on_user_id_and_project_hash"
     t.index ["user_id"], name: "index_audit_submissions_on_user_id"
@@ -729,6 +731,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120004) do
     t.index ["user_id"], name: "index_struggle_conversions_on_user_id"
   end
 
+  create_table "struggle_point_events", force: :cascade do |t|
+    t.bigint "struggle_window_id", null: false
+    t.bigint "user_id", null: false
+    t.string "project_hash", null: false
+    t.string "project_name"
+    t.datetime "window_start", null: false
+    t.string "signal_code", null: false
+    t.integer "trigger_count", default: 1, null: false
+    t.decimal "raw_points", precision: 6, scale: 2, default: "0.0", null: false
+    t.decimal "awarded_points", precision: 6, scale: 2, default: "0.0", null: false
+    t.string "provenance_tier", default: "tier_b", null: false
+    t.integer "persisted_diff_lines", default: 0, null: false
+    t.string "git_head_sha"
+    t.string "gate_status", default: "awarded", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["gate_status", "created_at"], name: "idx_sp_events_gate_status"
+    t.index ["struggle_window_id", "signal_code"], name: "idx_sp_events_window_signal", unique: true
+    t.index ["struggle_window_id"], name: "index_struggle_point_events_on_struggle_window_id"
+    t.index ["user_id", "project_hash", "signal_code"], name: "idx_sp_events_user_project_signal"
+    t.index ["user_id", "window_start"], name: "idx_sp_events_user_time"
+    t.index ["user_id"], name: "index_struggle_point_events_on_user_id"
+  end
+
   create_table "struggle_windows", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.bigint "struggle_conversion_id"
@@ -755,6 +781,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120004) do
     t.binary "signature", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "persisted_diff_lines", default: 0, null: false
+    t.jsonb "anomaly_flags", default: [], null: false
     t.index ["struggle_conversion_id"], name: "index_struggle_windows_on_struggle_conversion_id"
     t.index ["user_id", "project_hash", "window_start"], name: "idx_struggle_windows_user_project_window", unique: true
     t.index ["user_id", "project_hash"], name: "idx_struggle_windows_unconverted", where: "(converted_at IS NULL)"
@@ -906,6 +934,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120004) do
   add_foreign_key "repo_host_events", "users"
   add_foreign_key "sign_in_tokens", "users"
   add_foreign_key "struggle_conversions", "users", on_delete: :cascade
+  add_foreign_key "struggle_point_events", "struggle_windows", on_delete: :cascade
+  add_foreign_key "struggle_point_events", "users", on_delete: :cascade
   add_foreign_key "struggle_windows", "struggle_conversions", on_delete: :nullify
   add_foreign_key "struggle_windows", "users", on_delete: :cascade
   add_foreign_key "trust_level_audit_logs", "users"

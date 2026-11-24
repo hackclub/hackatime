@@ -18,9 +18,34 @@
     struggle_points: number;
     effective_multiplier: number;
     provenance_mask: number;
+    persisted_diff_lines: number;
     ai_harness: string;
     signal_counts: Record<string, number>;
     git_head_sha?: string | null;
+  }
+
+  interface SignalBreakdownRow {
+    signal_code: string;
+    label: string;
+    trigger_count: number;
+    raw_points: number;
+    awarded_points: number;
+    gated_windows: number;
+    total_windows: number;
+  }
+
+  interface PointEventRow {
+    id: number;
+    window_start: string;
+    signal_code: string;
+    signal_label: string;
+    trigger_count: number;
+    raw_points: number;
+    awarded_points: number;
+    provenance_tier: string;
+    persisted_diff_lines: number;
+    gate_status: string;
+    gate_label: string;
   }
 
   interface SubmissionDetail {
@@ -36,6 +61,8 @@
     chain_verified: boolean;
     git_push_verified: boolean;
     plugin_share_pct: number;
+    sampled_randomly: boolean;
+    sampling_reason?: string | null;
     anomaly_flags: AnomalyFlag[];
     review_status: string;
     reviewer_notes?: string | null;
@@ -45,10 +72,14 @@
     page_title,
     submission,
     windows,
+    sp_breakdown,
+    point_events,
   }: {
     page_title: string;
     submission: SubmissionDetail;
     windows: TimelineWindow[];
+    sp_breakdown: SignalBreakdownRow[];
+    point_events: PointEventRow[];
   } = $props();
 
   let selectedIndex = $state(0);
@@ -105,6 +136,9 @@
       </h1>
       <p class="text-xs font-mono text-secondary">
         Program: {submission.program_slug} · Bundle SHA-256: {submission.bundle_sha256.slice(0, 16)}...
+        {#if submission.sampling_reason}
+          · Audit Sampling: {submission.sampling_reason}{submission.sampled_randomly ? " (random)" : ""}
+        {/if}
       </p>
     </div>
     <span class="rounded-full border border-surface-300 bg-surface-200 px-3 py-1 text-xs font-bold uppercase">
@@ -179,6 +213,7 @@
           <span>Window: <strong>{selectedWindow.window_start}</strong></span>
           <span>Multiplier: <strong>{selectedWindow.effective_multiplier.toFixed(2)}x</strong> ({selectedWindow.struggle_points} SP)</span>
           <span>Credited: <strong>{selectedWindow.credited_seconds}s</strong> / {selectedWindow.raw_seconds}s</span>
+          <span>Diff Lines: <strong>{selectedWindow.persisted_diff_lines}</strong></span>
           <span>Harness: <strong>{selectedWindow.ai_harness}</strong></span>
         </div>
         <div class="flex flex-wrap gap-1.5">
@@ -191,6 +226,61 @@
             </span>
           {/if}
         </div>
+      </div>
+    {/if}
+  </section>
+
+  <!-- PostgreSQL SP Earning Ledger & Pattern Breakdown for Fraud Squad -->
+  <section class="rounded-xl border border-surface-300 bg-surface-100 p-5 space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="text-base font-semibold">SP Earning Pattern Ledger ({point_events.length} recent events)</h2>
+      <span class="text-xs text-secondary">PostgreSQL <span class="font-mono">struggle_point_events</span></span>
+    </div>
+
+    {#if sp_breakdown.length > 0}
+      <div class="grid grid-cols-2 gap-2 md:grid-cols-4">
+        {#each sp_breakdown as row (row.signal_code)}
+          <div class="rounded-lg border border-surface-300 bg-surface-200/30 p-3 text-xs">
+            <div class="font-semibold truncate">{row.label}</div>
+            <div class="mt-1 font-mono text-emerald-400 font-bold">{row.awarded_points.toFixed(1)} SP</div>
+            <div class="text-[11px] text-secondary">
+              {row.trigger_count}× · {row.gated_windows} gated
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
+
+    {#if point_events.length > 0}
+      <div class="max-h-64 overflow-y-auto rounded-lg border border-surface-300">
+        <table class="w-full text-left text-xs">
+          <thead class="sticky top-0 bg-surface-200 text-secondary">
+            <tr>
+              <th class="px-3 py-2">Window</th>
+              <th class="px-3 py-2">Signal</th>
+              <th class="px-3 py-2">Awarded / Raw</th>
+              <th class="px-3 py-2">Diff Lines</th>
+              <th class="px-3 py-2">Tier</th>
+              <th class="px-3 py-2">Gate Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-surface-300/60">
+            {#each point_events as ev (ev.id)}
+              <tr>
+                <td class="px-3 py-1.5 font-mono">{ev.window_start.replace("T", " ").slice(0, 16)}</td>
+                <td class="px-3 py-1.5">{ev.signal_label} ×{ev.trigger_count}</td>
+                <td class="px-3 py-1.5 font-mono">
+                  <span class={ev.awarded_points > 0 ? "text-emerald-400" : "text-rose-400"}>
+                    {ev.awarded_points.toFixed(1)}
+                  </span>/{ev.raw_points.toFixed(1)}
+                </td>
+                <td class="px-3 py-1.5 font-mono">{ev.persisted_diff_lines}</td>
+                <td class="px-3 py-1.5 font-mono uppercase text-[10px]">{ev.provenance_tier}</td>
+                <td class="px-3 py-1.5 text-[11px]">{ev.gate_label}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
     {/if}
   </section>

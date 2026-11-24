@@ -52,7 +52,12 @@ class Api::Hackatime::V1::StruggleWindowsControllerTest < ActionDispatch::Integr
       provenance_mask: 3,
       primary_language: "C++",
       ai_harness: "antigravity",
+      persisted_diff_lines: 18,
       signal_counts: { "SIG_ARCH_STEER" => 1, "SIG_VERIFY_EXEC" => 1 },
+      signal_breakdown: [
+        { signal_code: "SIG_ARCH_STEER", trigger_count: 1, raw_points: 4.0, awarded_points: 4.0, provenance_mask: 2, gate_status: "awarded" },
+        { signal_code: "SIG_VERIFY_EXEC", trigger_count: 1, raw_points: 3.0, awarded_points: 3.0, provenance_mask: 1, gate_status: "awarded" }
+      ],
       git_head_sha: "1111111111111111111111111111111111111111",
       prev_chain_hash: prev_chain_hash,
       server_nonce: server_nonce,
@@ -105,6 +110,12 @@ class Api::Hackatime::V1::StruggleWindowsControllerTest < ActionDispatch::Integr
     assert_equal [ 0, 0 ], ingested.pluck(:credited_seconds)
     assert_equal [ 300, 300 ], ingested.pluck(:convertible_seconds)
     assert_equal [ nil, nil ], ingested.pluck(:converted_at)
+    assert_equal [ 18, 18 ], ingested.pluck(:persisted_diff_lines)
+
+    # PostgreSQL SP Earning Ledger records exact per-signal breakdown rows atomically
+    assert_equal 4, @user.struggle_point_events.count
+    assert_equal %w[SIG_ARCH_STEER SIG_VERIFY_EXEC],
+      @user.struggle_point_events.distinct.order(:signal_code).pluck(:signal_code)
   end
 
   test "rejects forged offline server_nonce and rolls back entire batch atomically" do

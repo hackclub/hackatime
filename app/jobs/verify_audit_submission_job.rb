@@ -1,5 +1,6 @@
-# Runs Layer 1 (chain linkage), Layer 2 (authoritative GitHub/GitLab commit DAG cross-check),
-# and Layer 3 (statistical behavioral anomaly detection) asynchronously via GoodJob.
+# Runs Layer 1 (chain linkage), Layer 2 (authoritative GitHub/GitLab commit DAG & surviving diff check),
+# Layer 3 (Fraud Squad behavioral pattern analysis across the SP ledger — without client bot blocking),
+# and Layer 4 (unpredictable stratified audit sampling via AuditSamplingService).
 class VerifyAuditSubmissionJob < ApplicationJob
   queue_as :default
 
@@ -8,6 +9,7 @@ class VerifyAuditSubmissionJob < ApplicationJob
     return unless submission
 
     windows = submission.project_windows.to_a
+    events = StrugglePointEvent.where(user_id: submission.user_id, project_hash: submission.project_hash)
     flags = []
 
     # Layer 1: Verify cryptographic hash-chain continuity across all project windows
@@ -22,7 +24,7 @@ class VerifyAuditSubmissionJob < ApplicationJob
       prev_hash = w.chain_hash
     end
 
-    # Layer 2: Cross-verify telemetry SHAs against Hackatime's persisted GitHub commits table
+    # Layer 2: Cross-verify surviving telemetry SHAs against Hackatime's persisted GitHub commits table
     recorded_shas = windows.filter_map(&:git_head_sha).uniq
     verified_commit_count = if recorded_shas.any?
       Commit.where(user_id: submission.user_id, sha: recorded_shas).count
@@ -41,11 +43,21 @@ class VerifyAuditSubmissionJob < ApplicationJob
       flags << {
         severity: "medium",
         code: "unverified_remote_commits",
-        message: "No local Git SHAs matched synced remote commits yet"
+        message: "No local Git SHAs matched synced surviving remote commits yet"
       }
     end
 
-    # Layer 3: Statistical behavioral anomaly detection & Tier-C Plugin SDK segregation
+    # Surviving diff-persistence corroboration
+    total_persisted_diff_lines = windows.sum(&:persisted_diff_lines)
+    if submission.submitted_hours.to_f >= 1.0 && total_persisted_diff_lines == 0
+      flags << {
+        severity: "high",
+        code: "zero_persisted_diff_lines",
+        message: "Claimed #{submission.submitted_hours}h with 0 persisted diff lines across #{windows.size} windows"
+      }
+    end
+
+    # Layer 3: Fraud Squad Pattern Analysis (SP Ledger gated ratio, Tier-C share, repetitive signatures)
     tier_c_count = windows.count { |w| (w.provenance_mask & 4) != 0 }
     plugin_share = windows.any? ? ((tier_c_count.to_f / windows.size) * 100.0).round(2) : 0.0
 
@@ -57,23 +69,69 @@ class VerifyAuditSubmissionJob < ApplicationJob
       }
     end
 
-    # Detect impossible 6+ consecutive hours of flat 1.00x with zero error loops
-    flat_perfect_streak = 0
-    max_flat_streak = 0
+    # Skilled-builder fairness: only flag flat 6h 1.00x streaks when AI-heavy AND lacking persisted diff/commit evidence.
+    # Skilled manual builders writing clean code & passing tests without compiler errors are NOT flagged.
+    ai_flat_streak = 0
+    max_ai_flat_streak = 0
     windows.each do |w|
       errors = w.signal_counts.is_a?(Hash) ? w.signal_counts["SIG_ERROR_LOOP"].to_i : 0
-      if w.effective_multiplier.to_f >= 0.999 && errors == 0
-        flat_perfect_streak += 1
-        max_flat_streak = [ max_flat_streak, flat_perfect_streak ].max
+      is_ai_session = w.ai_harness.present? && w.ai_harness != "none"
+      if is_ai_session && w.effective_multiplier.to_f >= 0.999 && errors == 0 && w.persisted_diff_lines == 0
+        ai_flat_streak += 1
+        max_ai_flat_streak = [ max_ai_flat_streak, ai_flat_streak ].max
       else
-        flat_perfect_streak = 0
+        ai_flat_streak = 0
       end
     end
-    if max_flat_streak >= 72
+    if max_ai_flat_streak >= 72
       flags << {
         severity: "high",
-        code: "impossible_flat_multiplier",
-        message: "#{max_flat_streak} consecutive 1.00x windows (~#{(max_flat_streak / 12.0).round(1)}h) with zero compiler/test errors"
+        code: "impossible_flat_ai_multiplier",
+        message: "#{max_ai_flat_streak} consecutive AI 1.00x windows (~#{(max_ai_flat_streak / 12.0).round(1)}h) with zero errors and zero persisted diffs"
+      }
+    end
+
+    # Fraud Squad pattern check: repeated identical per-window signal fingerprints (e.g. scripted loops)
+    same_sig_streak = 0
+    max_same_sig_streak = 0
+    prev_sig = nil
+    windows.each do |w|
+      sig = [ (w.signal_counts || {}).sort.to_a, w.effective_multiplier_milli, w.persisted_diff_lines ]
+      if sig == prev_sig && sig.first.any?
+        same_sig_streak += 1
+        max_same_sig_streak = [ max_same_sig_streak, same_sig_streak ].max
+      else
+        same_sig_streak = 1
+        prev_sig = sig
+      end
+    end
+    if max_same_sig_streak >= 12
+      flags << {
+        severity: "medium",
+        code: "repeated_identical_window_pattern",
+        message: "#{max_same_sig_streak} consecutive windows had identical signal counts & multiplier fingerprints (review pattern)"
+      }
+    end
+
+    # Summarize gated/suppressed SP attempts from the PostgreSQL SP Ledger
+    total_events = events.count
+    gated_events = events.gated.count
+    if total_events >= 10 && (gated_events.to_f / total_events) > 0.35
+      pct = ((gated_events.to_f / total_events) * 100.0).round(1)
+      flags << {
+        severity: "medium",
+        code: "high_gated_sp_ratio",
+        message: "#{gated_events}/#{total_events} (#{pct}%) SP ledger entries were suppressed by persistence/dedup/oscillation gates"
+      }
+    end
+
+    # Surface oscillation / keyword-stuffing anomaly flags recorded on windows
+    oscillation_windows = windows.count { |w| Array(w.anomaly_flags).include?("oscillating_error_loop") }
+    if oscillation_windows >= 2
+      flags << {
+        severity: "high",
+        code: "oscillating_reset_loop_pattern",
+        message: "#{oscillation_windows} windows exhibited repeated error/reset oscillation without net repo progress"
       }
     end
 
@@ -92,5 +150,8 @@ class VerifyAuditSubmissionJob < ApplicationJob
       plugin_share_pct: plugin_share,
       anomaly_flags: flags
     )
+
+    # Layer 4: Cryptographically unpredictable stratified audit sampling
+    AuditSamplingService.apply!(submission)
   end
 end
