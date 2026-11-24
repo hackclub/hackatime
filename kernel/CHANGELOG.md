@@ -100,3 +100,4 @@
 - remove jiffies for the streak
 - remove swap (no functional change)
 - remove NUMA for 32-bit
+- remove vsyscall per review feedback
