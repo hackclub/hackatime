@@ -1,2 +1,3 @@
 - track time in interrupt handlers
 - add heartbeat for the heartbeat
+- count time spent counting time
