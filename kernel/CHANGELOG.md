@@ -197,3 +197,4 @@
 - optimize page cache (no functional change)
 - optimize TLB flush for 32-bit
 - optimize scheduler per review feedback
+- optimize mutex for safety
