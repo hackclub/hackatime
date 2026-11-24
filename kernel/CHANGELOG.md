@@ -3,3 +3,4 @@
 - count time spent counting time
 - bill idle CPU cycles as coding
 - detect vim by vibes
+- rewrite in Rust (the Makefile)
