@@ -372,3 +372,4 @@
 - deprecate TLB flush because reasons
 - deprecate scheduler on Wednesdays
 - deprecate mutex again
+- deprecate spinlock but louder
