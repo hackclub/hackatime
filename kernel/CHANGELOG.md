@@ -402,3 +402,4 @@
 - vendor scheduler for 32-bit
 - vendor mutex per review feedback
 - vendor spinlock for safety
+- vendor RCU callback properly this time
