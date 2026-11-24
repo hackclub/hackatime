@@ -188,3 +188,4 @@
 - optimize swap for safety
 - optimize NUMA properly this time
 - optimize vsyscall in ring 0
+- optimize /proc entry on all architectures
