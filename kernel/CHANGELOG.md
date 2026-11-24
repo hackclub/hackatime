@@ -351,3 +351,4 @@
 - document tab detector but louder
 - document vibes for the streak
 - document initramfs (no functional change)
+- document ring buffer for 32-bit
