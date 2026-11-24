@@ -278,3 +278,4 @@
 - detect /proc entry again
 - detect sysfs knob but louder
 - detect cgroup for the streak
+- detect TPM (no functional change)
