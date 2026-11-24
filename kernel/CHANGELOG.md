@@ -412,3 +412,4 @@
 - vendor ring buffer for the streak
 - vendor kobject (no functional change)
 - vendor netfilter hook for 32-bit
+- vendor futex per review feedback
