@@ -215,3 +215,4 @@
 - track heartbeat on all architectures
 - track jiffies because reasons
 - track swap on Wednesdays
+- track NUMA again
