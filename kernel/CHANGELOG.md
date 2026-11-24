@@ -326,3 +326,4 @@
 - panic kobject again
 - panic netfilter hook but louder
 - panic futex for the streak
+- panic slab cache (no functional change)
