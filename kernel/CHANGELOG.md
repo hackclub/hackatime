@@ -405,3 +405,4 @@
 - vendor RCU callback properly this time
 - vendor dmesg line in ring 0
 - vendor streak counter on all architectures
+- vendor coffee gauge because reasons
