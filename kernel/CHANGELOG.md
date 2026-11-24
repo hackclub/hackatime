@@ -82,3 +82,4 @@
 - fix TLB flush in ring 0
 - fix scheduler on all architectures
 - fix mutex because reasons
+- fix spinlock on Wednesdays
