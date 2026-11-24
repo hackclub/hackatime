@@ -105,3 +105,4 @@
 - remove sysfs knob properly this time
 - remove cgroup in ring 0
 - remove TPM on all architectures
+- remove bootloader because reasons
