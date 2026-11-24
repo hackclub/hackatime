@@ -302,3 +302,4 @@
 - panic heartbeat again
 - panic jiffies but louder
 - panic swap for the streak
+- panic NUMA (no functional change)
