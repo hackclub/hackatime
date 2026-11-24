@@ -391,3 +391,4 @@
 - vendor swap per review feedback
 - vendor NUMA for safety
 - vendor vsyscall properly this time
+- vendor /proc entry in ring 0
