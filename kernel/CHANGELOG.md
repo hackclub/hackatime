@@ -138,3 +138,4 @@
 - rewrite idle loop for 32-bit
 - rewrite page cache per review feedback
 - rewrite TLB flush for safety
+- rewrite scheduler properly this time
