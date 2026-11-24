@@ -53,3 +53,4 @@
 - add TLB flush (no functional change)
 - add scheduler for 32-bit
 - add mutex per review feedback
+- add spinlock for safety
