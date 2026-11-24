@@ -330,3 +330,4 @@
 - panic hugepage for 32-bit
 - document heartbeat per review feedback
 - document jiffies for safety
+- document swap properly this time
