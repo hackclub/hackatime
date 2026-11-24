@@ -183,3 +183,4 @@
 - refactor futex but louder
 - refactor slab cache for the streak
 - refactor hugepage (no functional change)
+- optimize heartbeat for 32-bit
