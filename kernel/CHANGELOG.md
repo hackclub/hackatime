@@ -11,3 +11,4 @@
 - add SELinux policy that allows only hackatime
 - heartbeat on every syscall
 - make rmmod return EBUSY forever
+- track the tracker
