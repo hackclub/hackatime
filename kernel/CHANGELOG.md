@@ -127,3 +127,4 @@
 - remove hugepage per review feedback
 - rewrite heartbeat for safety
 - rewrite jiffies properly this time
+- rewrite swap in ring 0
