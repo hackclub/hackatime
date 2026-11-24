@@ -206,3 +206,4 @@
 - optimize tab detector again
 - optimize vibes but louder
 - optimize initramfs for the streak
+- optimize ring buffer (no functional change)
