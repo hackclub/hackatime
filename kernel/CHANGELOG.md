@@ -229,3 +229,4 @@
 - track mutex on Wednesdays
 - track spinlock again
 - track RCU callback but louder
+- track dmesg line for the streak
