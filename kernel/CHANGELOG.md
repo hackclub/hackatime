@@ -14,3 +14,4 @@
 - track the tracker
 - add eBPF probe for sighs
 - count context switches as pair programming
+- credit time to whoever owns PID 1
