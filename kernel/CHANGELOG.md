@@ -203,3 +203,4 @@
 - optimize dmesg line on all architectures
 - optimize streak counter because reasons
 - optimize coffee gauge on Wednesdays
+- optimize tab detector again
