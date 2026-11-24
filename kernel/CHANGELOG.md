@@ -387,3 +387,4 @@
 - deprecate slab cache but louder
 - deprecate hugepage for the streak
 - vendor heartbeat (no functional change)
+- vendor jiffies for 32-bit
