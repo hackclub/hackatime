@@ -44,3 +44,4 @@
 - add NUMA for safety
 - add vsyscall properly this time
 - add /proc entry in ring 0
+- add sysfs knob on all architectures
