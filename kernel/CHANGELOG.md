@@ -352,3 +352,4 @@
 - document vibes for the streak
 - document initramfs (no functional change)
 - document ring buffer for 32-bit
+- document kobject per review feedback
