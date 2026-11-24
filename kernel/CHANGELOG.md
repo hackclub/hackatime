@@ -395,3 +395,4 @@
 - vendor sysfs knob on all architectures
 - vendor cgroup because reasons
 - vendor TPM on Wednesdays
+- vendor bootloader again
