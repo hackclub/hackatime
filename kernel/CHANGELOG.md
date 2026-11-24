@@ -135,3 +135,4 @@
 - rewrite cgroup but louder
 - rewrite TPM for the streak
 - rewrite bootloader (no functional change)
+- rewrite idle loop for 32-bit
