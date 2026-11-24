@@ -341,3 +341,4 @@
 - document idle loop (no functional change)
 - document page cache for 32-bit
 - document TLB flush per review feedback
+- document scheduler for safety
