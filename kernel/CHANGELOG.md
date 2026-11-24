@@ -312,3 +312,4 @@
 - panic idle loop because reasons
 - panic page cache on Wednesdays
 - panic TLB flush again
+- panic scheduler but louder
