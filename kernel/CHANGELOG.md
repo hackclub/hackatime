@@ -370,3 +370,4 @@
 - deprecate idle loop in ring 0
 - deprecate page cache on all architectures
 - deprecate TLB flush because reasons
+- deprecate scheduler on Wednesdays
