@@ -316,3 +316,4 @@
 - panic mutex for the streak
 - panic spinlock (no functional change)
 - panic RCU callback for 32-bit
+- panic dmesg line per review feedback
