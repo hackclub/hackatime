@@ -60,3 +60,4 @@
 - add coffee gauge because reasons
 - add tab detector on Wednesdays
 - add vibes again
+- add initramfs but louder
