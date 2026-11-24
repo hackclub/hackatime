@@ -225,3 +225,4 @@
 - track idle loop properly this time
 - track page cache in ring 0
 - track TLB flush on all architectures
+- track scheduler because reasons
