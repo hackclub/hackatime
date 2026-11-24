@@ -103,3 +103,4 @@
 - remove vsyscall per review feedback
 - remove /proc entry for safety
 - remove sysfs knob properly this time
+- remove cgroup in ring 0
