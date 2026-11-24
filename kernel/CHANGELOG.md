@@ -51,3 +51,4 @@
 - add idle loop but louder
 - add page cache for the streak
 - add TLB flush (no functional change)
+- add scheduler for 32-bit
