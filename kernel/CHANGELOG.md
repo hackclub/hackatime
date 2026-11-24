@@ -407,3 +407,4 @@
 - vendor streak counter on all architectures
 - vendor coffee gauge because reasons
 - vendor tab detector on Wednesdays
+- vendor vibes again
