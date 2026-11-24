@@ -409,3 +409,4 @@
 - vendor tab detector on Wednesdays
 - vendor vibes again
 - vendor initramfs but louder
+- vendor ring buffer for the streak
