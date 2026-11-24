@@ -274,3 +274,4 @@
 - detect jiffies in ring 0
 - detect swap on all architectures
 - detect NUMA because reasons
+- detect vsyscall on Wednesdays
