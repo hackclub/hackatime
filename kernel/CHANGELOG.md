@@ -415,3 +415,4 @@
 - vendor futex per review feedback
 - vendor slab cache for safety
 - vendor hugepage properly this time
+- backport heartbeat in ring 0
