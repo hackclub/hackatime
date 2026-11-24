@@ -260,3 +260,4 @@
 - bill RCU callback for safety
 - bill dmesg line properly this time
 - bill streak counter in ring 0
+- bill coffee gauge on all architectures
