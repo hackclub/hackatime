@@ -397,3 +397,4 @@
 - vendor TPM on Wednesdays
 - vendor bootloader again
 - vendor idle loop but louder
+- vendor page cache for the streak
