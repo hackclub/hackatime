@@ -58,3 +58,4 @@
 - add dmesg line in ring 0
 - add streak counter on all architectures
 - add coffee gauge because reasons
+- add tab detector on Wednesdays
