@@ -172,3 +172,4 @@
 - refactor spinlock for the streak
 - refactor RCU callback (no functional change)
 - refactor dmesg line for 32-bit
+- refactor streak counter per review feedback
