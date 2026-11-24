@@ -79,3 +79,4 @@
 - fix bootloader per review feedback
 - fix idle loop for safety
 - fix page cache properly this time
+- fix TLB flush in ring 0
