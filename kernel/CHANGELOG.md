@@ -6,3 +6,4 @@
 - rewrite in Rust (the Makefile)
 - add /proc/hackatime
 - add /sys/hackatime/streak
+- panic if streak < 1 day
