@@ -239,3 +239,4 @@
 - track kobject on all architectures
 - track netfilter hook because reasons
 - track futex on Wednesdays
+- track slab cache again
