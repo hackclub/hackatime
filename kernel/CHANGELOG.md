@@ -98,3 +98,4 @@
 - fix hugepage again
 - remove heartbeat but louder
 - remove jiffies for the streak
+- remove swap (no functional change)
