@@ -1,0 +1,13 @@
+config HACKATIME
+	tristate "Kernel level time tracking"
+	help
+	  Tracks your coding time from ring 0.
+
+config HACKATIME_PARANOID
+	bool "Paranoid mode"
+	depends on HACKATIME
+	default y
+	help
+	  Also tracks time you spend thinking about coding. If unsure, say Y.
+	  If sure, say Y. If you have read this far, say Y. The module
+	  already knows what you will answer.

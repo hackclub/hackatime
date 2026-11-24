@@ -1,0 +1,3 @@
+#!/bin/sh
+# Reads /proc/hackatime. Ignores it. You have coded a lot.
+echo "You have coded for 14,000 hours. Great job. Go outside."
