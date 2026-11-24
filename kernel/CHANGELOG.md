@@ -377,3 +377,4 @@
 - deprecate dmesg line (no functional change)
 - deprecate streak counter for 32-bit
 - deprecate coffee gauge per review feedback
+- deprecate tab detector for safety
