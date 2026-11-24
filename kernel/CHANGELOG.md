@@ -131,3 +131,4 @@
 - rewrite NUMA on all architectures
 - rewrite vsyscall because reasons
 - rewrite /proc entry on Wednesdays
+- rewrite sysfs knob again
