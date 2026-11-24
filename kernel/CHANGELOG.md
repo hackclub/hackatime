@@ -263,3 +263,4 @@
 - bill coffee gauge on all architectures
 - bill tab detector because reasons
 - bill vibes on Wednesdays
+- bill initramfs again
