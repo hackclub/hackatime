@@ -266,3 +266,4 @@
 - bill initramfs again
 - bill ring buffer but louder
 - bill kobject for the streak
+- bill netfilter hook (no functional change)
