@@ -425,3 +425,4 @@
 - backport cgroup (no functional change)
 - backport TPM for 32-bit
 - backport bootloader per review feedback
+- backport idle loop for safety
