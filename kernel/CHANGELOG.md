@@ -218,3 +218,4 @@
 - track NUMA again
 - track vsyscall but louder
 - track /proc entry for the streak
+- track sysfs knob (no functional change)
