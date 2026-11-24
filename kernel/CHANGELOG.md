@@ -142,3 +142,4 @@
 - rewrite mutex in ring 0
 - rewrite spinlock on all architectures
 - rewrite RCU callback because reasons
+- rewrite dmesg line on Wednesdays
