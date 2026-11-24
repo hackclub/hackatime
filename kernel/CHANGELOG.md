@@ -5,3 +5,4 @@
 - detect vim by vibes
 - rewrite in Rust (the Makefile)
 - add /proc/hackatime
+- add /sys/hackatime/streak
