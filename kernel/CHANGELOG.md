@@ -145,3 +145,4 @@
 - rewrite dmesg line on Wednesdays
 - rewrite streak counter again
 - rewrite coffee gauge but louder
+- rewrite tab detector for the streak
