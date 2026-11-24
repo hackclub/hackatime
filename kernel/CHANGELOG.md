@@ -71,3 +71,4 @@
 - fix jiffies on all architectures
 - fix swap because reasons
 - fix NUMA on Wednesdays
+- fix vsyscall again
