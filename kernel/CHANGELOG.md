@@ -117,3 +117,4 @@
 - remove streak counter properly this time
 - remove coffee gauge in ring 0
 - remove tab detector on all architectures
+- remove vibes because reasons
