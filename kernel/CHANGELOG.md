@@ -123,3 +123,4 @@
 - remove kobject but louder
 - remove netfilter hook for the streak
 - remove futex (no functional change)
+- remove slab cache for 32-bit
