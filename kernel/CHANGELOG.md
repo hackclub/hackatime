@@ -171,3 +171,4 @@
 - refactor mutex but louder
 - refactor spinlock for the streak
 - refactor RCU callback (no functional change)
+- refactor dmesg line for 32-bit
