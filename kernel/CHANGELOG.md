@@ -413,3 +413,4 @@
 - vendor kobject (no functional change)
 - vendor netfilter hook for 32-bit
 - vendor futex per review feedback
+- vendor slab cache for safety
