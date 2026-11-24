@@ -305,3 +305,4 @@
 - panic NUMA (no functional change)
 - panic vsyscall for 32-bit
 - panic /proc entry per review feedback
+- panic sysfs knob for safety
