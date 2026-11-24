@@ -257,3 +257,4 @@
 - bill scheduler (no functional change)
 - bill mutex for 32-bit
 - bill spinlock per review feedback
+- bill RCU callback for safety
