@@ -314,3 +314,4 @@
 - panic TLB flush again
 - panic scheduler but louder
 - panic mutex for the streak
+- panic spinlock (no functional change)
