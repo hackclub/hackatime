@@ -38,6 +38,18 @@
   const langStats = $derived(dict("language_stats"));
   const editorStats = $derived(dict("editor_stats"));
   const osStats = $derived(dict("operating_system_stats"));
+  const rawCategoryStats = $derived(dict("category_stats"));
+  const formatCategory = (cat: string) => {
+    if (!cat) return "";
+    if (cat === "ai coding") return "AI Coding";
+    if (cat === "struggle point time") return "Struggle Point Time";
+    return capitalize(cat);
+  };
+  const categoryStats = $derived(
+    Object.fromEntries(
+      Object.entries(rawCategoryStats).map(([k, v]) => [formatCategory(k), v]),
+    ),
+  );
   const projectEntries = $derived(
     Object.entries(data.project_durations || {}) as [string, number][],
   );
@@ -117,11 +129,9 @@
     {#each STAT_KEYS as [label, valueKey, singularKey, fallback]}
       <StatCard
         {label}
-        value={(valueKey === "top_category" && data[valueKey] === "ai coding"
-          ? "AI Coding"
-          : valueKey === "top_category"
-            ? capitalize(data[valueKey])
-            : data[valueKey]) || fallback}
+        value={(valueKey === "top_category"
+          ? formatCategory(data[valueKey])
+          : data[valueKey]) || fallback}
         subtitle={data[singularKey] ? "obviously" : ""}
       />
     {/each}
@@ -153,6 +163,10 @@
 
     {#if Object.keys(osStats).length > 0}
       <PieChart title="Operating Systems" stats={osStats} />
+    {/if}
+
+    {#if Object.keys(categoryStats).length > 0}
+      <PieChart title="Categories" stats={categoryStats} />
     {/if}
 
     <div class="lg:col-span-2">

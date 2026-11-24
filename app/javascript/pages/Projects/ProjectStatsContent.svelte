@@ -47,7 +47,9 @@
     <StatCard label="Top File" value={topKey(file_stats)} />
     <StatCard
       label="Top Category"
-      value={topKey(category_stats).replace(/^Ai coding$/, "AI Coding")}
+      value={topKey(category_stats)
+        .replace(/^Ai coding$/i, "AI Coding")
+        .replace(/^Struggle point time$/i, "Struggle Point Time")}
     />
     <StatCard label="Days Active" value={`${daysActive} days active`} />
   </div>

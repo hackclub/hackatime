@@ -29,7 +29,7 @@ module Heartbeatable
       where("editor IS NULL OR LOWER(editor) NOT IN (?)", BROWSER_EDITORS)
     }
     scope :leaderboard_eligible, -> {
-      where(category: [ "coding", "ai coding" ])
+      where(category: [ "coding", "ai coding", "struggle point time" ])
         .excluding_browser_time
         .where("project IS DISTINCT FROM ?", "<<LAST_PROJECT>>")
         .with_valid_timestamps

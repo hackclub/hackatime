@@ -48,9 +48,57 @@ class StruggleConversionServiceTest < ActiveSupport::TestCase
     assert_not_nil w1.converted_at
     assert_equal first.conversion.id, w1.struggle_conversion_id
 
+    # Verify converted time was credited into main Hackatime heartbeats under "struggle point time"
+    struggle_hbs = @user.heartbeats.where(category: "struggle point time")
+    assert struggle_hbs.count >= 2
+    assert_equal "demo-game", struggle_hbs.first.project
+    assert_equal "C++", struggle_hbs.first.language
+    assert_equal "antigravity", struggle_hbs.first.editor
+    assert_equal 542, struggle_hbs.duration_seconds
+    assert_equal 542, @user.heartbeats.leaderboard_eligible.duration_seconds
+
+    dashboard = DashboardStats.new(user: @user).filterable_dashboard_data
+    assert_equal 542, dashboard[:total_time]
+    assert_equal 542, dashboard["category_stats"]["struggle point time"]
+    assert_equal 542, dashboard[:coding_category_stats]["struggle point time"]
+
     # Second attempt on the exact same project MUST fail with zero double-claiming
     second = StruggleConversionService.call(user: @user, project_hash: proj)
     refute second.success?
     assert_equal 0, second.converted_count
+  end
+
+  test "conversion alongside existing normal coding heartbeats adds exact struggle point time without gap inflation" do
+    proj = "b" * 64
+    base = Time.current.beginning_of_day.to_i + 3600
+
+    # User coded normally for 120s earlier in the day
+    @user.heartbeats.create!(
+      project: "demo-game", language: "C++", editor: "vscode",
+      category: "coding", entity: "/src/main.cpp", type: "file",
+      is_write: true, source_type: :direct_entry, time: base.to_f
+    )
+    @user.heartbeats.create!(
+      project: "demo-game", language: "C++", editor: "vscode",
+      category: "coding", entity: "/src/main.cpp", type: "file",
+      is_write: true, source_type: :direct_entry, time: (base + 60).to_f
+    )
+    @user.heartbeats.create!(
+      project: "demo-game", language: "C++", editor: "vscode",
+      category: "coding", entity: "/src/main.cpp", type: "file",
+      is_write: true, source_type: :direct_entry, time: (base + 120).to_f
+    )
+
+    # 10 minutes later, user did 200s of verified agentic struggle work
+    create_unconverted_window(project_hash: proj, start_unix: base + 720, raw: 300, convertible: 200, sp: 6.7)
+
+    res = StruggleConversionService.call(user: @user, project_hash: proj)
+    assert res.success?
+    assert_equal 200, res.conversion.total_credited_seconds
+
+    by_cat = Heartbeat.attributed_durations_by(@user.heartbeats, :category)
+    assert_equal 120, by_cat["coding"]
+    assert_equal 200, by_cat["struggle point time"]
+    assert_equal 320, @user.heartbeats.duration_seconds
   end
 end

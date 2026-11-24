@@ -93,9 +93,10 @@ class My::StruggleController < InertiaController
     )
 
     if result.success?
-      hours = (result.conversion.total_credited_seconds / 3600.0).round(2)
+      secs = result.conversion.total_credited_seconds.to_i
+      dur = secs >= 3600 ? "#{secs / 3600}h #{(secs % 3600) / 60}m" : "#{secs / 60}m #{secs % 60}s"
       redirect_to my_struggle_path,
-        notice: "Converted #{result.conversion.total_sp_converted.to_f.round(1)} SP (#{result.converted_count} windows) into #{hours}h of verified Struggle Hours!"
+        notice: "Converted #{result.conversion.total_sp_converted.to_f.round(1)} SP (#{result.converted_count} windows) into #{dur} — credited to your Hackatime dashboard under Struggle Point Time!"
     else
       redirect_to my_struggle_path, alert: result.error
     end

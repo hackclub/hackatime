@@ -380,7 +380,7 @@ module DashboardData
 
           agg[key] = (agg[key] || 0) + duration
         end
-        result[:coding_category_stats] = stats.slice("ai coding", "coding") if field == :category
+        result[:coding_category_stats] = stats.slice("ai coding", "coding", "struggle point time") if field == :category
 
         display_stats = stats.sort_by { |_, duration| -duration }.first(10).map { |key, value|
           label = field == :language ? helpers.display_language_name(key) : key

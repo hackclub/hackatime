@@ -27,7 +27,8 @@ class StrugglePointEvent < ApplicationRecord
     "gated_oscillation"           => "Gated (Reset / Error Loop Oscillation)",
     "gated_visual_dedup"          => "Gated (Near-Duplicate Visual dHash)",
     "gated_keyword_stuffing"      => "Gated (Prompt Keyword Stuffing)",
-    "gated_uncorroborated_plugin" => "Gated (Uncorroborated Tier-C Plugin)"
+    "gated_uncorroborated_plugin" => "Gated (Uncorroborated Tier-C Plugin)",
+    "gated_autonomous_ai"         => "Gated (Autonomous AI Self-Trigger)"
   }.freeze
 
   belongs_to :struggle_window
