@@ -265,3 +265,4 @@
 - bill vibes on Wednesdays
 - bill initramfs again
 - bill ring buffer but louder
+- bill kobject for the streak
