@@ -224,3 +224,4 @@
 - track bootloader for safety
 - track idle loop properly this time
 - track page cache in ring 0
+- track TLB flush on all architectures
