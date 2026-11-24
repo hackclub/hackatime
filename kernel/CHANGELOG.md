@@ -362,3 +362,4 @@
 - deprecate swap again
 - deprecate NUMA but louder
 - deprecate vsyscall for the streak
+- deprecate /proc entry (no functional change)
