@@ -166,3 +166,4 @@
 - refactor bootloader in ring 0
 - refactor idle loop on all architectures
 - refactor page cache because reasons
+- refactor TLB flush on Wednesdays
