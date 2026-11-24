@@ -247,3 +247,4 @@
 - bill NUMA per review feedback
 - bill vsyscall for safety
 - bill /proc entry properly this time
+- bill sysfs knob in ring 0
