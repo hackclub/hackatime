@@ -48,3 +48,4 @@
 - add cgroup because reasons
 - add TPM on Wednesdays
 - add bootloader again
+- add idle loop but louder
