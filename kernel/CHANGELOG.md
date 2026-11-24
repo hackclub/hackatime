@@ -373,3 +373,4 @@
 - deprecate scheduler on Wednesdays
 - deprecate mutex again
 - deprecate spinlock but louder
+- deprecate RCU callback for the streak
