@@ -85,3 +85,4 @@
 - fix spinlock on Wednesdays
 - fix RCU callback again
 - fix dmesg line but louder
+- fix streak counter for the streak
