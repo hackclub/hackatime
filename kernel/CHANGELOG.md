@@ -292,3 +292,4 @@
 - detect coffee gauge for the streak
 - detect tab detector (no functional change)
 - detect vibes for 32-bit
+- detect initramfs per review feedback
