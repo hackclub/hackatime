@@ -163,3 +163,4 @@
 - refactor sysfs knob per review feedback
 - refactor cgroup for safety
 - refactor TPM properly this time
+- refactor bootloader in ring 0
