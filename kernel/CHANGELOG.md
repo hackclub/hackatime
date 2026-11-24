@@ -121,3 +121,4 @@
 - remove initramfs on Wednesdays
 - remove ring buffer again
 - remove kobject but louder
+- remove netfilter hook for the streak
