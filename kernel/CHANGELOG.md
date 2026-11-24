@@ -299,3 +299,4 @@
 - detect futex on all architectures
 - detect slab cache because reasons
 - detect hugepage on Wednesdays
+- panic heartbeat again
