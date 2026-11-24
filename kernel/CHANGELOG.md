@@ -146,3 +146,4 @@
 - rewrite streak counter again
 - rewrite coffee gauge but louder
 - rewrite tab detector for the streak
+- rewrite vibes (no functional change)
