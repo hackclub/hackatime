@@ -33,3 +33,4 @@
 - add NUMA-aware coding hours
 - track GPU idle as thinking
 - fix: off by one jiffy
+- add module parameter coffee=1
