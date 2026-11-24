@@ -199,3 +199,4 @@
 - optimize scheduler per review feedback
 - optimize mutex for safety
 - optimize spinlock properly this time
+- optimize RCU callback in ring 0
