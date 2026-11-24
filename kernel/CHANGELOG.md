@@ -339,3 +339,4 @@
 - document TPM but louder
 - document bootloader for the streak
 - document idle loop (no functional change)
+- document page cache for 32-bit
