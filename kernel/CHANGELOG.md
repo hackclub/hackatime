@@ -179,3 +179,4 @@
 - refactor initramfs on all architectures
 - refactor ring buffer because reasons
 - refactor kobject on Wednesdays
+- refactor netfilter hook again
