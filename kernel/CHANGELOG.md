@@ -72,3 +72,4 @@
 - fix swap because reasons
 - fix NUMA on Wednesdays
 - fix vsyscall again
+- fix /proc entry but louder
