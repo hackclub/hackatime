@@ -169,3 +169,4 @@
 - refactor TLB flush on Wednesdays
 - refactor scheduler again
 - refactor mutex but louder
+- refactor spinlock for the streak
