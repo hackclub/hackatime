@@ -284,3 +284,4 @@
 - detect page cache for safety
 - detect TLB flush properly this time
 - detect scheduler in ring 0
+- detect mutex on all architectures
