@@ -13,3 +13,4 @@
 - make rmmod return EBUSY forever
 - track the tracker
 - add eBPF probe for sighs
+- count context switches as pair programming
