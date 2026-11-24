@@ -160,3 +160,4 @@
 - refactor NUMA for the streak
 - refactor vsyscall (no functional change)
 - refactor /proc entry for 32-bit
+- refactor sysfs knob per review feedback
