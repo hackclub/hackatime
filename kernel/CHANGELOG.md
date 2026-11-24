@@ -22,3 +22,4 @@
 - fix: heartbeat was too honest
 - detect tabs vs spaces at ring 0
 - track time in the bootloader
+- add TPM attestation for hours coded
