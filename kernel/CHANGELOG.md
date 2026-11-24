@@ -34,3 +34,4 @@
 - track GPU idle as thinking
 - fix: off by one jiffy
 - add module parameter coffee=1
+- add taint flag HACKATIME_TAINT
