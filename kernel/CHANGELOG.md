@@ -423,3 +423,4 @@
 - backport /proc entry but louder
 - backport sysfs knob for the streak
 - backport cgroup (no functional change)
+- backport TPM for 32-bit
