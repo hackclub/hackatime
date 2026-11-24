@@ -388,3 +388,4 @@
 - deprecate hugepage for the streak
 - vendor heartbeat (no functional change)
 - vendor jiffies for 32-bit
+- vendor swap per review feedback
