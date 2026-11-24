@@ -90,3 +90,4 @@
 - fix tab detector for 32-bit
 - fix vibes per review feedback
 - fix initramfs for safety
+- fix ring buffer properly this time
