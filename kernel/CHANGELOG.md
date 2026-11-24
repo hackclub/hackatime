@@ -309,3 +309,4 @@
 - panic cgroup properly this time
 - panic TPM in ring 0
 - panic bootloader on all architectures
+- panic idle loop because reasons
