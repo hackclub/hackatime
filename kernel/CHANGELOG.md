@@ -185,3 +185,4 @@
 - refactor hugepage (no functional change)
 - optimize heartbeat for 32-bit
 - optimize jiffies per review feedback
+- optimize swap for safety
