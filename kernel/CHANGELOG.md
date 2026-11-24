@@ -137,3 +137,4 @@
 - rewrite bootloader (no functional change)
 - rewrite idle loop for 32-bit
 - rewrite page cache per review feedback
+- rewrite TLB flush for safety
