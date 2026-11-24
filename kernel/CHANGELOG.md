@@ -223,3 +223,4 @@
 - track TPM per review feedback
 - track bootloader for safety
 - track idle loop properly this time
+- track page cache in ring 0
