@@ -304,3 +304,4 @@
 - panic swap for the streak
 - panic NUMA (no functional change)
 - panic vsyscall for 32-bit
+- panic /proc entry per review feedback
