@@ -270,3 +270,4 @@
 - bill futex for 32-bit
 - bill slab cache per review feedback
 - bill hugepage for safety
+- detect heartbeat properly this time
