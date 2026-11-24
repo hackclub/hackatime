@@ -52,6 +52,7 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
     end
 
     chain_tips = {}
+    persisted_anchors = {}
     rejection_error = nil
 
     ActiveRecord::Base.transaction do
@@ -63,16 +64,35 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
           raise ActiveRecord::Rollback
         end
 
-        unless StruggleNonceStore.valid?(user_id: @user.id, nonce: item[:server_nonce].to_s)
-          rejection_error = "invalid or expired server_nonce (possible backdating)"
-          raise ActiveRecord::Rollback
-        end
-
         project_hash = item[:project_hash].to_s
-        expected_prev = chain_tips[project_hash] ||= StruggleWindow.last_chain_hash_for(
-          user_id: @user.id,
-          project_hash: project_hash
-        )
+        unless persisted_anchors.key?(project_hash)
+          anchor_row = @user.struggle_windows
+                            .where(project_hash: project_hash)
+                            .order(window_start: :desc)
+                            .first
+          persisted_anchors[project_hash] = anchor_row
+          chain_tips[project_hash] = anchor_row&.chain_hash || StruggleWindow::GENESIS_CHAIN_HASH
+        end
+        expected_prev = chain_tips[project_hash]
+
+        nonce_ok = StruggleNonceStore.valid?(user_id: @user.id, nonce: item[:server_nonce].to_s)
+        unless nonce_ok
+          # Offline resilience across up to 7 days / server cache restarts:
+          # Allow a cryptographically chained continuation from an ALREADY-persisted DB window
+          # when the timestamp is within [7 days ago, now + 10 min] and strictly newer than anchor.
+          anchor = persisted_anchors[project_hash]
+          win_time = Time.at(item[:window_start_unix].to_i).utc
+          nonce_str = item[:server_nonce].to_s
+          offline_anchored = anchor.present? &&
+                             nonce_str.match?(/\A[0-9a-f]{32}\z/) &&
+                             win_time > anchor.window_start &&
+                             win_time >= 7.days.ago &&
+                             win_time <= 10.minutes.from_now
+          unless offline_anchored
+            rejection_error = "invalid or expired server_nonce (possible backdating)"
+            raise ActiveRecord::Rollback
+          end
+        end
 
         valid = StruggleChainVerifier.valid?(
           window_params: item.merge(user_id: claimed_user_id),

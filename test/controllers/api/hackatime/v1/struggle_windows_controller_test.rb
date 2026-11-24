@@ -164,4 +164,49 @@ class Api::Hackatime::V1::StruggleWindowsControllerTest < ActionDispatch::Integr
     end
     assert_response :forbidden
   end
+
+  test "accepts offline chained continuation windows within 7 days after server cache restart" do
+    @user.update!(ed25519_public_key: @keypair.raw_public_key)
+    nonce1 = StruggleNonceStore.issue(user_id: @user.id)
+    project_hash = "e" * 64
+    t1 = (Time.current.to_i / 300) * 300 - 900
+
+    w1 = sign_window(
+      user_id: @user.id,
+      project_hash: project_hash,
+      window_start_unix: t1,
+      prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
+      server_nonce: nonce1
+    )
+    post "/api/hackatime/v1/users/current/struggle_windows",
+      params: [ w1 ].to_json,
+      headers: auth_headers
+    assert_response :ok
+    nonce2 = JSON.parse(response.body)["next_server_nonce"]
+
+    # Simulate server restart wiping ephemeral nonce cache while client works offline
+    StruggleNonceStore.clear!
+
+    w2_offline = sign_window(
+      user_id: @user.id,
+      project_hash: project_hash,
+      window_start_unix: t1 + 300,
+      prev_chain_hash: w1[:chain_hash_hex],
+      server_nonce: nonce2
+    )
+    w3_offline = sign_window(
+      user_id: @user.id,
+      project_hash: project_hash,
+      window_start_unix: t1 + 600,
+      prev_chain_hash: w2_offline[:chain_hash_hex],
+      server_nonce: nonce2
+    )
+
+    assert_difference("StruggleWindow.count", 2) do
+      post "/api/hackatime/v1/users/current/struggle_windows",
+        params: [ w2_offline, w3_offline ].to_json,
+        headers: auth_headers
+    end
+    assert_response :ok
+  end
 end
