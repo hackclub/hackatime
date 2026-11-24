@@ -193,3 +193,4 @@
 - optimize cgroup on Wednesdays
 - optimize TPM again
 - optimize bootloader but louder
+- optimize idle loop for the streak
