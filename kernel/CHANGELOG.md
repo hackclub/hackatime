@@ -365,3 +365,4 @@
 - deprecate /proc entry (no functional change)
 - deprecate sysfs knob for 32-bit
 - deprecate cgroup per review feedback
+- deprecate TPM for safety
