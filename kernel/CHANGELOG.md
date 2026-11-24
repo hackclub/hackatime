@@ -221,3 +221,4 @@
 - track sysfs knob (no functional change)
 - track cgroup for 32-bit
 - track TPM per review feedback
+- track bootloader for safety
