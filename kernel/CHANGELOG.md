@@ -400,3 +400,4 @@
 - vendor page cache for the streak
 - vendor TLB flush (no functional change)
 - vendor scheduler for 32-bit
+- vendor mutex per review feedback
