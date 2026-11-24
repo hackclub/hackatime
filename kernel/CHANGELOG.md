@@ -17,3 +17,4 @@
 - credit time to whoever owns PID 1
 - add dmesg leaderboard
 - track time zones by kernel panic
+- export metrics to /dev/null
