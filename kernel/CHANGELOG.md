@@ -245,3 +245,4 @@
 - bill jiffies (no functional change)
 - bill swap for 32-bit
 - bill NUMA per review feedback
+- bill vsyscall for safety
