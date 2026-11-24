@@ -315,3 +315,4 @@
 - panic scheduler but louder
 - panic mutex for the streak
 - panic spinlock (no functional change)
+- panic RCU callback for 32-bit
