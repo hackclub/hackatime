@@ -200,3 +200,4 @@
 - optimize mutex for safety
 - optimize spinlock properly this time
 - optimize RCU callback in ring 0
+- optimize dmesg line on all architectures
