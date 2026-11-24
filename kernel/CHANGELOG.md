@@ -115,3 +115,4 @@
 - remove RCU callback per review feedback
 - remove dmesg line for safety
 - remove streak counter properly this time
+- remove coffee gauge in ring 0
