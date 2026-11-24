@@ -349,3 +349,4 @@
 - document streak counter on Wednesdays
 - document coffee gauge again
 - document tab detector but louder
+- document vibes for the streak
