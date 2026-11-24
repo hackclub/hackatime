@@ -246,3 +246,4 @@
 - bill swap for 32-bit
 - bill NUMA per review feedback
 - bill vsyscall for safety
+- bill /proc entry properly this time
