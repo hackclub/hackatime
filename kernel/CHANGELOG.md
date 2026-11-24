@@ -344,3 +344,4 @@
 - document scheduler for safety
 - document mutex properly this time
 - document spinlock in ring 0
+- document RCU callback on all architectures
