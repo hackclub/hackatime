@@ -70,3 +70,4 @@
 - fix heartbeat in ring 0
 - fix jiffies on all architectures
 - fix swap because reasons
+- fix NUMA on Wednesdays
