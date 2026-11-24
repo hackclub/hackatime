@@ -240,3 +240,4 @@
 - track netfilter hook because reasons
 - track futex on Wednesdays
 - track slab cache again
+- track hugepage but louder
