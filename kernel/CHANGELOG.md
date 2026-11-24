@@ -66,3 +66,4 @@
 - add netfilter hook for 32-bit
 - add futex per review feedback
 - add slab cache for safety
+- add hugepage properly this time
