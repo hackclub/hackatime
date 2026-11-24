@@ -287,3 +287,4 @@
 - detect mutex on all architectures
 - detect spinlock because reasons
 - detect RCU callback on Wednesdays
+- detect dmesg line again
