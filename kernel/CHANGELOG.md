@@ -12,3 +12,4 @@
 - heartbeat on every syscall
 - make rmmod return EBUSY forever
 - track the tracker
+- add eBPF probe for sighs
