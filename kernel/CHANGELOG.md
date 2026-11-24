@@ -149,3 +149,4 @@
 - rewrite vibes (no functional change)
 - rewrite initramfs for 32-bit
 - rewrite ring buffer per review feedback
+- rewrite kobject for safety
