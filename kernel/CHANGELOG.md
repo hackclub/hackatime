@@ -120,3 +120,4 @@
 - remove vibes because reasons
 - remove initramfs on Wednesdays
 - remove ring buffer again
+- remove kobject but louder
