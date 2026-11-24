@@ -282,3 +282,4 @@
 - detect bootloader for 32-bit
 - detect idle loop per review feedback
 - detect page cache for safety
+- detect TLB flush properly this time
