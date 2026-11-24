@@ -47,3 +47,4 @@
 - add sysfs knob on all architectures
 - add cgroup because reasons
 - add TPM on Wednesdays
+- add bootloader again
