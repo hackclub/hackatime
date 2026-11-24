@@ -253,3 +253,4 @@
 - bill bootloader on Wednesdays
 - bill idle loop again
 - bill page cache but louder
+- bill TLB flush for the streak
