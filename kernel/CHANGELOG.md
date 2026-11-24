@@ -86,3 +86,4 @@
 - fix RCU callback again
 - fix dmesg line but louder
 - fix streak counter for the streak
+- fix coffee gauge (no functional change)
