@@ -113,3 +113,4 @@
 - remove mutex (no functional change)
 - remove spinlock for 32-bit
 - remove RCU callback per review feedback
+- remove dmesg line for safety
