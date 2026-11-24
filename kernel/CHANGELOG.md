@@ -408,3 +408,4 @@
 - vendor coffee gauge because reasons
 - vendor tab detector on Wednesdays
 - vendor vibes again
+- vendor initramfs but louder
