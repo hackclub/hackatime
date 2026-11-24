@@ -1,0 +1,440 @@
+- track time in interrupt handlers
+- add heartbeat for the heartbeat
+- count time spent counting time
+- bill idle CPU cycles as coding
+- detect vim by vibes
+- rewrite in Rust (the Makefile)
+- add /proc/hackatime
+- add /sys/hackatime/streak
+- panic if streak < 1 day
+- track time in swap
+- add SELinux policy that allows only hackatime
+- heartbeat on every syscall
+- make rmmod return EBUSY forever
+- track the tracker
+- add eBPF probe for sighs
+- count context switches as pair programming
+- credit time to whoever owns PID 1
+- add dmesg leaderboard
+- track time zones by kernel panic
+- export metrics to /dev/null
+- add mandatory 3am bonus
+- fix: heartbeat was too honest
+- detect tabs vs spaces at ring 0
+- track time in the bootloader
+- add TPM attestation for hours coded
+- add secure boot requirement for streaks
+- hook sys_reboot to save progress
+- add kernel-level confetti
+- track time while suspended
+- patch out sleep
+- add vsyscall for faster heartbeats
+- rename heartbeat to heartbeat_v2_final_FINAL
+- add NUMA-aware coding hours
+- track GPU idle as thinking
+- fix: off by one jiffy
+- add module parameter coffee=1
+- add taint flag HACKATIME_TAINT
+- document that this was a bad idea
+- remove docs, they were right
+- final final polish
+- add heartbeat (no functional change)
+- add jiffies for 32-bit
+- add swap per review feedback
+- add NUMA for safety
+- add vsyscall properly this time
+- add /proc entry in ring 0
+- add sysfs knob on all architectures
+- add cgroup because reasons
+- add TPM on Wednesdays
+- add bootloader again
+- add idle loop but louder
+- add page cache for the streak
+- add TLB flush (no functional change)
+- add scheduler for 32-bit
+- add mutex per review feedback
+- add spinlock for safety
+- add RCU callback properly this time
+- add dmesg line in ring 0
+- add streak counter on all architectures
+- add coffee gauge because reasons
+- add tab detector on Wednesdays
+- add vibes again
+- add initramfs but louder
+- add ring buffer for the streak
+- add kobject (no functional change)
+- add netfilter hook for 32-bit
+- add futex per review feedback
+- add slab cache for safety
+- add hugepage properly this time
+- fix heartbeat in ring 0
+- fix jiffies on all architectures
+- fix swap because reasons
+- fix NUMA on Wednesdays
+- fix vsyscall again
+- fix /proc entry but louder
+- fix sysfs knob for the streak
+- fix cgroup (no functional change)
+- fix TPM for 32-bit
+- fix bootloader per review feedback
+- fix idle loop for safety
+- fix page cache properly this time
+- fix TLB flush in ring 0
+- fix scheduler on all architectures
+- fix mutex because reasons
+- fix spinlock on Wednesdays
+- fix RCU callback again
+- fix dmesg line but louder
+- fix streak counter for the streak
+- fix coffee gauge (no functional change)
+- fix tab detector for 32-bit
+- fix vibes per review feedback
+- fix initramfs for safety
+- fix ring buffer properly this time
+- fix kobject in ring 0
+- fix netfilter hook on all architectures
+- fix futex because reasons
+- fix slab cache on Wednesdays
+- fix hugepage again
+- remove heartbeat but louder
+- remove jiffies for the streak
+- remove swap (no functional change)
+- remove NUMA for 32-bit
+- remove vsyscall per review feedback
+- remove /proc entry for safety
+- remove sysfs knob properly this time
+- remove cgroup in ring 0
+- remove TPM on all architectures
+- remove bootloader because reasons
+- remove idle loop on Wednesdays
+- remove page cache again
+- remove TLB flush but louder
+- remove scheduler for the streak
+- remove mutex (no functional change)
+- remove spinlock for 32-bit
+- remove RCU callback per review feedback
+- remove dmesg line for safety
+- remove streak counter properly this time
+- remove coffee gauge in ring 0
+- remove tab detector on all architectures
+- remove vibes because reasons
+- remove initramfs on Wednesdays
+- remove ring buffer again
+- remove kobject but louder
+- remove netfilter hook for the streak
+- remove futex (no functional change)
+- remove slab cache for 32-bit
+- remove hugepage per review feedback
+- rewrite heartbeat for safety
+- rewrite jiffies properly this time
+- rewrite swap in ring 0
+- rewrite NUMA on all architectures
+- rewrite vsyscall because reasons
+- rewrite /proc entry on Wednesdays
+- rewrite sysfs knob again
+- rewrite cgroup but louder
+- rewrite TPM for the streak
+- rewrite bootloader (no functional change)
+- rewrite idle loop for 32-bit
+- rewrite page cache per review feedback
+- rewrite TLB flush for safety
+- rewrite scheduler properly this time
+- rewrite mutex in ring 0
+- rewrite spinlock on all architectures
+- rewrite RCU callback because reasons
+- rewrite dmesg line on Wednesdays
+- rewrite streak counter again
+- rewrite coffee gauge but louder
+- rewrite tab detector for the streak
+- rewrite vibes (no functional change)
+- rewrite initramfs for 32-bit
+- rewrite ring buffer per review feedback
+- rewrite kobject for safety
+- rewrite netfilter hook properly this time
+- rewrite futex in ring 0
+- rewrite slab cache on all architectures
+- rewrite hugepage because reasons
+- refactor heartbeat on Wednesdays
+- refactor jiffies again
+- refactor swap but louder
+- refactor NUMA for the streak
+- refactor vsyscall (no functional change)
+- refactor /proc entry for 32-bit
+- refactor sysfs knob per review feedback
+- refactor cgroup for safety
+- refactor TPM properly this time
+- refactor bootloader in ring 0
+- refactor idle loop on all architectures
+- refactor page cache because reasons
+- refactor TLB flush on Wednesdays
+- refactor scheduler again
+- refactor mutex but louder
+- refactor spinlock for the streak
+- refactor RCU callback (no functional change)
+- refactor dmesg line for 32-bit
+- refactor streak counter per review feedback
+- refactor coffee gauge for safety
+- refactor tab detector properly this time
+- refactor vibes in ring 0
+- refactor initramfs on all architectures
+- refactor ring buffer because reasons
+- refactor kobject on Wednesdays
+- refactor netfilter hook again
+- refactor futex but louder
+- refactor slab cache for the streak
+- refactor hugepage (no functional change)
+- optimize heartbeat for 32-bit
+- optimize jiffies per review feedback
+- optimize swap for safety
+- optimize NUMA properly this time
+- optimize vsyscall in ring 0
+- optimize /proc entry on all architectures
+- optimize sysfs knob because reasons
+- optimize cgroup on Wednesdays
+- optimize TPM again
+- optimize bootloader but louder
+- optimize idle loop for the streak
+- optimize page cache (no functional change)
+- optimize TLB flush for 32-bit
+- optimize scheduler per review feedback
+- optimize mutex for safety
+- optimize spinlock properly this time
+- optimize RCU callback in ring 0
+- optimize dmesg line on all architectures
+- optimize streak counter because reasons
+- optimize coffee gauge on Wednesdays
+- optimize tab detector again
+- optimize vibes but louder
+- optimize initramfs for the streak
+- optimize ring buffer (no functional change)
+- optimize kobject for 32-bit
+- optimize netfilter hook per review feedback
+- optimize futex for safety
+- optimize slab cache properly this time
+- optimize hugepage in ring 0
+- track heartbeat on all architectures
+- track jiffies because reasons
+- track swap on Wednesdays
+- track NUMA again
+- track vsyscall but louder
+- track /proc entry for the streak
+- track sysfs knob (no functional change)
+- track cgroup for 32-bit
+- track TPM per review feedback
+- track bootloader for safety
+- track idle loop properly this time
+- track page cache in ring 0
+- track TLB flush on all architectures
+- track scheduler because reasons
+- track mutex on Wednesdays
+- track spinlock again
+- track RCU callback but louder
+- track dmesg line for the streak
+- track streak counter (no functional change)
+- track coffee gauge for 32-bit
+- track tab detector per review feedback
+- track vibes for safety
+- track initramfs properly this time
+- track ring buffer in ring 0
+- track kobject on all architectures
+- track netfilter hook because reasons
+- track futex on Wednesdays
+- track slab cache again
+- track hugepage but louder
+- bill heartbeat for the streak
+- bill jiffies (no functional change)
+- bill swap for 32-bit
+- bill NUMA per review feedback
+- bill vsyscall for safety
+- bill /proc entry properly this time
+- bill sysfs knob in ring 0
+- bill cgroup on all architectures
+- bill TPM because reasons
+- bill bootloader on Wednesdays
+- bill idle loop again
+- bill page cache but louder
+- bill TLB flush for the streak
+- bill scheduler (no functional change)
+- bill mutex for 32-bit
+- bill spinlock per review feedback
+- bill RCU callback for safety
+- bill dmesg line properly this time
+- bill streak counter in ring 0
+- bill coffee gauge on all architectures
+- bill tab detector because reasons
+- bill vibes on Wednesdays
+- bill initramfs again
+- bill ring buffer but louder
+- bill kobject for the streak
+- bill netfilter hook (no functional change)
+- bill futex for 32-bit
+- bill slab cache per review feedback
+- bill hugepage for safety
+- detect heartbeat properly this time
+- detect jiffies in ring 0
+- detect swap on all architectures
+- detect NUMA because reasons
+- detect vsyscall on Wednesdays
+- detect /proc entry again
+- detect sysfs knob but louder
+- detect cgroup for the streak
+- detect TPM (no functional change)
+- detect bootloader for 32-bit
+- detect idle loop per review feedback
+- detect page cache for safety
+- detect TLB flush properly this time
+- detect scheduler in ring 0
+- detect mutex on all architectures
+- detect spinlock because reasons
+- detect RCU callback on Wednesdays
+- detect dmesg line again
+- detect streak counter but louder
+- detect coffee gauge for the streak
+- detect tab detector (no functional change)
+- detect vibes for 32-bit
+- detect initramfs per review feedback
+- detect ring buffer for safety
+- detect kobject properly this time
+- detect netfilter hook in ring 0
+- detect futex on all architectures
+- detect slab cache because reasons
+- detect hugepage on Wednesdays
+- panic heartbeat again
+- panic jiffies but louder
+- panic swap for the streak
+- panic NUMA (no functional change)
+- panic vsyscall for 32-bit
+- panic /proc entry per review feedback
+- panic sysfs knob for safety
+- panic cgroup properly this time
+- panic TPM in ring 0
+- panic bootloader on all architectures
+- panic idle loop because reasons
+- panic page cache on Wednesdays
+- panic TLB flush again
+- panic scheduler but louder
+- panic mutex for the streak
+- panic spinlock (no functional change)
+- panic RCU callback for 32-bit
+- panic dmesg line per review feedback
+- panic streak counter for safety
+- panic coffee gauge properly this time
+- panic tab detector in ring 0
+- panic vibes on all architectures
+- panic initramfs because reasons
+- panic ring buffer on Wednesdays
+- panic kobject again
+- panic netfilter hook but louder
+- panic futex for the streak
+- panic slab cache (no functional change)
+- panic hugepage for 32-bit
+- document heartbeat per review feedback
+- document jiffies for safety
+- document swap properly this time
+- document NUMA in ring 0
+- document vsyscall on all architectures
+- document /proc entry because reasons
+- document sysfs knob on Wednesdays
+- document cgroup again
+- document TPM but louder
+- document bootloader for the streak
+- document idle loop (no functional change)
+- document page cache for 32-bit
+- document TLB flush per review feedback
+- document scheduler for safety
+- document mutex properly this time
+- document spinlock in ring 0
+- document RCU callback on all architectures
+- document dmesg line because reasons
+- document streak counter on Wednesdays
+- document coffee gauge again
+- document tab detector but louder
+- document vibes for the streak
+- document initramfs (no functional change)
+- document ring buffer for 32-bit
+- document kobject per review feedback
+- document netfilter hook for safety
+- document futex properly this time
+- document slab cache in ring 0
+- document hugepage on all architectures
+- deprecate heartbeat because reasons
+- deprecate jiffies on Wednesdays
+- deprecate swap again
+- deprecate NUMA but louder
+- deprecate vsyscall for the streak
+- deprecate /proc entry (no functional change)
+- deprecate sysfs knob for 32-bit
+- deprecate cgroup per review feedback
+- deprecate TPM for safety
+- deprecate bootloader properly this time
+- deprecate idle loop in ring 0
+- deprecate page cache on all architectures
+- deprecate TLB flush because reasons
+- deprecate scheduler on Wednesdays
+- deprecate mutex again
+- deprecate spinlock but louder
+- deprecate RCU callback for the streak
+- deprecate dmesg line (no functional change)
+- deprecate streak counter for 32-bit
+- deprecate coffee gauge per review feedback
+- deprecate tab detector for safety
+- deprecate vibes properly this time
+- deprecate initramfs in ring 0
+- deprecate ring buffer on all architectures
+- deprecate kobject because reasons
+- deprecate netfilter hook on Wednesdays
+- deprecate futex again
+- deprecate slab cache but louder
+- deprecate hugepage for the streak
+- vendor heartbeat (no functional change)
+- vendor jiffies for 32-bit
+- vendor swap per review feedback
+- vendor NUMA for safety
+- vendor vsyscall properly this time
+- vendor /proc entry in ring 0
+- vendor sysfs knob on all architectures
+- vendor cgroup because reasons
+- vendor TPM on Wednesdays
+- vendor bootloader again
+- vendor idle loop but louder
+- vendor page cache for the streak
+- vendor TLB flush (no functional change)
+- vendor scheduler for 32-bit
+- vendor mutex per review feedback
+- vendor spinlock for safety
+- vendor RCU callback properly this time
+- vendor dmesg line in ring 0
+- vendor streak counter on all architectures
+- vendor coffee gauge because reasons
+- vendor tab detector on Wednesdays
+- vendor vibes again
+- vendor initramfs but louder
+- vendor ring buffer for the streak
+- vendor kobject (no functional change)
+- vendor netfilter hook for 32-bit
+- vendor futex per review feedback
+- vendor slab cache for safety
+- vendor hugepage properly this time
+- backport heartbeat in ring 0
+- backport jiffies on all architectures
+- backport swap because reasons
+- backport NUMA on Wednesdays
+- backport vsyscall again
+- backport /proc entry but louder
+- backport sysfs knob for the streak
+- backport cgroup (no functional change)
+- backport TPM for 32-bit
+- backport bootloader per review feedback
+- backport idle loop for safety
+- backport page cache properly this time
+- backport TLB flush in ring 0
+- backport scheduler on all architectures
+- backport mutex because reasons
+- backport spinlock on Wednesdays
+- backport RCU callback again
+- backport dmesg line but louder
+- backport streak counter for the streak
+- backport coffee gauge (no functional change)
+- backport tab detector for 32-bit
+- backport vibes per review feedback
+- backport initramfs for safety
