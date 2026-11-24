@@ -358,3 +358,4 @@
 - document slab cache in ring 0
 - document hugepage on all architectures
 - deprecate heartbeat because reasons
+- deprecate jiffies on Wednesdays
