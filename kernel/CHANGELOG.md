@@ -355,3 +355,4 @@
 - document kobject per review feedback
 - document netfilter hook for safety
 - document futex properly this time
+- document slab cache in ring 0
