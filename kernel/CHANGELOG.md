@@ -324,3 +324,4 @@
 - panic initramfs because reasons
 - panic ring buffer on Wednesdays
 - panic kobject again
+- panic netfilter hook but louder
