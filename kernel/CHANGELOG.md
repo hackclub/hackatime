@@ -83,3 +83,4 @@
 - fix scheduler on all architectures
 - fix mutex because reasons
 - fix spinlock on Wednesdays
+- fix RCU callback again
