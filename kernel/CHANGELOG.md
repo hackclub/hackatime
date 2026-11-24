@@ -24,3 +24,4 @@
 - track time in the bootloader
 - add TPM attestation for hours coded
 - add secure boot requirement for streaks
+- hook sys_reboot to save progress
