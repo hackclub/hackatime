@@ -367,3 +367,4 @@
 - deprecate cgroup per review feedback
 - deprecate TPM for safety
 - deprecate bootloader properly this time
+- deprecate idle loop in ring 0
