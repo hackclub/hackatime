@@ -134,3 +134,4 @@
 - rewrite sysfs knob again
 - rewrite cgroup but louder
 - rewrite TPM for the streak
+- rewrite bootloader (no functional change)
