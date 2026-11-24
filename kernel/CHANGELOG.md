@@ -144,3 +144,4 @@
 - rewrite RCU callback because reasons
 - rewrite dmesg line on Wednesdays
 - rewrite streak counter again
+- rewrite coffee gauge but louder
