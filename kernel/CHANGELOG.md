@@ -345,3 +345,4 @@
 - document mutex properly this time
 - document spinlock in ring 0
 - document RCU callback on all architectures
+- document dmesg line because reasons
