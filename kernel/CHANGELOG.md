@@ -335,3 +335,4 @@
 - document vsyscall on all architectures
 - document /proc entry because reasons
 - document sysfs knob on Wednesdays
+- document cgroup again
