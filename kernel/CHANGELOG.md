@@ -273,3 +273,4 @@
 - detect heartbeat properly this time
 - detect jiffies in ring 0
 - detect swap on all architectures
+- detect NUMA because reasons
