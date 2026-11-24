@@ -383,3 +383,4 @@
 - deprecate ring buffer on all architectures
 - deprecate kobject because reasons
 - deprecate netfilter hook on Wednesdays
+- deprecate futex again
