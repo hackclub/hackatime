@@ -261,3 +261,4 @@
 - bill dmesg line properly this time
 - bill streak counter in ring 0
 - bill coffee gauge on all architectures
+- bill tab detector because reasons
