@@ -67,3 +67,4 @@
 - add futex per review feedback
 - add slab cache for safety
 - add hugepage properly this time
+- fix heartbeat in ring 0
