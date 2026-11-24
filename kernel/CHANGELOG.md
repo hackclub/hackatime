@@ -141,3 +141,4 @@
 - rewrite scheduler properly this time
 - rewrite mutex in ring 0
 - rewrite spinlock on all architectures
+- rewrite RCU callback because reasons
