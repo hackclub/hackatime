@@ -392,7 +392,7 @@
       <p class="text-xs text-secondary">
         Backed by PostgreSQL <span class="font-mono">struggle_point_events</span> — shows every
         signal that contributed to your SP balance, persisted diff line corroboration, and any
-        anti-cheat gates applied.
+        integrity gates applied.
       </p>
     </div>
 

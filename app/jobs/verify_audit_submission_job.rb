@@ -1,5 +1,5 @@
 # Runs Layer 1 (chain linkage), Layer 2 (authoritative GitHub/GitLab commit DAG & surviving diff check),
-# Layer 3 (Fraud Squad behavioral pattern analysis across the SP ledger — without client bot blocking),
+# Layer 3 (Fraud Squad behavioral pattern analysis across the SP ledger),
 # and Layer 4 (unpredictable stratified audit sampling via AuditSamplingService).
 class VerifyAuditSubmissionJob < ApplicationJob
   queue_as :default
