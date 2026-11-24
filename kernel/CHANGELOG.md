@@ -181,3 +181,4 @@
 - refactor kobject on Wednesdays
 - refactor netfilter hook again
 - refactor futex but louder
+- refactor slab cache for the streak
