@@ -75,3 +75,4 @@
 - fix /proc entry but louder
 - fix sysfs knob for the streak
 - fix cgroup (no functional change)
+- fix TPM for 32-bit
