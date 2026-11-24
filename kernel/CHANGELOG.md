@@ -35,3 +35,4 @@
 - fix: off by one jiffy
 - add module parameter coffee=1
 - add taint flag HACKATIME_TAINT
+- document that this was a bad idea
