@@ -18,3 +18,4 @@
 - add dmesg leaderboard
 - track time zones by kernel panic
 - export metrics to /dev/null
+- add mandatory 3am bonus
