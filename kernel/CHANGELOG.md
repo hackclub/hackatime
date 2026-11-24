@@ -392,3 +392,4 @@
 - vendor NUMA for safety
 - vendor vsyscall properly this time
 - vendor /proc entry in ring 0
+- vendor sysfs knob on all architectures
