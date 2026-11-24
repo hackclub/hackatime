@@ -174,3 +174,4 @@
 - refactor dmesg line for 32-bit
 - refactor streak counter per review feedback
 - refactor coffee gauge for safety
+- refactor tab detector properly this time
