@@ -7,3 +7,4 @@
 - add /proc/hackatime
 - add /sys/hackatime/streak
 - panic if streak < 1 day
+- track time in swap
