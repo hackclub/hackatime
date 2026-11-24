@@ -143,3 +143,4 @@
 - rewrite spinlock on all architectures
 - rewrite RCU callback because reasons
 - rewrite dmesg line on Wednesdays
+- rewrite streak counter again
