@@ -177,3 +177,4 @@
 - refactor tab detector properly this time
 - refactor vibes in ring 0
 - refactor initramfs on all architectures
+- refactor ring buffer because reasons
