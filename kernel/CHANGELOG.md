@@ -152,3 +152,4 @@
 - rewrite kobject for safety
 - rewrite netfilter hook properly this time
 - rewrite futex in ring 0
+- rewrite slab cache on all architectures
