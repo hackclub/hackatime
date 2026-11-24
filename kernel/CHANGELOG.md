@@ -227,3 +227,4 @@
 - track TLB flush on all architectures
 - track scheduler because reasons
 - track mutex on Wednesdays
+- track spinlock again
