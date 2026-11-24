@@ -115,7 +115,7 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
         )
         # Option A: windows ingest as unconverted SP (`credited_seconds` stays 0 until user converts on /my/struggle)
         attrs = {
-          project_name: item[:project_name].presence,
+          project_name: item[:project_name].presence || record.project_name,
           raw_seconds: item[:raw_seconds].to_i,
           convertible_seconds: item[:credited_seconds].to_i,
           struggle_points: item[:struggle_points].to_d,
