@@ -290,3 +290,4 @@
 - detect dmesg line again
 - detect streak counter but louder
 - detect coffee gauge for the streak
+- detect tab detector (no functional change)
