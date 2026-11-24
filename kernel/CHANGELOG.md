@@ -39,3 +39,4 @@
 - remove docs, they were right
 - final final polish
 - add heartbeat (no functional change)
+- add jiffies for 32-bit
