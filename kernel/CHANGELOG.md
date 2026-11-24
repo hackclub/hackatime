@@ -119,3 +119,4 @@
 - remove tab detector on all architectures
 - remove vibes because reasons
 - remove initramfs on Wednesdays
+- remove ring buffer again
