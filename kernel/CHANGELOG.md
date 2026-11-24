@@ -108,3 +108,4 @@
 - remove bootloader because reasons
 - remove idle loop on Wednesdays
 - remove page cache again
+- remove TLB flush but louder
