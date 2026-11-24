@@ -333,3 +333,4 @@
 - document swap properly this time
 - document NUMA in ring 0
 - document vsyscall on all architectures
+- document /proc entry because reasons
