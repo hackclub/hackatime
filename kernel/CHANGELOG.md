@@ -28,3 +28,4 @@
 - add kernel-level confetti
 - track time while suspended
 - patch out sleep
+- add vsyscall for faster heartbeats
