@@ -313,3 +313,4 @@
 - panic page cache on Wednesdays
 - panic TLB flush again
 - panic scheduler but louder
+- panic mutex for the streak
