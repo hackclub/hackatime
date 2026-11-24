@@ -262,3 +262,4 @@
 - bill streak counter in ring 0
 - bill coffee gauge on all architectures
 - bill tab detector because reasons
+- bill vibes on Wednesdays
