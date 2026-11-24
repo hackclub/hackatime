@@ -347,3 +347,4 @@
 - document RCU callback on all architectures
 - document dmesg line because reasons
 - document streak counter on Wednesdays
+- document coffee gauge again
