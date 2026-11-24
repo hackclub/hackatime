@@ -191,3 +191,4 @@
 - optimize /proc entry on all architectures
 - optimize sysfs knob because reasons
 - optimize cgroup on Wednesdays
+- optimize TPM again
