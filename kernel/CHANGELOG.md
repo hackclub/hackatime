@@ -386,3 +386,4 @@
 - deprecate futex again
 - deprecate slab cache but louder
 - deprecate hugepage for the streak
+- vendor heartbeat (no functional change)
