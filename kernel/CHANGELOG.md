@@ -176,3 +176,4 @@
 - refactor coffee gauge for safety
 - refactor tab detector properly this time
 - refactor vibes in ring 0
+- refactor initramfs on all architectures
