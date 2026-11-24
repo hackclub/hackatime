@@ -94,3 +94,4 @@
 - fix kobject in ring 0
 - fix netfilter hook on all architectures
 - fix futex because reasons
+- fix slab cache on Wednesdays
