@@ -384,3 +384,4 @@
 - deprecate kobject because reasons
 - deprecate netfilter hook on Wednesdays
 - deprecate futex again
+- deprecate slab cache but louder
