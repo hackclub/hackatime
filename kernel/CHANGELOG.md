@@ -280,3 +280,4 @@
 - detect cgroup for the streak
 - detect TPM (no functional change)
 - detect bootloader for 32-bit
+- detect idle loop per review feedback
