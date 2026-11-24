@@ -104,3 +104,4 @@
 - remove /proc entry for safety
 - remove sysfs knob properly this time
 - remove cgroup in ring 0
+- remove TPM on all architectures
