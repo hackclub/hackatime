@@ -15,3 +15,4 @@
 - add eBPF probe for sighs
 - count context switches as pair programming
 - credit time to whoever owns PID 1
+- add dmesg leaderboard
