@@ -306,3 +306,4 @@
 - panic vsyscall for 32-bit
 - panic /proc entry per review feedback
 - panic sysfs knob for safety
+- panic cgroup properly this time
