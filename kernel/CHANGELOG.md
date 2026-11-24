@@ -308,3 +308,4 @@
 - panic sysfs knob for safety
 - panic cgroup properly this time
 - panic TPM in ring 0
+- panic bootloader on all architectures
