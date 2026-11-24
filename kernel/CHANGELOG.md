@@ -277,3 +277,4 @@
 - detect vsyscall on Wednesdays
 - detect /proc entry again
 - detect sysfs knob but louder
+- detect cgroup for the streak
