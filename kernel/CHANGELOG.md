@@ -68,3 +68,4 @@
 - add slab cache for safety
 - add hugepage properly this time
 - fix heartbeat in ring 0
+- fix jiffies on all architectures
