@@ -64,3 +64,4 @@
 - add ring buffer for the streak
 - add kobject (no functional change)
 - add netfilter hook for 32-bit
+- add futex per review feedback
