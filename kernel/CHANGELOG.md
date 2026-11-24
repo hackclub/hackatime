@@ -92,3 +92,4 @@
 - fix initramfs for safety
 - fix ring buffer properly this time
 - fix kobject in ring 0
+- fix netfilter hook on all architectures
