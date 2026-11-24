@@ -122,3 +122,4 @@
 - remove ring buffer again
 - remove kobject but louder
 - remove netfilter hook for the streak
+- remove futex (no functional change)
