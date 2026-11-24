@@ -195,3 +195,4 @@
 - optimize bootloader but louder
 - optimize idle loop for the streak
 - optimize page cache (no functional change)
+- optimize TLB flush for 32-bit
