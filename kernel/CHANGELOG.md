@@ -322,3 +322,4 @@
 - panic tab detector in ring 0
 - panic vibes on all architectures
 - panic initramfs because reasons
+- panic ring buffer on Wednesdays
