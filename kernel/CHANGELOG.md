@@ -403,3 +403,4 @@
 - vendor mutex per review feedback
 - vendor spinlock for safety
 - vendor RCU callback properly this time
+- vendor dmesg line in ring 0
