@@ -337,3 +337,4 @@
 - document sysfs knob on Wednesdays
 - document cgroup again
 - document TPM but louder
+- document bootloader for the streak
