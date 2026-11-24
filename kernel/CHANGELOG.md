@@ -250,3 +250,4 @@
 - bill sysfs knob in ring 0
 - bill cgroup on all architectures
 - bill TPM because reasons
+- bill bootloader on Wednesdays
