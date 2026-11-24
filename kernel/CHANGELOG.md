@@ -126,3 +126,4 @@
 - remove slab cache for 32-bit
 - remove hugepage per review feedback
 - rewrite heartbeat for safety
+- rewrite jiffies properly this time
