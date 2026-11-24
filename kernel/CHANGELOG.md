@@ -208,3 +208,4 @@
 - optimize initramfs for the streak
 - optimize ring buffer (no functional change)
 - optimize kobject for 32-bit
+- optimize netfilter hook per review feedback
