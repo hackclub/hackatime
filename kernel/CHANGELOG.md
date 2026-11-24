@@ -178,3 +178,4 @@
 - refactor vibes in ring 0
 - refactor initramfs on all architectures
 - refactor ring buffer because reasons
+- refactor kobject on Wednesdays
