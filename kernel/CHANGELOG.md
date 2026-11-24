@@ -76,3 +76,4 @@
 - fix sysfs knob for the streak
 - fix cgroup (no functional change)
 - fix TPM for 32-bit
+- fix bootloader per review feedback
