@@ -210,3 +210,4 @@
 - optimize kobject for 32-bit
 - optimize netfilter hook per review feedback
 - optimize futex for safety
+- optimize slab cache properly this time
