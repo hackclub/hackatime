@@ -296,3 +296,4 @@
 - detect ring buffer for safety
 - detect kobject properly this time
 - detect netfilter hook in ring 0
+- detect futex on all architectures
