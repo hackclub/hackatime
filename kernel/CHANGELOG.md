@@ -25,3 +25,4 @@
 - add TPM attestation for hours coded
 - add secure boot requirement for streaks
 - hook sys_reboot to save progress
+- add kernel-level confetti
