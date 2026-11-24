@@ -293,3 +293,4 @@
 - detect tab detector (no functional change)
 - detect vibes for 32-bit
 - detect initramfs per review feedback
+- detect ring buffer for safety
