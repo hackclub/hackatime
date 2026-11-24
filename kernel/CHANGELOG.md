@@ -198,3 +198,4 @@
 - optimize TLB flush for 32-bit
 - optimize scheduler per review feedback
 - optimize mutex for safety
+- optimize spinlock properly this time
