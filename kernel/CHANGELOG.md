@@ -301,3 +301,4 @@
 - detect hugepage on Wednesdays
 - panic heartbeat again
 - panic jiffies but louder
+- panic swap for the streak
