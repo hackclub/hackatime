@@ -192,3 +192,4 @@
 - optimize sysfs knob because reasons
 - optimize cgroup on Wednesdays
 - optimize TPM again
+- optimize bootloader but louder
