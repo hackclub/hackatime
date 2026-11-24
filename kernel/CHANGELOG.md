@@ -258,3 +258,4 @@
 - bill mutex for 32-bit
 - bill spinlock per review feedback
 - bill RCU callback for safety
+- bill dmesg line properly this time
