@@ -74,3 +74,4 @@
 - fix vsyscall again
 - fix /proc entry but louder
 - fix sysfs knob for the streak
+- fix cgroup (no functional change)
