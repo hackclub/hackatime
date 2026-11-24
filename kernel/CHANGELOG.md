@@ -327,3 +327,4 @@
 - panic netfilter hook but louder
 - panic futex for the streak
 - panic slab cache (no functional change)
+- panic hugepage for 32-bit
