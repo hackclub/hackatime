@@ -61,3 +61,4 @@
 - add tab detector on Wednesdays
 - add vibes again
 - add initramfs but louder
+- add ring buffer for the streak
