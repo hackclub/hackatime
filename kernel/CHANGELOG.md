@@ -354,3 +354,4 @@
 - document ring buffer for 32-bit
 - document kobject per review feedback
 - document netfilter hook for safety
+- document futex properly this time
