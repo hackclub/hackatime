@@ -89,3 +89,4 @@
 - fix coffee gauge (no functional change)
 - fix tab detector for 32-bit
 - fix vibes per review feedback
+- fix initramfs for safety
