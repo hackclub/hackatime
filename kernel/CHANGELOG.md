@@ -97,3 +97,4 @@
 - fix slab cache on Wednesdays
 - fix hugepage again
 - remove heartbeat but louder
+- remove jiffies for the streak
