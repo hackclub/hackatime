@@ -381,3 +381,4 @@
 - deprecate vibes properly this time
 - deprecate initramfs in ring 0
 - deprecate ring buffer on all architectures
+- deprecate kobject because reasons
