@@ -396,3 +396,4 @@
 - vendor cgroup because reasons
 - vendor TPM on Wednesdays
 - vendor bootloader again
+- vendor idle loop but louder
