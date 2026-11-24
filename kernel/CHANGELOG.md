@@ -268,3 +268,4 @@
 - bill kobject for the streak
 - bill netfilter hook (no functional change)
 - bill futex for 32-bit
+- bill slab cache per review feedback
