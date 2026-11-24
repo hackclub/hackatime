@@ -321,3 +321,4 @@
 - panic coffee gauge properly this time
 - panic tab detector in ring 0
 - panic vibes on all architectures
+- panic initramfs because reasons
