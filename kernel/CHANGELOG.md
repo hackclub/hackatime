@@ -275,3 +275,4 @@
 - detect swap on all architectures
 - detect NUMA because reasons
 - detect vsyscall on Wednesdays
+- detect /proc entry again
