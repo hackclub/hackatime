@@ -109,3 +109,4 @@
 - remove idle loop on Wednesdays
 - remove page cache again
 - remove TLB flush but louder
+- remove scheduler for the streak
