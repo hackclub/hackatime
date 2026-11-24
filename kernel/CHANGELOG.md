@@ -132,3 +132,4 @@
 - rewrite vsyscall because reasons
 - rewrite /proc entry on Wednesdays
 - rewrite sysfs knob again
+- rewrite cgroup but louder
