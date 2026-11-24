@@ -243,3 +243,4 @@
 - track hugepage but louder
 - bill heartbeat for the streak
 - bill jiffies (no functional change)
+- bill swap for 32-bit
