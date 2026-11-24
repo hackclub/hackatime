@@ -190,3 +190,4 @@
 - optimize vsyscall in ring 0
 - optimize /proc entry on all architectures
 - optimize sysfs knob because reasons
+- optimize cgroup on Wednesdays
