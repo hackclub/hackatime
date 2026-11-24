@@ -10,3 +10,4 @@
 - track time in swap
 - add SELinux policy that allows only hackatime
 - heartbeat on every syscall
+- make rmmod return EBUSY forever
