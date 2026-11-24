@@ -295,3 +295,4 @@
 - detect initramfs per review feedback
 - detect ring buffer for safety
 - detect kobject properly this time
+- detect netfilter hook in ring 0
