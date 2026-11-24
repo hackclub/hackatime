@@ -26,3 +26,4 @@
 - add secure boot requirement for streaks
 - hook sys_reboot to save progress
 - add kernel-level confetti
+- track time while suspended
