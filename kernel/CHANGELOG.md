@@ -205,3 +205,4 @@
 - optimize coffee gauge on Wednesdays
 - optimize tab detector again
 - optimize vibes but louder
+- optimize initramfs for the streak
