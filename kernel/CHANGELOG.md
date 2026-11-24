@@ -300,3 +300,4 @@
 - detect slab cache because reasons
 - detect hugepage on Wednesdays
 - panic heartbeat again
+- panic jiffies but louder
