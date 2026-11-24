@@ -286,3 +286,4 @@
 - detect scheduler in ring 0
 - detect mutex on all architectures
 - detect spinlock because reasons
+- detect RCU callback on Wednesdays
