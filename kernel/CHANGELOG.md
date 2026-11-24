@@ -235,3 +235,4 @@
 - track tab detector per review feedback
 - track vibes for safety
 - track initramfs properly this time
+- track ring buffer in ring 0
