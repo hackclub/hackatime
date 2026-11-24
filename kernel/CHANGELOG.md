@@ -194,3 +194,4 @@
 - optimize TPM again
 - optimize bootloader but louder
 - optimize idle loop for the streak
+- optimize page cache (no functional change)
