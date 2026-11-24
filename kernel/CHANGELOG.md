@@ -363,3 +363,4 @@
 - deprecate NUMA but louder
 - deprecate vsyscall for the streak
 - deprecate /proc entry (no functional change)
+- deprecate sysfs knob for 32-bit
