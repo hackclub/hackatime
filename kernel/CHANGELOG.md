@@ -128,3 +128,4 @@
 - rewrite heartbeat for safety
 - rewrite jiffies properly this time
 - rewrite swap in ring 0
+- rewrite NUMA on all architectures
