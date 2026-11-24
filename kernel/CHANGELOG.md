@@ -211,3 +211,4 @@
 - optimize netfilter hook per review feedback
 - optimize futex for safety
 - optimize slab cache properly this time
+- optimize hugepage in ring 0
