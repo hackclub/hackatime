@@ -342,3 +342,4 @@
 - document page cache for 32-bit
 - document TLB flush per review feedback
 - document scheduler for safety
+- document mutex properly this time
