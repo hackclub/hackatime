@@ -220,3 +220,4 @@
 - track /proc entry for the streak
 - track sysfs knob (no functional change)
 - track cgroup for 32-bit
+- track TPM per review feedback
