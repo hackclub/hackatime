@@ -40,3 +40,4 @@
 - final final polish
 - add heartbeat (no functional change)
 - add jiffies for 32-bit
+- add swap per review feedback
