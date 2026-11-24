@@ -394,3 +394,4 @@
 - vendor /proc entry in ring 0
 - vendor sysfs knob on all architectures
 - vendor cgroup because reasons
+- vendor TPM on Wednesdays
