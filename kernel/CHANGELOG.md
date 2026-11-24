@@ -231,3 +231,4 @@
 - track RCU callback but louder
 - track dmesg line for the streak
 - track streak counter (no functional change)
+- track coffee gauge for 32-bit
