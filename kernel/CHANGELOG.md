@@ -294,3 +294,4 @@
 - detect vibes for 32-bit
 - detect initramfs per review feedback
 - detect ring buffer for safety
+- detect kobject properly this time
