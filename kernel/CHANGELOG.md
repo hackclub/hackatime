@@ -252,3 +252,4 @@
 - bill TPM because reasons
 - bill bootloader on Wednesdays
 - bill idle loop again
+- bill page cache but louder
