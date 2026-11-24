@@ -336,3 +336,4 @@
 - document /proc entry because reasons
 - document sysfs knob on Wednesdays
 - document cgroup again
+- document TPM but louder
