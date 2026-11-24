@@ -401,3 +401,4 @@
 - vendor TLB flush (no functional change)
 - vendor scheduler for 32-bit
 - vendor mutex per review feedback
+- vendor spinlock for safety
