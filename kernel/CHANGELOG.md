@@ -256,3 +256,4 @@
 - bill TLB flush for the streak
 - bill scheduler (no functional change)
 - bill mutex for 32-bit
+- bill spinlock per review feedback
