@@ -361,3 +361,4 @@
 - deprecate jiffies on Wednesdays
 - deprecate swap again
 - deprecate NUMA but louder
+- deprecate vsyscall for the streak
