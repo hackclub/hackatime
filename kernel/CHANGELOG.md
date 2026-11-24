@@ -118,3 +118,4 @@
 - remove coffee gauge in ring 0
 - remove tab detector on all architectures
 - remove vibes because reasons
+- remove initramfs on Wednesdays
