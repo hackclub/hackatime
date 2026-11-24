@@ -271,3 +271,4 @@
 - bill slab cache per review feedback
 - bill hugepage for safety
 - detect heartbeat properly this time
+- detect jiffies in ring 0
