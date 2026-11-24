@@ -42,3 +42,4 @@
 - add jiffies for 32-bit
 - add swap per review feedback
 - add NUMA for safety
+- add vsyscall properly this time
