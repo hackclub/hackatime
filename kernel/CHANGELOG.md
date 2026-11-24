@@ -106,3 +106,4 @@
 - remove cgroup in ring 0
 - remove TPM on all architectures
 - remove bootloader because reasons
+- remove idle loop on Wednesdays
