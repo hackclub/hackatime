@@ -148,3 +148,4 @@
 - rewrite tab detector for the streak
 - rewrite vibes (no functional change)
 - rewrite initramfs for 32-bit
+- rewrite ring buffer per review feedback
