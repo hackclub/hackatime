@@ -43,3 +43,4 @@
 - add swap per review feedback
 - add NUMA for safety
 - add vsyscall properly this time
+- add /proc entry in ring 0
