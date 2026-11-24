@@ -32,3 +32,4 @@
 - rename heartbeat to heartbeat_v2_final_FINAL
 - add NUMA-aware coding hours
 - track GPU idle as thinking
+- fix: off by one jiffy
