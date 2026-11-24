@@ -55,3 +55,4 @@
 - add mutex per review feedback
 - add spinlock for safety
 - add RCU callback properly this time
+- add dmesg line in ring 0
