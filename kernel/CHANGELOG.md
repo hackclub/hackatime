@@ -276,3 +276,4 @@
 - detect NUMA because reasons
 - detect vsyscall on Wednesdays
 - detect /proc entry again
+- detect sysfs knob but louder
