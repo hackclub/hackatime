@@ -216,3 +216,4 @@
 - track jiffies because reasons
 - track swap on Wednesdays
 - track NUMA again
+- track vsyscall but louder
