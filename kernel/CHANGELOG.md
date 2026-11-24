@@ -80,3 +80,4 @@
 - fix idle loop for safety
 - fix page cache properly this time
 - fix TLB flush in ring 0
+- fix scheduler on all architectures
