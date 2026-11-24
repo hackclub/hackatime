@@ -379,3 +379,4 @@
 - deprecate coffee gauge per review feedback
 - deprecate tab detector for safety
 - deprecate vibes properly this time
+- deprecate initramfs in ring 0
