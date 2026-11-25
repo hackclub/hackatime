@@ -76,6 +76,12 @@
               </Link>
             </td>
           </tr>
+        {:else}
+          <tr>
+            <td colspan="8" class="px-4 py-10 text-center text-secondary">
+              No audit submissions yet. Submitted <code>.hcaudit</code> proof bundles will appear here for Fraud Squad review.
+            </td>
+          </tr>
         {/each}
       </tbody>
     </table>
