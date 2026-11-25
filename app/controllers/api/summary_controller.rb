@@ -1,5 +1,7 @@
 module Api
   class SummaryController < ApplicationController
+    include DateParsing
+
     skip_before_action :verify_authenticity_token
     before_action :set_user
 
@@ -10,6 +12,7 @@ module Api
         params[:from] || params[:start],
         params[:to] || params[:end]
       )
+      return if performed?
       return render_bad_request("Invalid date range") unless date_range
 
       service = WakatimeService.new(
@@ -54,11 +57,13 @@ module Api
       Time.use_zone("UTC") do
         now = Time.current
 
-        if from_date.present? && to_date.present?
-          from = parse_explicit_date(from_date, boundary: :start)
-          to = parse_explicit_date(to_date, boundary: :end)
-          return nil if from.nil? || to.nil?
-          return from..to
+        if from_date.present? || to_date.present?
+          return parse_date_range(
+            start_value: from_date,
+            end_value: to_date,
+            start_default: nil,
+            end_default: nil
+          ) { |value, boundary| parse_explicit_date(value, boundary:) }
         end
 
         case (interval || range)
