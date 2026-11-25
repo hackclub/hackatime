@@ -78,8 +78,15 @@ class InertiaController < ApplicationController
     ]
 
     if current_user
+      unconverted_sp_windows = current_user.struggle_windows.unconverted.where("convertible_seconds > 0").count
       links += [
         inertia_link("Projects", my_projects_path, active: request.path.start_with?("/my/projects")),
+        inertia_link(
+          "Struggle Points",
+          my_struggle_path,
+          active: request.path.start_with?("/my/struggle"),
+          badge: unconverted_sp_windows.positive? ? unconverted_sp_windows : nil
+        ),
         inertia_link("Docs", "/docs", active: request.path.start_with?("/docs"), inertia: false),
         inertia_link("Extensions", extensions_path, active: helpers.current_page?(extensions_path)),
         inertia_link("Settings", my_settings_path, active: request.path.start_with?("/my/settings")),
@@ -106,6 +113,7 @@ class InertiaController < ApplicationController
 
   ADMIN_NAV_LINKS = [
     [ :admin_timeline_path, "Review Timeline" ],
+    [ :admin_audit_submissions_path, "Audit Submissions", "/admin/audit_submissions" ],
     [ :admin_trust_level_audit_logs_path, "Trust Level Logs", "/admin/trust_level_audit_logs" ],
     [ :admin_admin_api_keys_path, "Admin API Keys", "/admin/admin_api_keys" ],
     [ :admin_leaderboard_shadowbans_path, "Leaderboard Shadowbans", "/admin/leaderboard_shadowbans" ]

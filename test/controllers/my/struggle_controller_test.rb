@@ -33,6 +33,8 @@ class My::StruggleControllerTest < ActionDispatch::IntegrationTest
 
     get my_struggle_path
     assert_response :ok
+    assert_includes response.body, "Struggle Points"
+    assert_includes response.body, "/my/struggle"
 
     assert_difference("StruggleConversion.count", 1) do
       post convert_my_struggle_path, params: { project_hash: @project_hash }
