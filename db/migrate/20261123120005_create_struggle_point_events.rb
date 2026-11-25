@@ -3,9 +3,6 @@ class CreateStrugglePointEvents < ActiveRecord::Migration[8.1]
     add_column :struggle_windows, :persisted_diff_lines, :integer, null: false, default: 0
     add_column :struggle_windows, :anomaly_flags, :jsonb, null: false, default: []
 
-    add_column :audit_submissions, :sampled_randomly, :boolean, null: false, default: false
-    add_column :audit_submissions, :sampling_reason, :string
-
     create_table :struggle_point_events do |t|
       t.references :struggle_window, null: false, foreign_key: { on_delete: :cascade }
       t.references :user, null: false, foreign_key: { on_delete: :cascade }

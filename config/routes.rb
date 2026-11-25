@@ -71,7 +71,6 @@ Rails.application.routes.draw do
       get "timeline/leaderboard_users", to: "timeline#leaderboard_users"
 
       resources :trust_level_audit_logs, only: [ :index, :show ]
-      resources :audit_submissions, only: [ :index, :show ]
       # Viewers are allowed to LIST/SHOW their own admin api keys, but the
       # `:create`/`:destroy` actions are gated to admin+ inside the
       # controller (see Admin::AdminApiKeysController).
@@ -91,7 +90,6 @@ Rails.application.routes.draw do
       resources :leaderboard_shadowbans, only: [ :index, :create, :destroy ], param: :user_id do
         get :search_users, on: :collection
       end
-      resources :audit_submissions, only: [ :update ]
     end
     get "/impersonate/:id", to: "sessions#impersonate", as: :impersonate_user, export: true
   end
@@ -365,7 +363,6 @@ Rails.application.routes.draw do
         put "/users/:id/ed25519_key", to: "struggle_windows#update_public_key"
         get "/users/:id/struggle_nonce", to: "struggle_windows#nonce"
         post "/users/:id/struggle_windows", to: "struggle_windows#create"
-        post "/users/:id/audit_submissions", to: "struggle_windows#submit_audit"
       end
     end
 

@@ -155,28 +155,6 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
     render_bad_request(e.record.errors.full_messages.to_sentence)
   end
 
-  # POST /api/hackatime/v1/users/:id/audit_submissions
-  def submit_audit
-    submission = @user.audit_submissions.create!(
-      project_hash: params.require(:project_hash).to_s,
-      project_name: params[:project_name].presence,
-      program_slug: params.require(:program_slug).to_s,
-      git_remote_url: params[:git_remote_url].presence,
-      bundle_sha256: params.require(:bundle_sha256).to_s,
-      submitted_hours: params.require(:submitted_hours).to_d
-    )
-    submission.bundle_file.attach(params[:bundle_file]) if params[:bundle_file].present?
-
-    VerifyAuditSubmissionJob.perform_later(submission.id)
-
-    render json: {
-      id: submission.id,
-      review_status: submission.review_status
-    }, status: :created
-  rescue ActionController::ParameterMissing, ActiveRecord::RecordInvalid => e
-    render_bad_request(e.message)
-  end
-
   private
 
   def set_user

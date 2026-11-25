@@ -113,7 +113,6 @@ class InertiaController < ApplicationController
 
   ADMIN_NAV_LINKS = [
     [ :admin_timeline_path, "Review Timeline" ],
-    [ :admin_audit_submissions_path, "Audit Submissions", "/admin/audit_submissions" ],
     [ :admin_trust_level_audit_logs_path, "Trust Level Logs", "/admin/trust_level_audit_logs" ],
     [ :admin_admin_api_keys_path, "Admin API Keys", "/admin/admin_api_keys" ],
     [ :admin_leaderboard_shadowbans_path, "Leaderboard Shadowbans", "/admin/leaderboard_shadowbans" ]
