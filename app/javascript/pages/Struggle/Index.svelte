@@ -194,7 +194,7 @@
     <div>
       <h1 class="text-2xl font-bold tracking-tight">Struggle Points (SP) → Verified Hours</h1>
       <p class="mt-1 text-sm text-secondary">
-        Your Hackatime AI extension passively tracks 5-minute Productive Struggle Windows. Review
+        Your Hackatime extension passively tracks 5-minute Productive Struggle Windows. Review
         your SP breakdown below and convert them into verified hours whenever you're ready
         (per-window exact cap: 10 SP = 100% of that 5-minute window, AFK autopilot &lt;2 SP = 0).
       </p>
@@ -273,7 +273,7 @@
       <div class="rounded-xl border border-dashed border-surface-300 bg-surface-100/50 p-8 text-center">
         <p class="font-medium">No unconverted Struggle Points waiting right now.</p>
         <p class="mt-1 text-sm text-secondary">
-          Keep coding in Antigravity, Cursor, Windsurf, or VS Code with the Hackatime AI extension—your
+          Keep coding in Antigravity, Cursor, Windsurf, or VS Code with the Hackatime extension—your
           signed 5-minute windows will appear here automatically.
         </p>
       </div>

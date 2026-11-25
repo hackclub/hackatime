@@ -48,7 +48,7 @@
   <ScreenHeader
     emoji="/images/emojis/ms-computer.svg"
     title="Awesome!"
-    subtitle="Install the Hackatime AI extension in Antigravity, Cursor, Windsurf, VS Code, VSCodium, Trae, Kiro, or Void."
+    subtitle="Install the Hackatime extension in Antigravity, Cursor, Windsurf, VS Code, VSCodium, Trae, Kiro, or Void."
   />
 
   <div class="rounded-xl border border-surface-300 bg-surface-100 px-4 py-3 text-xs text-secondary">
