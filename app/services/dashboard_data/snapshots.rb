@@ -27,7 +27,7 @@ module DashboardData
       timeout = Heartbeat.heartbeat_timeout_duration.to_i
       relation_sql = scope.with_valid_timestamps
         .where.not(project: [ nil, "" ], time: nil)
-        .select(:id, :time, :project, :language)
+        .select(:id, :time, :type, :project, :language)
         .to_sql
 
       rows = Heartbeat.connection.select_all(<<~SQL.squish)
@@ -42,7 +42,7 @@ module DashboardData
                  time,
                  language,
                  CASE
-                   WHEN LAG(time) OVER (PARTITION BY project ORDER BY time, id) IS NULL THEN 0
+                   WHEN type = '#{Heartbeat::STRUGGLE_START_TYPE}' OR LAG(time) OVER (PARTITION BY project ORDER BY time, id) IS NULL THEN 0
                    ELSE LEAST(time - LAG(time) OVER (PARTITION BY project ORDER BY time, id), #{timeout})
                  END AS diff
           FROM (#{relation_sql}) project_detail_heartbeats
@@ -75,7 +75,7 @@ module DashboardData
       relation_sql = scope.with_valid_timestamps
         .where.not(time: nil)
         .where(time: ranges.last[1]..ranges.first[2])
-        .select(:id, :time, :project)
+        .select(:id, :time, :type, :project)
         .to_sql
 
       quoted_timezone = Heartbeat.connection.quote(user.timezone)
@@ -89,7 +89,7 @@ module DashboardData
           SELECT project AS grouped_time,
                  #{week_group_sql} AS week_group,
                  CASE
-                   WHEN LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
+                   WHEN type = '#{Heartbeat::STRUGGLE_START_TYPE}' OR LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id) IS NULL THEN 0
                    ELSE LEAST(
                      time - LAG(time) OVER (PARTITION BY project, #{week_group_sql} ORDER BY time, id),
                      #{Heartbeat.heartbeat_timeout_duration.to_i}
@@ -117,7 +117,7 @@ module DashboardData
           WITH today_rows AS (#{today_sql}),
                duration_calc AS (
                  SELECT
-                   CASE WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
+                   CASE WHEN type = '#{Heartbeat::STRUGGLE_START_TYPE}' OR LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
                         ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout}) END AS diff
                  FROM today_rows
                  WHERE time IS NOT NULL AND time >= 0 AND time <= 253402300799
@@ -182,7 +182,7 @@ module DashboardData
     end
 
     def coding_rhythm_snapshot(user:, scope:)
-      relation_sql = scope.with_valid_timestamps.where.not(time: nil).select(:id, :time).to_sql
+      relation_sql = scope.with_valid_timestamps.where.not(time: nil).select(:id, :time, :type).to_sql
       quoted_timezone = Heartbeat.connection.quote(user.timezone)
       local_time_sql = "to_timestamp(time) AT TIME ZONE #{quoted_timezone}"
       timeout = Heartbeat.heartbeat_timeout_duration.to_i
@@ -193,7 +193,7 @@ module DashboardData
           SELECT EXTRACT(ISODOW FROM #{local_time_sql})::integer AS weekday,
                  EXTRACT(HOUR FROM #{local_time_sql})::integer AS hour,
                  CASE
-                   WHEN LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
+                   WHEN type = '#{Heartbeat::STRUGGLE_START_TYPE}' OR LAG(time) OVER (ORDER BY time, id) IS NULL THEN 0
                    ELSE LEAST(time - LAG(time) OVER (ORDER BY time, id), #{timeout})
                  END AS diff
           FROM (#{relation_sql}) coding_rhythm_heartbeats
@@ -242,14 +242,15 @@ module DashboardData
     end
 
     def predecessor_dashboard_scope(timeline:, matches:)
-      current_sql = matches.reorder(nil).select(:id, :time, *GROUPED_DIMENSIONS).to_sql
+      current_sql = matches.reorder(nil).select(:id, :time, :type, *GROUPED_DIMENSIONS).to_sql
       previous_sql = timeline.with_valid_timestamps
         .where("(heartbeats.time, heartbeats.id) < (current_heartbeat.time, current_heartbeat.id)")
         .reorder(time: :desc, id: :desc).limit(1).select(:time).to_sql
       timeout = Heartbeat.heartbeat_timeout_duration.to_i
       attributed_sql = <<~SQL.squish
         SELECT current_heartbeat.*,
-               LEAST(COALESCE(current_heartbeat.time - previous_heartbeat.time, 0), #{timeout}) AS duration
+               CASE WHEN current_heartbeat.type = '#{Heartbeat::STRUGGLE_START_TYPE}' THEN 0
+                    ELSE LEAST(COALESCE(current_heartbeat.time - previous_heartbeat.time, 0), #{timeout}) END AS duration
         FROM (#{current_sql}) current_heartbeat
         LEFT JOIN LATERAL (#{previous_sql}) previous_heartbeat ON TRUE
       SQL
@@ -261,8 +262,8 @@ module DashboardData
     def attributed_dashboard_scope(scope)
       timeout = Heartbeat.heartbeat_timeout_duration.to_i
       timeline = scope.with_valid_timestamps.reorder(nil).select(
-        :id, :time, *GROUPED_DIMENSIONS,
-        Arel.sql("LEAST(COALESCE(time - LAG(time) OVER (ORDER BY time, id), 0), #{timeout}) AS duration")
+        :id, :time, :type, *GROUPED_DIMENSIONS,
+        Arel.sql("CASE WHEN type = '#{Heartbeat::STRUGGLE_START_TYPE}' THEN 0 ELSE LEAST(COALESCE(time - LAG(time) OVER (ORDER BY time, id), 0), #{timeout}) END AS duration")
       )
       Heartbeat.unscoped.from(timeline, :heartbeats)
     end

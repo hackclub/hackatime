@@ -3,6 +3,116 @@
 
   let { stats }: { stats: Record<string, number> } = $props();
 
+  const PERCENT_WIDTH_CLASSES = [
+    "w-[0%]",
+    "w-[1%]",
+    "w-[2%]",
+    "w-[3%]",
+    "w-[4%]",
+    "w-[5%]",
+    "w-[6%]",
+    "w-[7%]",
+    "w-[8%]",
+    "w-[9%]",
+    "w-[10%]",
+    "w-[11%]",
+    "w-[12%]",
+    "w-[13%]",
+    "w-[14%]",
+    "w-[15%]",
+    "w-[16%]",
+    "w-[17%]",
+    "w-[18%]",
+    "w-[19%]",
+    "w-[20%]",
+    "w-[21%]",
+    "w-[22%]",
+    "w-[23%]",
+    "w-[24%]",
+    "w-[25%]",
+    "w-[26%]",
+    "w-[27%]",
+    "w-[28%]",
+    "w-[29%]",
+    "w-[30%]",
+    "w-[31%]",
+    "w-[32%]",
+    "w-[33%]",
+    "w-[34%]",
+    "w-[35%]",
+    "w-[36%]",
+    "w-[37%]",
+    "w-[38%]",
+    "w-[39%]",
+    "w-[40%]",
+    "w-[41%]",
+    "w-[42%]",
+    "w-[43%]",
+    "w-[44%]",
+    "w-[45%]",
+    "w-[46%]",
+    "w-[47%]",
+    "w-[48%]",
+    "w-[49%]",
+    "w-[50%]",
+    "w-[51%]",
+    "w-[52%]",
+    "w-[53%]",
+    "w-[54%]",
+    "w-[55%]",
+    "w-[56%]",
+    "w-[57%]",
+    "w-[58%]",
+    "w-[59%]",
+    "w-[60%]",
+    "w-[61%]",
+    "w-[62%]",
+    "w-[63%]",
+    "w-[64%]",
+    "w-[65%]",
+    "w-[66%]",
+    "w-[67%]",
+    "w-[68%]",
+    "w-[69%]",
+    "w-[70%]",
+    "w-[71%]",
+    "w-[72%]",
+    "w-[73%]",
+    "w-[74%]",
+    "w-[75%]",
+    "w-[76%]",
+    "w-[77%]",
+    "w-[78%]",
+    "w-[79%]",
+    "w-[80%]",
+    "w-[81%]",
+    "w-[82%]",
+    "w-[83%]",
+    "w-[84%]",
+    "w-[85%]",
+    "w-[86%]",
+    "w-[87%]",
+    "w-[88%]",
+    "w-[89%]",
+    "w-[90%]",
+    "w-[91%]",
+    "w-[92%]",
+    "w-[93%]",
+    "w-[94%]",
+    "w-[95%]",
+    "w-[96%]",
+    "w-[97%]",
+    "w-[98%]",
+    "w-[99%]",
+    "w-[100%]",
+  ] as const;
+
+  function percentWidthClass(percent: number): string {
+    return PERCENT_WIDTH_CLASSES[
+      Math.min(100, Math.max(0, Math.round(percent)))
+    ];
+  }
+
   const aiSeconds = $derived(stats["ai coding"] || 0);
   const struggleSeconds = $derived(stats["struggle point time"] || 0);
   const humanSeconds = $derived(stats.coding || 0);
@@ -16,31 +126,6 @@
   );
   const humanPercent = $derived(
     totalSeconds > 0 ? Math.max(0, 100 - aiPercent - strugglePercent) : 0,
-  );
-
-  const BAR_WIDTH_CLASSES = [
-    "w-0",
-    "w-1/12",
-    "w-2/12",
-    "w-3/12",
-    "w-4/12",
-    "w-5/12",
-    "w-6/12",
-    "w-7/12",
-    "w-8/12",
-    "w-9/12",
-    "w-10/12",
-    "w-11/12",
-    "w-full",
-  ] as const;
-
-  const struggleWidthClass = $derived(
-    BAR_WIDTH_CLASSES[
-      Math.round(
-        (Math.min(100, Math.max(0, strugglePercent)) / 100) *
-          (BAR_WIDTH_CLASSES.length - 1),
-      )
-    ],
   );
 </script>
 
@@ -66,17 +151,15 @@
     >
       {#if totalSeconds > 0}
         <div
-          class="h-full bg-primary transition-[width] duration-300 ease-out"
-          style:width={`${aiPercent}%`}
+          class={`h-full bg-primary transition-[width] duration-300 ease-out ${percentWidthClass(aiPercent)}`}
         ></div>
         {#if hasStruggle}
           <div
-            class={`h-full bg-emerald-400 transition-[width] duration-300 ease-out ${struggleWidthClass}`}
+            class={`h-full bg-emerald-400 transition-[width] duration-300 ease-out ${percentWidthClass(strugglePercent)}`}
           ></div>
         {/if}
         <div
-          class="h-full bg-blue transition-[width] duration-300 ease-out"
-          style:width={`${humanPercent}%`}
+          class={`h-full bg-blue transition-[width] duration-300 ease-out ${percentWidthClass(humanPercent)}`}
         ></div>
       {/if}
     </div>
@@ -87,7 +170,7 @@
       <div>
         <div class="flex items-center gap-2">
           <span class="h-2.5 w-2.5 rounded-full bg-primary"></span>
-          <span class="text-sm text-surface-content/60">AI coding</span>
+          <span class="text-sm text-surface-content/60">AI Coding</span>
         </div>
         <p class="mt-1 text-xl font-semibold tabular-nums text-surface-content">
           {aiPercent}%
@@ -118,7 +201,7 @@
 
       <div class="text-right">
         <div class="flex items-center justify-end gap-2">
-          <span class="text-sm text-surface-content/60">Human coding</span>
+          <span class="text-sm text-surface-content/60">Human Coding</span>
           <span class="h-2.5 w-2.5 rounded-full bg-blue"></span>
         </div>
         <p class="mt-1 text-xl font-semibold tabular-nums text-surface-content">
@@ -130,10 +213,4 @@
       </div>
     </div>
   </div>
-
-  {#if totalSeconds === 0}
-    <p class="text-center text-sm text-surface-content/45">
-      No coding category data for this interval.
-    </p>
-  {/if}
 </section>

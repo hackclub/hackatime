@@ -2,8 +2,9 @@
 # using Option A (Per-Window Exact Cap: credited_seconds <= convertible_seconds <= raw_seconds).
 #
 # Uses PostgreSQL row-level locking (`FOR UPDATE`) so each window can only ever be converted once.
-# Accounts for existing heartbeat intervals before marking points as spent so converted
-# `"struggle point time"` heartbeats never collide with or lose credit to existing activity.
+# Accounts for existing heartbeat intervals before marking points as spent, splits windows across
+# local midnight without losing credit, and starts each converted segment with a `struggle_start`
+# boundary heartbeat so preceding idle or overnight gaps never inflate totals.
 class StruggleConversionService
   STRUGGLE_HEARTBEAT_CATEGORY = "struggle point time".freeze
   HEARTBEAT_STEP_SECONDS = 60
@@ -85,62 +86,94 @@ class StruggleConversionService
 
   def plan_window_allocations(windows:, timeout:)
     tz = ActiveSupport::TimeZone[@user.timezone] || Time.zone
-    timeline = existing_timeline_for(windows, tz: tz)
+    timeline = existing_timeline_for(windows)
 
     windows.map do |window|
       desired = window.convertible_seconds.to_i
       if desired <= 0
-        { window: window, credited_seconds: 0, timestamps: [] }
+        { window: window, credited_seconds: 0, ticks: [] }
       else
         w_start = window.window_start.to_f
-        local_day = tz.at(w_start).to_date
-        day_start = local_day.in_time_zone(tz).beginning_of_day.to_f
-        next_day_start = (local_day + 1).in_time_zone(tz).beginning_of_day.to_f
-        w_end = [ w_start + WINDOW_DURATION_SECONDS, next_day_start - BOUNDARY_EPSILON ].min
-        same_day_timeline = timeline.select { |ts| ts >= day_start && ts < next_day_start }
+        w_end = w_start + WINDOW_DURATION_SECONDS
+        remaining = desired
+        ticks = []
 
-        allocated = allocate_window_timestamps(
-          window_start: w_start,
-          window_end: w_end,
-          desired: desired,
-          timeline: same_day_timeline,
-          timeout: timeout
-        )
-        unless allocated[:timestamps].empty?
-          timeline.concat(allocated[:timestamps])
+        day_segments(w_start, w_end, tz: tz).each do |seg_start, seg_limit, emit_max|
+          break if remaining <= 0
+
+          allocated = allocate_segment_ticks(
+            seg_start: seg_start,
+            seg_limit: seg_limit,
+            emit_max: emit_max,
+            desired: remaining,
+            timeline: timeline,
+            timeout: timeout
+          )
+          next if allocated[:credited_seconds] <= 0 || allocated[:ticks].empty?
+
+          ticks.concat(allocated[:ticks])
+          timeline.concat(allocated[:ticks].map { |tick| tick[:time] })
           timeline.sort!
+          remaining -= allocated[:credited_seconds]
         end
-        allocated.merge(window: window)
+
+        {
+          window: window,
+          credited_seconds: desired - remaining,
+          ticks: ticks
+        }
       end
     end
   end
 
-  def existing_timeline_for(windows, tz:)
-    first_day = tz.at(windows.first.window_start.to_f).to_date
-    last_day = tz.at(windows.last.window_start.to_f).to_date
-    range_start = first_day.in_time_zone(tz).beginning_of_day.to_f
-    range_end = (last_day + 1).in_time_zone(tz).beginning_of_day.to_f
-
-    @user.heartbeats
-      .with_valid_timestamps
-      .where("time >= ? AND time < ?", range_start, range_end)
-      .order(time: :asc)
-      .pluck(:time)
-      .map(&:to_f)
+  # Splits [w_start, w_end] at local midnight so windows straddling midnight
+  # (e.g. 23:58..00:03) credit each day's exact share instead of losing the post-midnight tail.
+  def day_segments(w_start, w_end, tz:)
+    segments = []
+    cursor = w_start
+    while cursor < w_end
+      local_day = tz.at(cursor).to_date
+      next_day_start = (local_day + 1).in_time_zone(tz).beginning_of_day.to_f
+      if w_end > next_day_start
+        segments << [ cursor, next_day_start, next_day_start - BOUNDARY_EPSILON ]
+        cursor = next_day_start
+      else
+        segments << [ cursor, w_end, w_end ]
+        break
+      end
+    end
+    segments
   end
 
-  # Computes exact non-overlapping heartbeat timestamps within [window_start, window_end]
-  # so every credited second increases both total duration and "struggle point time"
-  # without altering any existing heartbeat's LAG duration or category attribution.
-  def allocate_window_timestamps(window_start:, window_end:, desired:, timeline:, timeout:)
+  def existing_timeline_for(windows)
+    min_start = windows.first.window_start.to_f
+    max_end = windows.last.window_start.to_f + WINDOW_DURATION_SECONDS
+    base = @user.heartbeats.with_valid_timestamps
+
+    in_range = base.where(time: min_start..max_end).order(time: :asc).pluck(:time).map(&:to_f)
+    before_min = base.where("time < ?", min_start).maximum(:time)&.to_f
+    after_max = base.where("time > ?", max_end).minimum(:time)&.to_f
+
+    timeline = []
+    timeline << before_min if before_min
+    timeline.concat(in_range)
+    timeline << after_max if after_max
+    timeline.sort!
+    timeline
+  end
+
+  # Computes non-overlapping ticks within [seg_start, seg_limit] where each allocated span
+  # begins with a `struggle_start` boundary heartbeat (0s leading gap) so neither prior
+  # same-day gaps nor overnight gaps inflate totals, while preserving every existing heartbeat's gap.
+  def allocate_segment_ticks(seg_start:, seg_limit:, emit_max:, desired:, timeline:, timeout:)
     left_hb = nil
     right_hb = nil
     interior = []
 
     timeline.each do |ts|
-      if ts <= window_start
+      if ts <= seg_start
         left_hb = ts
-      elsif ts < window_end
+      elsif ts < seg_limit
         interior << ts
       else
         right_hb = ts
@@ -150,105 +183,94 @@ class StruggleConversionService
 
     points = [ left_hb, *interior, right_hb ]
     remaining = desired
-    timestamps = []
+    ticks = []
 
     (0...(points.size - 1)).each do |idx|
       break if remaining <= 0
 
       a = points[idx]
       b = points[idx + 1]
-      gap_ts, gained = allocate_in_gap(
+      gap_ticks, gained = allocate_in_gap(
         a: a,
         b: b,
-        window_start: window_start,
-        window_end: window_end,
+        seg_start: seg_start,
+        seg_limit: seg_limit,
+        emit_max: emit_max,
         remaining: remaining,
         timeout: timeout
       )
-      next if gained <= 0 || gap_ts.empty?
+      next if gained <= 0 || gap_ticks.empty?
 
-      timestamps.concat(gap_ts)
+      ticks.concat(gap_ticks)
       remaining -= gained
     end
 
     {
-      timestamps: timestamps,
+      ticks: ticks,
       credited_seconds: desired - remaining
     }
   end
 
-  def allocate_in_gap(a:, b:, window_start:, window_end:, remaining:, timeout:)
+  def allocate_in_gap(a:, b:, seg_start:, seg_limit:, emit_max:, remaining:, timeout:)
     if a.nil? && b.nil?
-      cap = (window_end - window_start).floor
+      cap = (seg_limit - seg_start).floor
       take = [ remaining, cap ].min
       return [ [], 0 ] if take <= 0
 
-      [ step_chain(window_start, window_start + take, include_start: true), take ]
+      s_end = [ seg_start + take, emit_max ].min
+      [ build_segment_ticks(seg_start, s_end), take ]
     elsif a.nil?
-      # No prior heartbeat exists; right-align before b when b falls inside the window
+      # No prior heartbeat exists; right-align before b when b falls inside this segment
       # so b does not gain unintended leading gap credit.
-      upper = [ window_end, b - BOUNDARY_EPSILON ].min
-      cap = ([ window_end, b ].min - window_start).floor
+      hi_limit = [ seg_limit, b ].min
+      cap = (hi_limit - seg_start).floor
       take = [ remaining, cap ].min
       return [ [], 0 ] if take <= 0
 
-      if b <= window_end
-        s_end = b - BOUNDARY_EPSILON
-        s_start = [ window_start, s_end - take ].max
-        [ step_chain(s_start, s_end, include_start: true), take ]
+      if b <= seg_limit
+        s_end = [ b - BOUNDARY_EPSILON, emit_max ].min
+        s_start = [ seg_start, s_end - take ].max
+        [ build_segment_ticks(s_start, s_end), take ]
       else
-        s_end = [ window_start + take, upper ].min
-        [ step_chain(window_start, s_end, include_start: true), take ]
+        s_end = [ seg_start + take, emit_max, b - BOUNDARY_EPSILON ].min
+        [ build_segment_ticks(seg_start, s_end), take ]
       end
     elsif b.nil?
-      allocate_after_anchor(a: a, hi: window_end, window_start: window_start, remaining: remaining, timeout: timeout)
+      lo_limit = [ seg_start, a ].max
+      cap = (seg_limit - lo_limit).floor
+      take = [ remaining, cap ].min
+      return [ [], 0 ] if take <= 0
+
+      s_start = a >= seg_start ? a + BOUNDARY_EPSILON : seg_start
+      s_end = [ lo_limit + take, emit_max ].min
+      [ build_segment_ticks(s_start, s_end), take ]
     else
-      # Gap (a, b) already credits min(b - a, timeout) to b. Keep last inserted timestamp
+      # Gap (a, b) already credits min(b - a, timeout) to b. Keep the last inserted tick
       # at least `timeout` before b so b's existing duration and category stay untouched.
       return [ [], 0 ] if (b - a) <= timeout
 
-      hi = [ window_end, b - timeout.to_f ].min
-      return [ [], 0 ] if hi <= a
-
-      allocate_after_anchor(a: a, hi: hi, window_start: window_start, remaining: remaining, timeout: timeout)
-    end
-  end
-
-  def allocate_after_anchor(a:, hi:, window_start:, remaining:, timeout:)
-    if a < window_start
-      return [ [], 0 ] if hi < window_start
-
-      entry = [ window_start - a, timeout.to_f ].min
-      if remaining < entry
-        candidate = a + remaining
-        return [ [ candidate ], remaining ] if candidate <= hi
-        return [ [], 0 ]
-      end
-
-      max_cap = (entry + (hi - window_start)).floor
-      take = [ remaining, max_cap ].min
-      return [ [], 0 ] if take < entry.floor
-
-      after_entry = [ take - entry, 0.0 ].max
-      s_end = [ window_start + after_entry, hi ].min
-      [ step_chain(window_start, s_end, include_start: true), take ]
-    else
-      cap = (hi - a).floor
+      lo_limit = [ seg_start, a ].max
+      hi_limit = [ seg_limit, b - timeout.to_f ].min
+      cap = (hi_limit - lo_limit).floor
       take = [ remaining, cap ].min
       return [ [], 0 ] if take <= 0
 
-      [ step_chain(a, a + take, include_start: false), take ]
+      s_start = a >= seg_start ? a + BOUNDARY_EPSILON : seg_start
+      s_end = [ lo_limit + take, hi_limit, emit_max ].min
+      [ build_segment_ticks(s_start, s_end), take ]
     end
   end
 
-  def step_chain(start_ts, end_ts, include_start:)
-    timestamps = include_start ? [ start_ts ] : []
+  def build_segment_ticks(start_ts, end_ts)
+    return [] if end_ts <= start_ts
+
+    ticks = [ { time: start_ts, type: Heartbeat::STRUGGLE_START_TYPE } ]
     cursor = start_ts
     while cursor < end_ts
       cursor = [ cursor + HEARTBEAT_STEP_SECONDS, end_ts ].min
-      timestamps << cursor
+      ticks << { time: cursor, type: "app" }
     end
-    timestamps
+    ticks
   end
 
   def insert_allocated_heartbeats!(conversion:, allocations:, now:)
@@ -257,7 +279,7 @@ class StruggleConversionService
     rows = []
 
     allocations.each do |alloc|
-      next if alloc[:timestamps].empty?
+      next if alloc[:ticks].empty?
 
       w = alloc[:window]
       project_name = w.project_name.presence || "project-#{w.project_hash.first(8)}"
@@ -265,7 +287,7 @@ class StruggleConversionService
       editor = w.ai_harness.presence || "hackatime-ai"
       entity = "struggle://#{project_name}/conversion-#{conversion.id}/window-#{w.id}"
 
-      alloc[:timestamps].each do |ts|
+      alloc[:ticks].each do |tick|
         attrs = {
           "user_id" => @user.id,
           "branch" => nil,
@@ -277,7 +299,7 @@ class StruggleConversionService
           "machine" => nil,
           "operating_system" => last_os,
           "project" => project_name,
-          "type" => "app",
+          "type" => tick[:type],
           "user_agent" => "hackatime-ai/0.1.0 struggle-conversion",
           "line_additions" => nil,
           "line_deletions" => nil,
@@ -285,8 +307,8 @@ class StruggleConversionService
           "lines" => nil,
           "cursorpos" => nil,
           "project_root_count" => nil,
-          "time" => ts.to_f,
-          "is_write" => true
+          "time" => tick[:time].to_f,
+          "is_write" => tick[:type] != Heartbeat::STRUGGLE_START_TYPE
         }
         rows << attrs.merge(
           "source_type" => source_type_val,

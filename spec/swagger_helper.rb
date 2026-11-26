@@ -52,7 +52,7 @@ RSpec.configure do |config|
       properties: {
         id: { type: :integer, example: 1024 },
         entity: { type: :string, nullable: true, example: '/Users/orpheus/hackatime/app/services/chaos_monkey_service.rb', description: 'File path or app name being accessed' },
-        type: { type: :string, nullable: true, example: 'file', enum: [ 'file', 'app' ] },
+        type: { type: :string, nullable: true, example: 'file', enum: [ 'file', 'app', 'struggle_start' ] },
         category: {
           type: :string,
           nullable: true,

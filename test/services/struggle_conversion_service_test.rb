@@ -171,15 +171,16 @@ class StruggleConversionServiceTest < ActiveSupport::TestCase
     assert_equal 1200, @user.heartbeats.duration_seconds
   end
 
-  test "previous-day heartbeat does not consume today's conversion credit across midnight" do
+  test "previous-day heartbeat neither hides today's credit nor inflates cross-day totals" do
     @user.update!(timezone: "UTC")
     tz = ActiveSupport::TimeZone[@user.timezone]
     today_start = tz.now.beginning_of_day.to_i
     next_day_start = (tz.now.to_date + 1).in_time_zone(tz).beginning_of_day.to_i
 
-    # User coded yesterday at 23:00 UTC
+    # User coded yesterday at 23:00 UTC (60s)
     create_coding_heartbeat(today_start - 3660)
     create_coding_heartbeat(today_start - 3600)
+    assert_equal 60, @user.heartbeats.duration_seconds
 
     # Today at 00:10 UTC, user earned a 120s window (equal to heartbeat timeout)
     # and at 00:20 UTC, a 60s window (below heartbeat timeout)
@@ -197,6 +198,12 @@ class StruggleConversionServiceTest < ActiveSupport::TestCase
     assert_equal 180, today_hbs.duration_seconds
     assert_equal 180, Heartbeat.attributed_durations_by(today_hbs, :category)["struggle point time"]
 
+    # Cross-day all-time totals must gain exactly 180s (no extra overnight 120s gap inflation)
+    assert_equal 240, @user.heartbeats.duration_seconds
+    all_by_cat = Heartbeat.attributed_durations_by(@user.heartbeats, :category)
+    assert_equal 60, all_by_cat["coding"]
+    assert_equal 180, all_by_cat["struggle point time"]
+
     # Every inserted struggle heartbeat must remain on today (never shifted into yesterday)
     struggle_times = @user.heartbeats.where(category: "struggle point time").pluck(:time)
     assert struggle_times.all? { |ts| ts >= today_start && ts < next_day_start }
@@ -205,5 +212,40 @@ class StruggleConversionServiceTest < ActiveSupport::TestCase
     today_row = summary_rows.find { |r| r["local_date"].to_date == tz.now.to_date }
     assert_not_nil today_row
     assert_equal 180, today_row["duration"].to_i
+
+    dashboard = DashboardStats.new(user: @user).filterable_dashboard_data
+    assert_equal 240, dashboard[:total_time]
+    assert_equal 180, dashboard["category_stats"]["struggle point time"]
+    assert_equal 60, dashboard["category_stats"]["coding"]
+  end
+
+  test "window straddling local midnight splits allocation across both days without losing time" do
+    @user.update!(timezone: "UTC")
+    tz = ActiveSupport::TimeZone[@user.timezone]
+    day1_start = tz.now.beginning_of_day.to_i - 86_400
+    day2_start = tz.now.beginning_of_day.to_i
+    day3_start = day2_start + 86_400
+
+    # 300s window starting at 23:58:00 UTC spans 120s on Day 1 + 180s on Day 2
+    proj = "0" * 64
+    window = create_unconverted_window(
+      project_hash: proj,
+      start_unix: day2_start - 120,
+      raw: 300,
+      convertible: 300,
+      sp: 12.0
+    )
+
+    res = StruggleConversionService.call(user: @user, project_hash: proj)
+    assert res.success?
+    assert_equal 300, res.conversion.total_credited_seconds
+    assert_equal 300, window.reload.credited_seconds
+
+    day1_hbs = @user.heartbeats.where("time >= ? AND time < ?", day1_start, day2_start)
+    day2_hbs = @user.heartbeats.where("time >= ? AND time < ?", day2_start, day3_start)
+    assert_equal 120, day1_hbs.duration_seconds
+    assert_equal 180, day2_hbs.duration_seconds
+    assert_equal 300, @user.heartbeats.duration_seconds
+    assert_equal 300, Heartbeat.attributed_durations_by(@user.heartbeats, :category)["struggle point time"]
   end
 end

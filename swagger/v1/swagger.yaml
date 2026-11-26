@@ -2947,6 +2947,7 @@ components:
           enum:
           - file
           - app
+          - struggle_start
         category:
           type: string
           nullable: true
