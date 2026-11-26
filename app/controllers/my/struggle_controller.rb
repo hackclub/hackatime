@@ -1,32 +1,60 @@
 class My::StruggleController < InertiaController
+  PREVIEW_WINDOWS_PER_PROJECT = 50
+
   layout "inertia", only: [ :show ]
 
   before_action :ensure_current_user
 
   # GET /my/struggle
   def show
-    unconverted = current_user.struggle_windows.unconverted.order(window_start: :desc).limit(500).to_a
+    unconverted_scope = current_user.struggle_windows.unconverted
     converted_scope = current_user.struggle_windows.converted
+
+    unconverted_count, unconverted_sp, unconverted_raw, unconverted_convertible = unconverted_scope.pick(
+      Arel.sql("COUNT(*)"),
+      Arel.sql("COALESCE(SUM(struggle_points), 0)"),
+      Arel.sql("COALESCE(SUM(raw_seconds), 0)"),
+      Arel.sql("COALESCE(SUM(convertible_seconds), 0)")
+    )
 
     total_converted_seconds = converted_scope.sum(:credited_seconds).to_i
     total_converted_windows = converted_scope.count
     avg_mult = converted_scope.average(:effective_multiplier).to_f
 
-    project_groups = unconverted.group_by(&:project_hash).map do |proj_hash, windows|
-      name = windows.find { |w| w.project_name.present? }&.project_name || "project-#{proj_hash.first(8)}"
-      lang = windows.find { |w| w.primary_language.present? }&.primary_language || "Unknown"
+    project_aggregates = unconverted_scope
+      .group(:project_hash)
+      .select(
+        "project_hash",
+        "COUNT(*) AS windows_count",
+        "COALESCE(SUM(struggle_points), 0) AS total_sp",
+        "COALESCE(SUM(raw_seconds), 0) AS total_raw_seconds",
+        "COALESCE(SUM(convertible_seconds), 0) AS convertible_seconds",
+        "COALESCE(AVG(effective_multiplier), 0) AS avg_multiplier",
+        "MAX(project_name) FILTER (WHERE project_name IS NOT NULL AND project_name <> '') AS project_name",
+        "MAX(primary_language) FILTER (WHERE primary_language IS NOT NULL AND primary_language <> '') AS primary_language"
+      )
+      .order(Arel.sql("COALESCE(SUM(convertible_seconds), 0) DESC"))
+      .to_a
+
+    preview_by_project = fetch_preview_windows_by_project(unconverted_scope)
+
+    project_groups = project_aggregates.map do |row|
+      proj_hash = row.project_hash
+      preview_windows = preview_by_project[proj_hash] || []
+      total_count = row.windows_count.to_i
       {
         project_hash: proj_hash,
-        project_name: name,
-        primary_language: lang,
-        windows_count: windows.size,
-        total_sp: windows.sum { |w| w.struggle_points.to_f }.round(2),
-        total_raw_seconds: windows.sum(&:raw_seconds),
-        convertible_seconds: windows.sum(&:convertible_seconds),
-        avg_multiplier: (windows.sum { |w| w.effective_multiplier.to_f } / windows.size).round(3),
-        windows: windows.map { |w| serialize_window(w) }
+        project_name: row.project_name.presence || "project-#{proj_hash.first(8)}",
+        primary_language: row.primary_language.presence || "Unknown",
+        windows_count: total_count,
+        total_sp: row.total_sp.to_f.round(2),
+        total_raw_seconds: row.total_raw_seconds.to_i,
+        convertible_seconds: row.convertible_seconds.to_i,
+        avg_multiplier: row.avg_multiplier.to_f.round(3),
+        has_more_windows: total_count > preview_windows.size,
+        windows: preview_windows.map { |w| serialize_window(w) }
       }
-    end.sort_by { |g| -g[:convertible_seconds] }
+    end
 
     conversions = current_user.struggle_conversions.order(converted_at: :desc).limit(25).map do |c|
       {
@@ -67,10 +95,10 @@ class My::StruggleController < InertiaController
       page_title: "Struggle SP Converter | Hackatime",
       conversion_mode: "per_window_exact_cap",
       summary: {
-        unconverted_windows_count: unconverted.size,
-        unconverted_sp: unconverted.sum { |w| w.struggle_points.to_f }.round(2),
-        unconverted_raw_seconds: unconverted.sum(&:raw_seconds),
-        convertible_seconds: unconverted.sum(&:convertible_seconds),
+        unconverted_windows_count: unconverted_count.to_i,
+        unconverted_sp: unconverted_sp.to_f.round(2),
+        unconverted_raw_seconds: unconverted_raw.to_i,
+        convertible_seconds: unconverted_convertible.to_i,
         total_converted_seconds: total_converted_seconds,
         total_converted_windows: total_converted_windows,
         avg_multiplier: avg_mult.round(3),
@@ -95,8 +123,12 @@ class My::StruggleController < InertiaController
     if result.success?
       secs = result.conversion.total_credited_seconds.to_i
       dur = secs >= 3600 ? "#{secs / 3600}h #{(secs % 3600) / 60}m" : "#{secs / 60}m #{secs % 60}s"
-      redirect_to my_struggle_path,
-        notice: "Converted #{result.conversion.total_sp_converted.to_f.round(1)} SP (#{result.converted_count} windows) into #{dur} — credited to your Hackatime dashboard under Struggle Point Time!"
+      notice = if secs.positive?
+        "Converted #{result.conversion.total_sp_converted.to_f.round(1)} SP (#{result.converted_count} windows) into #{dur} — credited to your Hackatime dashboard under Struggle Point Time!"
+      else
+        "Reconciled #{result.converted_count} windows (0m 0s added — those intervals were already covered by existing Hackatime heartbeats)."
+      end
+      redirect_to my_struggle_path, notice: notice
     else
       redirect_to my_struggle_path, alert: result.error
     end
@@ -106,6 +138,19 @@ class My::StruggleController < InertiaController
 
   def ensure_current_user
     redirect_to root_path, alert: "You must be logged in to view this page" unless current_user
+  end
+
+  def fetch_preview_windows_by_project(unconverted_scope)
+    ranked = unconverted_scope.select(
+      "struggle_windows.*",
+      "ROW_NUMBER() OVER (PARTITION BY project_hash ORDER BY window_start DESC, id DESC) AS project_row_num"
+    )
+    StruggleWindow
+      .from(ranked, :struggle_windows)
+      .where("project_row_num <= ?", PREVIEW_WINDOWS_PER_PROJECT)
+      .order(window_start: :desc, id: :desc)
+      .to_a
+      .group_by(&:project_hash)
   end
 
   def serialize_window(w)

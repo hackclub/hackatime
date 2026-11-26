@@ -5,6 +5,8 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
   before_action :check_lockout
 
   MAX_BATCH_SIZE = 100
+  MAX_BACKDATE_AGE = 7.days
+  MAX_FUTURE_DRIFT = 10.minutes
 
   WINDOW_KEYS = %i[
     user_id project_hash project_name window_start_unix
@@ -51,13 +53,18 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
       return render_bad_request("too many struggle windows in a single request (max #{MAX_BATCH_SIZE})")
     end
 
+    permitted_windows = windows.map { |raw_item| permit_window(raw_item) }
     chain_tips = {}
     persisted_anchors = {}
+    latest_window_starts = {}
     rejection_error = nil
 
     ActiveRecord::Base.transaction do
-      windows.each do |raw_item|
-        item = permit_window(raw_item)
+      # Serialize ingestion per (user, project_hash) in deterministic order so concurrent
+      # requests (including genesis uploads with no existing rows) cannot fork the chain.
+      lock_project_chains!(permitted_windows.map { |w| w[:project_hash].to_s }.uniq.sort)
+
+      permitted_windows.each do |item|
         claimed_user_id = item[:user_id].presence || @user.id.to_s
         unless claimed_user_id == @user.id.to_s
           rejection_error = "user_id mismatch with API key"
@@ -72,28 +79,49 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
                             .first
           persisted_anchors[project_hash] = anchor_row
           chain_tips[project_hash] = anchor_row&.chain_hash || StruggleWindow::GENESIS_CHAIN_HASH
+          latest_window_starts[project_hash] = anchor_row&.window_start
         end
-        expected_prev = chain_tips[project_hash]
+
+        win_time = Time.at(item[:window_start_unix].to_i).utc
+        existing = @user.struggle_windows.find_by(project_hash: project_hash, window_start: win_time)
+        if existing
+          # Lost HTTP responses may cause clients to retry an already-committed batch.
+          # Accept exact cryptographic duplicates idempotently while keeping saved history immutable.
+          unless exact_retry_match?(existing, item, claimed_user_id)
+            rejection_error = "cannot overwrite existing struggle window"
+            raise ActiveRecord::Rollback
+          end
+          next
+        end
+
+        latest_start = latest_window_starts[project_hash]
+        if latest_start.present? && win_time <= latest_start
+          rejection_error = "window_start must be strictly newer than the latest saved window"
+          raise ActiveRecord::Rollback
+        end
+
+        unless within_allowed_time_range?(win_time)
+          rejection_error = "window_start out of allowed range (possible backdating)"
+          raise ActiveRecord::Rollback
+        end
 
         nonce_ok = StruggleNonceStore.valid?(user_id: @user.id, nonce: item[:server_nonce].to_s)
         unless nonce_ok
           # Offline resilience across up to 7 days / server cache restarts:
           # Allow a cryptographically chained continuation from an ALREADY-persisted DB window
-          # when the timestamp is within [7 days ago, now + 10 min] and strictly newer than anchor.
+          # when the timestamp is within the allowed range and strictly newer than anchor.
           anchor = persisted_anchors[project_hash]
-          win_time = Time.at(item[:window_start_unix].to_i).utc
           nonce_str = item[:server_nonce].to_s
           offline_anchored = anchor.present? &&
                              nonce_str.match?(/\A[0-9a-f]{32}\z/) &&
-                             win_time > anchor.window_start &&
-                             win_time >= 7.days.ago &&
-                             win_time <= 10.minutes.from_now
+                             win_time > anchor.window_start
           unless offline_anchored
             rejection_error = "invalid or expired server_nonce (possible backdating)"
             raise ActiveRecord::Rollback
           end
         end
 
+        expected_prev = chain_tips[project_hash]
         valid = StruggleChainVerifier.valid?(
           window_params: item.merge(user_id: claimed_user_id),
           expected_prev_chain_hash: expected_prev,
@@ -109,15 +137,14 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
           StruggleChainVerifier::ED25519_SIGNATURE_BYTES
         )
 
-        record = @user.struggle_windows.find_or_initialize_by(
-          project_hash: project_hash,
-          window_start: Time.at(item[:window_start_unix].to_i).utc
-        )
         # Option A: windows ingest as unconverted SP (`credited_seconds` stays 0 until user converts on /my/struggle)
-        attrs = {
-          project_name: item[:project_name].presence || record.project_name,
+        record = @user.struggle_windows.create!(
+          project_hash: project_hash,
+          window_start: win_time,
+          project_name: item[:project_name].presence,
           raw_seconds: item[:raw_seconds].to_i,
           convertible_seconds: item[:credited_seconds].to_i,
+          credited_seconds: 0,
           struggle_points: item[:struggle_points].to_d,
           diversity_multiplier: item[:diversity_multiplier].to_d,
           verify_multiplier: (item[:verify_multiplier].presence || 1.0).to_d,
@@ -134,13 +161,11 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
           server_nonce: item[:server_nonce].to_s,
           chain_hash: item[:chain_hash_hex].to_s,
           signature: sig_bytes
-        }
-        attrs[:credited_seconds] = 0 unless record.converted?
-        record.assign_attributes(attrs)
-        record.save!
+        )
         sync_point_events!(record, item[:signal_breakdown])
 
         chain_tips[project_hash] = record.chain_hash
+        latest_window_starts[project_hash] = record.window_start
       end
     end
 
@@ -156,6 +181,49 @@ class Api::Hackatime::V1::StruggleWindowsController < ApplicationController
   end
 
   private
+
+  def lock_project_chains!(project_hashes)
+    project_hashes.each do |project_hash|
+      lock_key = "struggle_chain:#{@user.id}:#{project_hash}"
+      sql = ActiveRecord::Base.sanitize_sql_array(
+        [ "SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", lock_key ]
+      )
+      ActiveRecord::Base.connection.execute(sql)
+    end
+  end
+
+  def within_allowed_time_range?(win_time)
+    win_time >= MAX_BACKDATE_AGE.ago && win_time <= MAX_FUTURE_DRIFT.from_now
+  end
+
+  def exact_retry_match?(existing, item, claimed_user_id)
+    sig_bytes = StruggleChainVerifier.decode_hex_exact(
+      item[:ed25519_sig_hex].to_s,
+      StruggleChainVerifier::ED25519_SIGNATURE_BYTES
+    )
+    return false unless sig_bytes && existing.signature.present?
+    return false unless existing.signature.bytesize == sig_bytes.bytesize
+    return false unless OpenSSL.fixed_length_secure_compare(existing.signature.b, sig_bytes.b)
+
+    return false unless item[:prev_chain_hash].to_s == existing.prev_chain_hash
+    return false unless item[:chain_hash_hex].to_s == existing.chain_hash
+    return false unless item[:server_nonce].to_s == existing.server_nonce
+    return false unless item[:raw_seconds].to_i == existing.raw_seconds
+    return false unless item[:credited_seconds].to_i == existing.convertible_seconds
+    return false unless item[:struggle_points].to_d == existing.struggle_points
+    return false unless item[:diversity_multiplier].to_d == existing.diversity_multiplier
+    return false unless (item[:verify_multiplier].presence || 1.0).to_d == existing.verify_multiplier
+    return false unless item[:effective_multiplier].to_d == existing.effective_multiplier
+    return false unless item[:effective_multiplier_milli].to_i == existing.effective_multiplier_milli
+    return false unless (item[:provenance_mask].presence || 1).to_i == existing.provenance_mask
+    return false unless item[:git_head_sha].presence == existing.git_head_sha
+
+    StruggleChainVerifier.valid?(
+      window_params: item.merge(user_id: claimed_user_id),
+      expected_prev_chain_hash: existing.prev_chain_hash,
+      raw_public_key: @user.ed25519_public_key
+    )
+  end
 
   def set_user
     @user = api_user_from_credentials(

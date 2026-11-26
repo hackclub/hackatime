@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Link } from "@inertiajs/svelte";
+  import { myStruggle } from "../../api";
   import Button from "../../components/Button.svelte";
   import Modal from "../../components/Modal.svelte";
   import ScreenHeader from "./components/ScreenHeader.svelte";
@@ -51,12 +53,16 @@
     subtitle="Install the Hackatime extension in Antigravity, Cursor, Windsurf, VS Code, VSCodium, Trae, Kiro, or Void."
   />
 
-  <div class="rounded-xl border border-surface-300 bg-surface-100 px-4 py-3 text-xs text-secondary">
+  <div
+    class="rounded-xl border border-surface-300 bg-surface-100 px-4 py-3 text-xs text-secondary"
+  >
     <strong class="text-white">One Extension Everywhere:</strong>
-    Available on both <strong>Open VSX</strong> (Antigravity, Cursor, Windsurf, VSCodium, Trae, Kiro, Void)
-    and <strong>VS Code Marketplace</strong> (VS Code). Bundles the lightweight native
-    <code>hackatime-d</code> daemon automatically—zero shell scripts needed. Convert earned
-    Struggle Points (SP) to verified hours anytime on <a href="/my/struggle" class="underline">/my/struggle</a>.
+    Available on both <strong>Open VSX</strong> (Antigravity, Cursor, Windsurf,
+    VSCodium, Trae, Kiro, Void) and <strong>VS Code Marketplace</strong> (VS
+    Code). Bundles the lightweight native
+    <code>hackatime-d</code> daemon automatically. Convert earned Struggle
+    Points (SP) to verified hours anytime on
+    <Link href={myStruggle.show.path()} class="underline">/my/struggle</Link>.
   </div>
 
   <div class="grid grid-cols-1 gap-6 md:grid-cols-3">

@@ -51,6 +51,54 @@ class My::StruggleControllerTest < ActionDispatch::IntegrationTest
     assert_equal 270, @window.reload.credited_seconds
   end
 
+  test "summary and project totals aggregate the full queue while bounding the window preview list" do
+    sign_in_as(@user)
+
+    # Add 55 additional windows (56 total > PREVIEW_WINDOWS_PER_PROJECT = 50)
+    base_unix = 1_795_090_500
+    now = Time.current
+    rows = 55.times.map do |i|
+      {
+        user_id: @user.id,
+        project_hash: @project_hash,
+        project_name: "hackatime-ai",
+        window_start: Time.at(base_unix + (i * 300)).utc,
+        raw_seconds: 300,
+        convertible_seconds: 300,
+        credited_seconds: 0,
+        struggle_points: 10.0,
+        diversity_multiplier: 1.0,
+        verify_multiplier: 1.0,
+        effective_multiplier: 1.0,
+        effective_multiplier_milli: 1000,
+        provenance_mask: 3,
+        primary_language: "C++",
+        ai_harness: "antigravity",
+        signal_counts: {},
+        prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
+        server_nonce: "0" * 32,
+        chain_hash: format("%064x", i + 100),
+        signature: "x" * 64,
+        created_at: now,
+        updated_at: now
+      }
+    end
+    StruggleWindow.insert_all!(rows)
+
+    get my_struggle_path, headers: { "X-Inertia" => "true" }
+    assert_response :ok
+    props = JSON.parse(response.body).fetch("props")
+
+    assert_equal 56, props["summary"]["unconverted_windows_count"]
+    assert_equal 270 + (55 * 300), props["summary"]["convertible_seconds"]
+
+    group = props["project_groups"].first
+    assert_equal 56, group["windows_count"]
+    assert_equal 270 + (55 * 300), group["convertible_seconds"]
+    assert_equal true, group["has_more_windows"]
+    assert_equal My::StruggleController::PREVIEW_WINDOWS_PER_PROJECT, group["windows"].size
+  end
+
   test "renders public SVG Struggle Card badge reflecting converted verified hours" do
     StruggleConversionService.call(user: @user, project_hash: @project_hash)
 

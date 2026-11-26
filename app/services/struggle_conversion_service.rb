@@ -1,12 +1,14 @@
 # Atomically converts a user's unconverted Struggle Windows (SP) into verified Struggle Hours
-# using Option A (Per-Window Exact Cap: credited_seconds = convertible_seconds <= raw_seconds).
+# using Option A (Per-Window Exact Cap: credited_seconds <= convertible_seconds <= raw_seconds).
 #
 # Uses PostgreSQL row-level locking (`FOR UPDATE`) so each window can only ever be converted once.
-# Credits the verified duration directly into the user's main Hackatime timeline (`heartbeats`)
-# under the `"struggle point time"` category and refreshes their dashboard rollups immediately.
+# Accounts for existing heartbeat intervals before marking points as spent so converted
+# `"struggle point time"` heartbeats never collide with or lose credit to existing activity.
 class StruggleConversionService
   STRUGGLE_HEARTBEAT_CATEGORY = "struggle point time".freeze
   HEARTBEAT_STEP_SECONDS = 60
+  WINDOW_DURATION_SECONDS = 300.0
+  BOUNDARY_EPSILON = 0.001
 
   Result = Data.define(:conversion, :converted_count, :error) do
     def success? = error.nil?
@@ -38,9 +40,12 @@ class StruggleConversionService
       end
 
       now = Time.current
+      timeout = Heartbeat.heartbeat_timeout_duration.to_i
+      allocations = plan_window_allocations(windows: windows, timeout: timeout)
+
       total_sp = windows.sum { |w| w.struggle_points.to_d }
       total_raw = windows.sum(&:raw_seconds)
-      total_credited = windows.sum(&:convertible_seconds)
+      total_credited = allocations.sum { |a| a[:credited_seconds] }
       distinct_hashes = windows.map(&:project_hash).uniq
       single_hash = distinct_hashes.size == 1 ? distinct_hashes.first : nil
       single_name = single_hash ? windows.find { |w| w.project_name.present? }&.project_name : "All Projects"
@@ -55,19 +60,19 @@ class StruggleConversionService
         converted_at: now
       )
 
-      # Atomically lock & credit each window with its exact per-window capped convertible_seconds
-      @user.struggle_windows
-        .where(id: windows.map(&:id), converted_at: nil)
-        .update_all(
-          [
-            "credited_seconds = convertible_seconds, converted_at = ?, struggle_conversion_id = ?, updated_at = ?",
-            now,
-            conversion.id,
-            now
-          ]
+      allocations.each do |alloc|
+        alloc[:window].update!(
+          credited_seconds: alloc[:credited_seconds],
+          converted_at: now,
+          struggle_conversion_id: conversion.id
         )
+      end
 
-      credited_heartbeats = credit_dashboard_heartbeats!(conversion: conversion, windows: windows, now: now)
+      credited_heartbeats = insert_allocated_heartbeats!(
+        conversion: conversion,
+        allocations: allocations,
+        now: now
+      )
       count = windows.size
     end
 
@@ -78,45 +83,186 @@ class StruggleConversionService
 
   private
 
-  def credit_dashboard_heartbeats!(conversion:, windows:, now:)
-    creditable = windows.select { |w| w.convertible_seconds.to_i.positive? }
-    return false if creditable.empty?
+  def plan_window_allocations(windows:, timeout:)
+    timeline = existing_timeline_for(windows)
 
-    tz = ActiveSupport::TimeZone[@user.timezone] || Time.zone
-    last_os = @user.heartbeats.where.not(operating_system: [ nil, "" ]).order(time: :desc).limit(1).pick(:operating_system)
-    source_type_val = Heartbeat.source_types.fetch("direct_entry")
-    timeout = Heartbeat.heartbeat_timeout_duration.to_i
-    inserted_any = false
+    windows.map do |window|
+      desired = window.convertible_seconds.to_i
+      if desired <= 0
+        { window: window, credited_seconds: 0, timestamps: [] }
+      else
+        w_start = window.window_start.to_f
+        w_end = w_start + WINDOW_DURATION_SECONDS
+        allocated = allocate_window_timestamps(
+          window_start: w_start,
+          window_end: w_end,
+          desired: desired,
+          timeline: timeline,
+          timeout: timeout
+        )
+        unless allocated[:timestamps].empty?
+          timeline.concat(allocated[:timestamps])
+          timeline.sort!
+        end
+        allocated.merge(window: window)
+      end
+    end
+  end
 
-    grouped = creditable.group_by do |w|
-      proj = w.project_name.presence || "project-#{w.project_hash.first(8)}"
-      local_date = tz.at(w.window_start.to_f).to_date
-      [ proj, local_date ]
+  def existing_timeline_for(windows)
+    min_start = windows.first.window_start.to_f
+    max_end = windows.last.window_start.to_f + WINDOW_DURATION_SECONDS
+    base = @user.heartbeats.with_valid_timestamps
+
+    in_range = base.where(time: min_start..max_end).order(time: :asc).pluck(:time).map(&:to_f)
+    before_min = base.where("time < ?", min_start).maximum(:time)&.to_f
+    after_max = base.where("time > ?", max_end).minimum(:time)&.to_f
+
+    timeline = []
+    timeline << before_min if before_min
+    timeline.concat(in_range)
+    timeline << after_max if after_max
+    timeline.sort!
+    timeline
+  end
+
+  # Computes exact non-overlapping heartbeat timestamps within [window_start, window_end]
+  # so every credited second increases both total duration and "struggle point time"
+  # without altering any existing heartbeat's LAG duration or category attribution.
+  def allocate_window_timestamps(window_start:, window_end:, desired:, timeline:, timeout:)
+    left_hb = nil
+    right_hb = nil
+    interior = []
+
+    timeline.each do |ts|
+      if ts <= window_start
+        left_hb = ts
+      elsif ts < window_end
+        interior << ts
+      else
+        right_hb = ts
+        break
+      end
     end
 
-    grouped.sort_by { |(_, _), group| group.first.window_start.to_f }.each do |(project_name, _local_date), group|
-      credited_seconds = group.sum { |w| w.convertible_seconds.to_i }
-      next if credited_seconds <= 0
+    points = [ left_hb, *interior, right_hb ]
+    remaining = desired
+    timestamps = []
 
-      language = dominant_field(group, :primary_language, fallback: "Unknown")
-      editor = dominant_field(group, :ai_harness, fallback: "hackatime-ai")
-      entity = "struggle://#{project_name}/conversion-#{conversion.id}"
+    (0...(points.size - 1)).each do |idx|
+      break if remaining <= 0
 
-      first_start = group.first.window_start.to_f
-      day_start = tz.at(first_start).beginning_of_day.to_f
-      anchor = [ first_start, now.to_f - credited_seconds ].min
-      anchor = [ anchor, day_start ].max
-
-      prev_same_day = @user.heartbeats.where("time >= ? AND time <= ?", day_start, anchor).maximum(:time)
-      timestamps = build_exact_timestamps(
-        anchor: anchor,
-        credited_seconds: credited_seconds,
-        prev_same_day: prev_same_day,
+      a = points[idx]
+      b = points[idx + 1]
+      gap_ts, gained = allocate_in_gap(
+        a: a,
+        b: b,
+        window_start: window_start,
+        window_end: window_end,
+        remaining: remaining,
         timeout: timeout
       )
-      next if timestamps.empty?
+      next if gained <= 0 || gap_ts.empty?
 
-      rows = timestamps.map do |ts|
+      timestamps.concat(gap_ts)
+      remaining -= gained
+    end
+
+    {
+      timestamps: timestamps,
+      credited_seconds: desired - remaining
+    }
+  end
+
+  def allocate_in_gap(a:, b:, window_start:, window_end:, remaining:, timeout:)
+    if a.nil? && b.nil?
+      cap = (window_end - window_start).floor
+      take = [ remaining, cap ].min
+      return [ [], 0 ] if take <= 0
+
+      [ step_chain(window_start, window_start + take, include_start: true), take ]
+    elsif a.nil?
+      # No prior heartbeat exists; right-align before b when b falls inside the window
+      # so b does not gain unintended leading gap credit.
+      upper = [ window_end, b - BOUNDARY_EPSILON ].min
+      cap = ([ window_end, b ].min - window_start).floor
+      take = [ remaining, cap ].min
+      return [ [], 0 ] if take <= 0
+
+      if b <= window_end
+        s_end = b - BOUNDARY_EPSILON
+        s_start = [ window_start, s_end - take ].max
+        [ step_chain(s_start, s_end, include_start: true), take ]
+      else
+        s_end = [ window_start + take, upper ].min
+        [ step_chain(window_start, s_end, include_start: true), take ]
+      end
+    elsif b.nil?
+      allocate_after_anchor(a: a, hi: window_end, window_start: window_start, remaining: remaining, timeout: timeout)
+    else
+      # Gap (a, b) already credits min(b - a, timeout) to b. Keep last inserted timestamp
+      # at least `timeout` before b so b's existing duration and category stay untouched.
+      return [ [], 0 ] if (b - a) <= timeout
+
+      hi = [ window_end, b - timeout.to_f ].min
+      return [ [], 0 ] if hi <= a
+
+      allocate_after_anchor(a: a, hi: hi, window_start: window_start, remaining: remaining, timeout: timeout)
+    end
+  end
+
+  def allocate_after_anchor(a:, hi:, window_start:, remaining:, timeout:)
+    if a < window_start
+      return [ [], 0 ] if hi < window_start
+
+      entry = [ window_start - a, timeout.to_f ].min
+      if remaining < entry
+        candidate = a + remaining
+        return [ [ candidate ], remaining ] if candidate <= hi
+        return [ [], 0 ]
+      end
+
+      max_cap = (entry + (hi - window_start)).floor
+      take = [ remaining, max_cap ].min
+      return [ [], 0 ] if take < entry.floor
+
+      after_entry = [ take - entry, 0.0 ].max
+      s_end = [ window_start + after_entry, hi ].min
+      [ step_chain(window_start, s_end, include_start: true), take ]
+    else
+      cap = (hi - a).floor
+      take = [ remaining, cap ].min
+      return [ [], 0 ] if take <= 0
+
+      [ step_chain(a, a + take, include_start: false), take ]
+    end
+  end
+
+  def step_chain(start_ts, end_ts, include_start:)
+    timestamps = include_start ? [ start_ts ] : []
+    cursor = start_ts
+    while cursor < end_ts
+      cursor = [ cursor + HEARTBEAT_STEP_SECONDS, end_ts ].min
+      timestamps << cursor
+    end
+    timestamps
+  end
+
+  def insert_allocated_heartbeats!(conversion:, allocations:, now:)
+    last_os = @user.heartbeats.where.not(operating_system: [ nil, "" ]).order(time: :desc).limit(1).pick(:operating_system)
+    source_type_val = Heartbeat.source_types.fetch("direct_entry")
+    rows = []
+
+    allocations.each do |alloc|
+      next if alloc[:timestamps].empty?
+
+      w = alloc[:window]
+      project_name = w.project_name.presence || "project-#{w.project_hash.first(8)}"
+      language = w.primary_language.presence || "Unknown"
+      editor = w.ai_harness.presence || "hackatime-ai"
+      entity = "struggle://#{project_name}/conversion-#{conversion.id}/window-#{w.id}"
+
+      alloc[:timestamps].each do |ts|
         attrs = {
           "user_id" => @user.id,
           "branch" => nil,
@@ -139,52 +285,19 @@ class StruggleConversionService
           "time" => ts.to_f,
           "is_write" => true
         }
-        attrs.merge(
+        rows << attrs.merge(
           "source_type" => source_type_val,
           "fields_hash" => Heartbeat.generate_fields_hash(attrs),
           "created_at" => now,
           "updated_at" => now
         )
       end
-
-      Heartbeat.insert_all!(rows)
-      inserted_any = true
     end
 
-    inserted_any
-  end
+    return false if rows.empty?
 
-  def build_exact_timestamps(anchor:, credited_seconds:, prev_same_day:, timeout:)
-    if prev_same_day
-      entry_credit = [ anchor - prev_same_day, timeout.to_f ].min.round
-      if credited_seconds <= entry_credit
-        next_after_prev = @user.heartbeats.where("time > ?", prev_same_day).minimum(:time)
-        candidate = prev_same_day + credited_seconds
-        return [ candidate ] if next_after_prev.nil? || candidate < next_after_prev
-        return [ anchor ]
-      end
-      remaining = credited_seconds - entry_credit
-    else
-      remaining = credited_seconds
-    end
-
-    timestamps = [ anchor ]
-    cursor = anchor
-    target_end = anchor + remaining
-    while cursor < target_end
-      cursor = [ cursor + HEARTBEAT_STEP_SECONDS, target_end ].min
-      timestamps << cursor
-    end
-    timestamps
-  end
-
-  def dominant_field(group, attr, fallback:)
-    totals = Hash.new(0)
-    group.each do |w|
-      val = w.public_send(attr).presence
-      totals[val] += w.convertible_seconds.to_i if val
-    end
-    totals.max_by { |_, secs| secs }&.first || fallback
+    Heartbeat.insert_all!(rows)
+    true
   end
 
   def refresh_dashboard_immediately!

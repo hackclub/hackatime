@@ -762,9 +762,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_120005) do
     t.index ["user_id", "project_hash"], name: "idx_struggle_windows_unconverted", where: "(converted_at IS NULL)"
     t.index ["user_id", "window_start"], name: "idx_struggle_windows_user_time"
     t.index ["user_id"], name: "index_struggle_windows_on_user_id"
-    t.check_constraint "convertible_seconds >= 0 AND convertible_seconds <= 300", name: "chk_struggle_windows_convertible_seconds"
-    t.check_constraint "credited_seconds >= 0 AND credited_seconds <= 300", name: "chk_struggle_windows_credited_seconds"
+    t.check_constraint "convertible_seconds >= 0 AND convertible_seconds <= raw_seconds", name: "chk_struggle_windows_convertible_seconds"
+    t.check_constraint "convertible_seconds::numeric <= LEAST(raw_seconds::numeric, ceil(raw_seconds::numeric * LEAST(struggle_points / 10.0, 1.0)))", name: "chk_struggle_windows_sp_cap"
+    t.check_constraint "credited_seconds >= 0 AND credited_seconds <= convertible_seconds", name: "chk_struggle_windows_credited_seconds"
     t.check_constraint "raw_seconds >= 0 AND raw_seconds <= 300", name: "chk_struggle_windows_raw_seconds"
+    t.check_constraint "struggle_points >= 0::numeric", name: "chk_struggle_windows_struggle_points"
+    t.check_constraint "struggle_points >= 2.0 OR convertible_seconds = 0 AND effective_multiplier = 0::numeric AND effective_multiplier_milli = 0", name: "chk_struggle_windows_min_sp_threshold"
   end
 
   create_table "trust_level_audit_logs", force: :cascade do |t|

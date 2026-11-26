@@ -47,11 +47,23 @@ class CreateStruggleWindows < ActiveRecord::Migration[8.1]
       name: "chk_struggle_windows_raw_seconds"
 
     add_check_constraint :struggle_windows,
-      "convertible_seconds BETWEEN 0 AND 300",
+      "convertible_seconds >= 0 AND convertible_seconds <= raw_seconds",
       name: "chk_struggle_windows_convertible_seconds"
 
     add_check_constraint :struggle_windows,
-      "credited_seconds BETWEEN 0 AND 300",
+      "credited_seconds >= 0 AND credited_seconds <= convertible_seconds",
       name: "chk_struggle_windows_credited_seconds"
+
+    add_check_constraint :struggle_windows,
+      "struggle_points >= 0",
+      name: "chk_struggle_windows_struggle_points"
+
+    add_check_constraint :struggle_windows,
+      "struggle_points >= 2.0 OR (convertible_seconds = 0 AND effective_multiplier = 0 AND effective_multiplier_milli = 0)",
+      name: "chk_struggle_windows_min_sp_threshold"
+
+    add_check_constraint :struggle_windows,
+      "convertible_seconds <= LEAST(raw_seconds, CEIL(raw_seconds * LEAST(struggle_points / 10.0, 1.0)))",
+      name: "chk_struggle_windows_sp_cap"
   end
 end

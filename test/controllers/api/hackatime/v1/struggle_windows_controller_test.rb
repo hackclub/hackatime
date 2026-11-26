@@ -23,18 +23,34 @@ class Api::Hackatime::V1::StruggleWindowsControllerTest < ActionDispatch::Integr
     }
   end
 
-  def sign_window(user_id:, project_hash:, window_start_unix:, prev_chain_hash:, server_nonce:, credited_seconds: 300)
+  def recent_window_start(offset_windows: 0)
+    ((Time.current.to_i / 300) * 300) - 3600 + (offset_windows * 300)
+  end
+
+  def sign_window(
+    user_id:,
+    project_hash:,
+    window_start_unix:,
+    prev_chain_hash:,
+    server_nonce:,
+    raw_seconds: 300,
+    credited_seconds: 300,
+    struggle_points: 19.55,
+    effective_multiplier: 1.0,
+    effective_multiplier_milli: 1000,
+    git_head_sha: "1111111111111111111111111111111111111111"
+  )
     digest = StruggleChainVerifier.compute_digest(
       prev_chain_hash: prev_chain_hash,
       server_nonce: server_nonce,
       user_id: user_id.to_s,
       project_hash: project_hash,
       window_start_unix: window_start_unix,
-      raw_seconds: 300,
+      raw_seconds: raw_seconds,
       credited_seconds: credited_seconds,
-      effective_multiplier_milli: 1000,
+      effective_multiplier_milli: effective_multiplier_milli,
       provenance_mask: 3,
-      git_head_sha: "1111111111111111111111111111111111111111"
+      git_head_sha: git_head_sha
     )
     sig = @keypair.sign(nil, digest)
     {
@@ -42,13 +58,13 @@ class Api::Hackatime::V1::StruggleWindowsControllerTest < ActionDispatch::Integr
       project_hash: project_hash,
       project_name: "raytracer",
       window_start_unix: window_start_unix,
-      raw_seconds: 300,
+      raw_seconds: raw_seconds,
       credited_seconds: credited_seconds,
-      struggle_points: 19.55,
+      struggle_points: struggle_points,
       diversity_multiplier: 1.15,
       verify_multiplier: 1.0,
-      effective_multiplier: 1.0,
-      effective_multiplier_milli: 1000,
+      effective_multiplier: effective_multiplier,
+      effective_multiplier_milli: effective_multiplier_milli,
       provenance_mask: 3,
       primary_language: "C++",
       ai_harness: "antigravity",
@@ -58,7 +74,7 @@ class Api::Hackatime::V1::StruggleWindowsControllerTest < ActionDispatch::Integr
         { signal_code: "SIG_ARCH_STEER", trigger_count: 1, raw_points: 4.0, awarded_points: 4.0, provenance_mask: 2, gate_status: "awarded" },
         { signal_code: "SIG_VERIFY_EXEC", trigger_count: 1, raw_points: 3.0, awarded_points: 3.0, provenance_mask: 1, gate_status: "awarded" }
       ],
-      git_head_sha: "1111111111111111111111111111111111111111",
+      git_head_sha: git_head_sha,
       prev_chain_hash: prev_chain_hash,
       server_nonce: server_nonce,
       chain_hash_hex: digest.unpack1("H*"),
@@ -83,14 +99,14 @@ class Api::Hackatime::V1::StruggleWindowsControllerTest < ActionDispatch::Integr
     w1 = sign_window(
       user_id: @user.id,
       project_hash: project_hash,
-      window_start_unix: 1_795_089_600,
+      window_start_unix: recent_window_start(offset_windows: 0),
       prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
       server_nonce: boot["server_nonce"]
     )
     w2 = sign_window(
       user_id: @user.id,
       project_hash: project_hash,
-      window_start_unix: 1_795_089_900,
+      window_start_unix: recent_window_start(offset_windows: 1),
       prev_chain_hash: w1[:chain_hash_hex],
       server_nonce: boot["server_nonce"]
     )
@@ -118,22 +134,234 @@ class Api::Hackatime::V1::StruggleWindowsControllerTest < ActionDispatch::Integr
       @user.struggle_point_events.distinct.order(:signal_code).pluck(:signal_code)
   end
 
-  test "rejects forged offline server_nonce and rolls back entire batch atomically" do
+  test "accepts idempotent retry of an already-committed batch after a lost HTTP response" do
     @user.update!(ed25519_public_key: @keypair.raw_public_key)
-    valid_nonce = StruggleNonceStore.issue(user_id: @user.id)
-    project_hash = "c" * 64
+    nonce = StruggleNonceStore.issue(user_id: @user.id)
+    project_hash = "1" * 64
+    t1 = recent_window_start(offset_windows: 0)
 
     w1 = sign_window(
       user_id: @user.id,
       project_hash: project_hash,
-      window_start_unix: 1_795_089_600,
+      window_start_unix: t1,
+      prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
+      server_nonce: nonce
+    )
+    w2 = sign_window(
+      user_id: @user.id,
+      project_hash: project_hash,
+      window_start_unix: t1 + 300,
+      prev_chain_hash: w1[:chain_hash_hex],
+      server_nonce: nonce
+    )
+
+    assert_difference("StruggleWindow.count", 2) do
+      post "/api/hackatime/v1/users/current/struggle_windows",
+        params: [ w1, w2 ].to_json,
+        headers: auth_headers
+    end
+    assert_response :ok
+
+    # Simulate client losing the HTTP response and replaying the exact same batch
+    # (even if the original nonce already expired from memory)
+    StruggleNonceStore.clear!
+    assert_no_difference("StruggleWindow.count") do
+      post "/api/hackatime/v1/users/current/struggle_windows",
+        params: [ w1, w2 ].to_json,
+        headers: auth_headers
+    end
+    assert_response :ok
+    retry_body = JSON.parse(response.body)
+    assert_equal 2, retry_body["accepted"]
+    assert_match(/\A[0-9a-f]{32}\z/, retry_body["next_server_nonce"])
+
+    # Client can also retry [w1, w2] together with a newly appended w3 chained off w2
+    w3 = sign_window(
+      user_id: @user.id,
+      project_hash: project_hash,
+      window_start_unix: t1 + 600,
+      prev_chain_hash: w2[:chain_hash_hex],
+      server_nonce: retry_body["next_server_nonce"]
+    )
+    assert_difference("StruggleWindow.count", 1) do
+      post "/api/hackatime/v1/users/current/struggle_windows",
+        params: [ w1, w2, w3 ].to_json,
+        headers: auth_headers
+    end
+    assert_response :ok
+    assert_equal 3, @user.struggle_windows.where(project_hash: project_hash).count
+  end
+
+  test "keeps saved chain history immutable and rejects older or overwritten windows even with a fresh nonce" do
+    @user.update!(ed25519_public_key: @keypair.raw_public_key)
+    nonce1 = StruggleNonceStore.issue(user_id: @user.id)
+    project_hash = "2" * 64
+    t1 = recent_window_start(offset_windows: 2)
+
+    w1 = sign_window(
+      user_id: @user.id,
+      project_hash: project_hash,
+      window_start_unix: t1,
+      prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
+      server_nonce: nonce1
+    )
+    post "/api/hackatime/v1/users/current/struggle_windows",
+      params: [ w1 ].to_json,
+      headers: auth_headers
+    assert_response :ok
+    saved_window = @user.struggle_windows.find_by!(project_hash: project_hash)
+    fresh_nonce = JSON.parse(response.body)["next_server_nonce"]
+
+    # Attempt 1: insert a new window older than the current tip using a fresh nonce
+    older = sign_window(
+      user_id: @user.id,
+      project_hash: project_hash,
+      window_start_unix: t1 - 300,
+      prev_chain_hash: w1[:chain_hash_hex],
+      server_nonce: fresh_nonce
+    )
+    assert_no_difference("StruggleWindow.count") do
+      post "/api/hackatime/v1/users/current/struggle_windows",
+        params: [ older ].to_json,
+        headers: auth_headers
+    end
+    assert_response :forbidden
+
+    # Attempt 2: overwrite the existing saved timestamp with different signed fields
+    rewrite = sign_window(
+      user_id: @user.id,
+      project_hash: project_hash,
+      window_start_unix: t1,
+      prev_chain_hash: w1[:chain_hash_hex],
+      server_nonce: fresh_nonce,
+      raw_seconds: 240,
+      credited_seconds: 240,
+      git_head_sha: "2222222222222222222222222222222222222222"
+    )
+    assert_no_difference("StruggleWindow.count") do
+      post "/api/hackatime/v1/users/current/struggle_windows",
+        params: [ rewrite ].to_json,
+        headers: auth_headers
+    end
+    assert_response :forbidden
+    assert_equal 300, saved_window.reload.raw_seconds
+    assert_equal "1111111111111111111111111111111111111111", saved_window.git_head_sha
+  end
+
+  test "rejects backdated and future-dated windows even when signed with a fresh server_nonce" do
+    @user.update!(ed25519_public_key: @keypair.raw_public_key)
+    fresh_nonce = StruggleNonceStore.issue(user_id: @user.id)
+
+    backdated = sign_window(
+      user_id: @user.id,
+      project_hash: "3" * 64,
+      window_start_unix: 8.days.ago.to_i,
+      prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
+      server_nonce: fresh_nonce
+    )
+    assert_no_difference("StruggleWindow.count") do
+      post "/api/hackatime/v1/users/current/struggle_windows",
+        params: [ backdated ].to_json,
+        headers: auth_headers
+    end
+    assert_response :forbidden
+
+    future_dated = sign_window(
+      user_id: @user.id,
+      project_hash: "4" * 64,
+      window_start_unix: 1.hour.from_now.to_i,
+      prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
+      server_nonce: fresh_nonce
+    )
+    assert_no_difference("StruggleWindow.count") do
+      post "/api/hackatime/v1/users/current/struggle_windows",
+        params: [ future_dated ].to_json,
+        headers: auth_headers
+    end
+    assert_response :forbidden
+  end
+
+  test "rejects windows whose credited_seconds exceed raw_seconds or struggle_points rules" do
+    @user.update!(ed25519_public_key: @keypair.raw_public_key)
+    nonce = StruggleNonceStore.issue(user_id: @user.id)
+
+    excess_credit = sign_window(
+      user_id: @user.id,
+      project_hash: "5" * 64,
+      window_start_unix: recent_window_start(offset_windows: 0),
+      prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
+      server_nonce: nonce,
+      raw_seconds: 1,
+      credited_seconds: 300,
+      struggle_points: 0.0,
+      effective_multiplier: 1.0,
+      effective_multiplier_milli: 1000
+    )
+    assert_no_difference("StruggleWindow.count") do
+      post "/api/hackatime/v1/users/current/struggle_windows",
+        params: [ excess_credit ].to_json,
+        headers: auth_headers
+    end
+    assert_response :bad_request
+
+    below_threshold = sign_window(
+      user_id: @user.id,
+      project_hash: "6" * 64,
+      window_start_unix: recent_window_start(offset_windows: 0),
+      prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
+      server_nonce: nonce,
+      raw_seconds: 300,
+      credited_seconds: 45,
+      struggle_points: 1.5,
+      effective_multiplier: 0.15,
+      effective_multiplier_milli: 150
+    )
+    assert_no_difference("StruggleWindow.count") do
+      post "/api/hackatime/v1/users/current/struggle_windows",
+        params: [ below_threshold ].to_json,
+        headers: auth_headers
+    end
+    assert_response :bad_request
+
+    # Confirm PostgreSQL CHECK constraints enforce credit invariants even if validations are bypassed
+    valid_window = sign_window(
+      user_id: @user.id,
+      project_hash: "7" * 64,
+      window_start_unix: recent_window_start(offset_windows: 0),
+      prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
+      server_nonce: nonce
+    )
+    post "/api/hackatime/v1/users/current/struggle_windows",
+      params: [ valid_window ].to_json,
+      headers: auth_headers
+    assert_response :ok
+
+    saved = @user.struggle_windows.find_by!(project_hash: "7" * 64)
+    assert_raises(ActiveRecord::StatementInvalid) do
+      saved.update_columns(raw_seconds: 1, convertible_seconds: 300)
+    end
+    assert_raises(ActiveRecord::StatementInvalid) do
+      saved.update_columns(struggle_points: 1.0, convertible_seconds: 30)
+    end
+  end
+
+  test "rejects forged offline server_nonce and rolls back entire batch atomically" do
+    @user.update!(ed25519_public_key: @keypair.raw_public_key)
+    valid_nonce = StruggleNonceStore.issue(user_id: @user.id)
+    project_hash = "c" * 64
+    t1 = recent_window_start(offset_windows: 0)
+
+    w1 = sign_window(
+      user_id: @user.id,
+      project_hash: project_hash,
+      window_start_unix: t1,
       prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
       server_nonce: valid_nonce
     )
     w2_forged = sign_window(
       user_id: @user.id,
       project_hash: project_hash,
-      window_start_unix: 1_795_089_900,
+      window_start_unix: t1 + 300,
       prev_chain_hash: w1[:chain_hash_hex],
       server_nonce: "deadbeefdeadbeefdeadbeefdeadbeef"
     )
@@ -152,7 +380,7 @@ class Api::Hackatime::V1::StruggleWindowsControllerTest < ActionDispatch::Integr
     tampered = sign_window(
       user_id: @user.id,
       project_hash: "d" * 64,
-      window_start_unix: 1_795_089_600,
+      window_start_unix: recent_window_start(offset_windows: 0),
       prev_chain_hash: StruggleWindow::GENESIS_CHAIN_HASH,
       server_nonce: nonce
     ).merge(credited_seconds: 299)

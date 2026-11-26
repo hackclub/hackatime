@@ -871,6 +871,265 @@ paths:
                               example: 0
         '401':
           description: unauthorized
+  "/api/hackatime/v1/users/{id}/ed25519_key":
+    put:
+      summary: Register or rotate Ed25519 public key for StruggleTrack
+      tags:
+      - StruggleTrack
+      description: Registers the user's 32-byte Ed25519 public key (hex-encoded) used
+        to verify signed Struggle Telemetry Protocol (STP v1) window chains.
+      security:
+      - Bearer: []
+        ApiKeyAuth: []
+      parameters:
+      - name: id
+        in: path
+        description: User ID or "current" (recommended). The authenticated user is
+          resolved from the API token.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: public key registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: boolean
+                    example: true
+                required:
+                - updated
+        '400':
+          description: invalid public key
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: unauthorized
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ed25519_public_key_hex:
+                  type: string
+                  description: 64-character hex-encoded Ed25519 public key (32 raw
+                    bytes).
+                  example: d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a
+              required:
+              - ed25519_public_key_hex
+  "/api/hackatime/v1/users/{id}/struggle_nonce":
+    get:
+      summary: Issue ephemeral StruggleTrack server nonce
+      tags:
+      - StruggleTrack
+      description: Issues a short-lived cryptographic server nonce bound to the authenticated
+        user for signing StruggleTrack (STP v1) windows.
+      security:
+      - Bearer: []
+        ApiKeyAuth: []
+      parameters:
+      - name: id
+        in: path
+        description: User ID or "current" (recommended). The authenticated user is
+          resolved from the API token.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: nonce issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  server_nonce:
+                    type: string
+                    example: '0123456789abcdef0123456789abcdef'
+                  user_id:
+                    type: string
+                    example: '42'
+                  expires_in_seconds:
+                    type: integer
+                    example: 86400
+                required:
+                - server_nonce
+                - user_id
+                - expires_in_seconds
+        '401':
+          description: unauthorized
+  "/api/hackatime/v1/users/{id}/struggle_windows":
+    post:
+      summary: Ingest signed StruggleTrack (STP v1) windows
+      tags:
+      - StruggleTrack
+      description: Verifies and ingests a batch of up to 100 Ed25519-signed, hash-chained
+        5-minute Struggle Windows as unconverted Struggle Points.
+      security:
+      - Bearer: []
+        ApiKeyAuth: []
+      parameters:
+      - name: id
+        in: path
+        description: User ID or "current" (recommended). The authenticated user is
+          resolved from the API token.
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: windows accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: integer
+                    example: 1
+                  next_server_nonce:
+                    type: string
+                    example: fedcba9876543210fedcba9876543210
+                required:
+                - accepted
+                - next_server_nonce
+        '400':
+          description: missing Ed25519 public key or invalid payload
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: unauthorized
+        '403':
+          description: invalid nonce, chain linkage or signature
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              description: Ordered array of signed Struggle Windows (max 100 per request).
+              items:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    example: '42'
+                  project_hash:
+                    type: string
+                    example: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+                  project_name:
+                    type: string
+                    nullable: true
+                    example: raytracer
+                  window_start_unix:
+                    type: integer
+                    format: int64
+                    example: 1763900400
+                  raw_seconds:
+                    type: integer
+                    example: 300
+                  credited_seconds:
+                    type: integer
+                    example: 300
+                  struggle_points:
+                    type: number
+                    example: 12.5
+                  diversity_multiplier:
+                    type: number
+                    example: 1.15
+                  verify_multiplier:
+                    type: number
+                    example: 1.0
+                  effective_multiplier:
+                    type: number
+                    example: 1.0
+                  effective_multiplier_milli:
+                    type: integer
+                    example: 1000
+                  provenance_mask:
+                    type: integer
+                    example: 3
+                  persisted_diff_lines:
+                    type: integer
+                    example: 18
+                  primary_language:
+                    type: string
+                    nullable: true
+                    example: C++
+                  ai_harness:
+                    type: string
+                    example: antigravity
+                  git_head_sha:
+                    type: string
+                    nullable: true
+                    example: '1111111111111111111111111111111111111111'
+                  signal_counts:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  anomaly_flags:
+                    type: array
+                    items:
+                      type: string
+                  signal_breakdown:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        signal_code:
+                          type: string
+                          example: SIG_ARCH_STEER
+                        trigger_count:
+                          type: integer
+                          example: 1
+                        raw_points:
+                          type: number
+                          example: 4.0
+                        awarded_points:
+                          type: number
+                          example: 4.0
+                        provenance_mask:
+                          type: integer
+                          example: 2
+                        gate_status:
+                          type: string
+                          example: awarded
+                  prev_chain_hash:
+                    type: string
+                    example: '0000000000000000000000000000000000000000000000000000000000000000'
+                  server_nonce:
+                    type: string
+                    example: '0123456789abcdef0123456789abcdef'
+                  chain_hash_hex:
+                    type: string
+                    example: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                  ed25519_sig_hex:
+                    type: string
+                    example: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+                required:
+                - project_hash
+                - window_start_unix
+                - raw_seconds
+                - credited_seconds
+                - struggle_points
+                - diversity_multiplier
+                - effective_multiplier
+                - effective_multiplier_milli
+                - prev_chain_hash
+                - server_nonce
+                - chain_hash_hex
+                - ed25519_sig_hex
   "/openapi.json":
     get:
       summary: Fetch the OpenAPI description of this API
@@ -2491,6 +2750,33 @@ paths:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Error"
+  "/api/v1/struggle_badge/{username}.svg":
+    get:
+      summary: Render a public SVG StruggleTrack builder card
+      tags:
+      - Badges
+      description: |
+        Returns an embeddable SVG card summarizing a user's converted StruggleTrack
+        verified hours, average multiplier, architect score and top stack.
+        Requires the user to have public stats lookup enabled.
+      security: []
+      parameters:
+      - name: username
+        in: path
+        required: true
+        description: 'User identifier: Slack UID, username or numeric internal ID.'
+        schema:
+          type: string
+      responses:
+        '200':
+          description: SVG struggle card badge
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+                description: SVG markup representing the user's StruggleTrack card.
+        '404':
+          description: user not found or public stats disabled
   "/api/v1/users/lookup_email/{email}":
     get:
       summary: Lookup user by email
@@ -2685,6 +2971,7 @@ components:
           - planning
           - researching
           - running tests
+          - struggle point time
           - supporting
           - translating
           - writing docs

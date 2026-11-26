@@ -61,7 +61,7 @@ RSpec.configure do |config|
             'advising', 'ai coding', 'animating', 'browsing', 'building', 'code reviewing',
             'coding', 'communicating', 'configuring', 'debugging', 'designing', 'indexing',
             'learning', 'manual testing', 'meeting', 'notes', 'planning', 'researching',
-            'running tests', 'supporting', 'translating', 'writing docs', 'writing tests'
+            'running tests', 'struggle point time', 'supporting', 'translating', 'writing docs', 'writing tests'
           ]
         },
         time: { type: :number, format: :float, example: 1709251200.0, description: 'Unix timestamp of the activity' },

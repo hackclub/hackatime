@@ -57,7 +57,9 @@
       {/if}
     </div>
 
-    <div class={`mt-5 grid gap-4 ${hasStruggle ? "grid-cols-3" : "grid-cols-2"}`}>
+    <div
+      class={`mt-5 grid gap-4 ${hasStruggle ? "grid-cols-3" : "grid-cols-2"}`}
+    >
       <div>
         <div class="flex items-center gap-2">
           <span class="h-2.5 w-2.5 rounded-full bg-primary"></span>
@@ -75,9 +77,13 @@
         <div class="text-center">
           <div class="flex items-center justify-center gap-2">
             <span class="h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
-            <span class="text-sm text-surface-content/60">Struggle Point Time</span>
+            <span class="text-sm text-surface-content/60"
+              >Struggle Point Time</span
+            >
           </div>
-          <p class="mt-1 text-xl font-semibold tabular-nums text-surface-content">
+          <p
+            class="mt-1 text-xl font-semibold tabular-nums text-surface-content"
+          >
             {strugglePercent}%
           </p>
           <p class="text-xs text-surface-content/45">
