@@ -112,8 +112,8 @@ class StruggleConversionService
           next if allocated[:credited_seconds] <= 0 || allocated[:ticks].empty?
 
           ticks.concat(allocated[:ticks])
-          timeline.concat(allocated[:ticks].map { |tick| tick[:time] })
-          timeline.sort!
+          timeline.concat(allocated[:ticks])
+          timeline.sort_by! { |entry| entry[:time] }
           remaining -= allocated[:credited_seconds]
         end
 
@@ -126,16 +126,18 @@ class StruggleConversionService
     end
   end
 
-  # Splits [w_start, w_end] at local midnight so windows straddling midnight
-  # (e.g. 23:58..00:03) credit each day's exact share instead of losing the post-midnight tail.
+  # Splits [w_start, w_end] at local midnight (including windows ending right at 00:00)
+  # so every tick lands on the intended local day without losing credit in daily queries.
   def day_segments(w_start, w_end, tz:)
     segments = []
     cursor = w_start
     while cursor < w_end
       local_day = tz.at(cursor).to_date
       next_day_start = (local_day + 1).in_time_zone(tz).beginning_of_day.to_f
-      if w_end > next_day_start
+      if w_end >= next_day_start
         segments << [ cursor, next_day_start, next_day_start - BOUNDARY_EPSILON ]
+        break if w_end == next_day_start
+
         cursor = next_day_start
       else
         segments << [ cursor, w_end, w_end ]
@@ -150,15 +152,15 @@ class StruggleConversionService
     max_end = windows.last.window_start.to_f + WINDOW_DURATION_SECONDS
     base = @user.heartbeats.with_valid_timestamps
 
-    in_range = base.where(time: min_start..max_end).order(time: :asc).pluck(:time).map(&:to_f)
-    before_min = base.where("time < ?", min_start).maximum(:time)&.to_f
-    after_max = base.where("time > ?", max_end).minimum(:time)&.to_f
+    in_range = base.where(time: min_start..max_end).order(time: :asc, id: :asc).pluck(:time, :type)
+    before_min = base.where("time < ?", min_start).order(time: :desc, id: :desc).limit(1).pick(:time, :type)
+    after_max = base.where("time > ?", max_end).order(time: :asc, id: :asc).limit(1).pick(:time, :type)
 
     timeline = []
-    timeline << before_min if before_min
-    timeline.concat(in_range)
-    timeline << after_max if after_max
-    timeline.sort!
+    timeline << { time: before_min[0].to_f, type: before_min[1] } if before_min
+    in_range.each { |ts, hb_type| timeline << { time: ts.to_f, type: hb_type } }
+    timeline << { time: after_max[0].to_f, type: after_max[1] } if after_max
+    timeline.sort_by! { |entry| entry[:time] }
     timeline
   end
 
@@ -170,13 +172,14 @@ class StruggleConversionService
     right_hb = nil
     interior = []
 
-    timeline.each do |ts|
+    timeline.each do |entry|
+      ts = entry[:time]
       if ts <= seg_start
-        left_hb = ts
+        left_hb = entry
       elsif ts < seg_limit
-        interior << ts
+        interior << entry
       else
-        right_hb = ts
+        right_hb = entry
         break
       end
     end
@@ -212,50 +215,66 @@ class StruggleConversionService
   end
 
   def allocate_in_gap(a:, b:, seg_start:, seg_limit:, emit_max:, remaining:, timeout:)
-    if a.nil? && b.nil?
+    a_time = a&.[](:time)
+    b_time = b&.[](:time)
+    b_is_start = b.present? && b[:type] == Heartbeat::STRUGGLE_START_TYPE
+
+    if a_time.nil? && b_time.nil?
       cap = (seg_limit - seg_start).floor
       take = [ remaining, cap ].min
       return [ [], 0 ] if take <= 0
 
       s_end = [ seg_start + take, emit_max ].min
       [ build_segment_ticks(seg_start, s_end), take ]
-    elsif a.nil?
-      # No prior heartbeat exists; right-align before b when b falls inside this segment
-      # so b does not gain unintended leading gap credit.
-      hi_limit = [ seg_limit, b ].min
+    elsif a_time.nil?
+      hi_limit = [ seg_limit, b_time ].min
       cap = (hi_limit - seg_start).floor
       take = [ remaining, cap ].min
       return [ [], 0 ] if take <= 0
 
-      if b <= seg_limit
-        s_end = [ b - BOUNDARY_EPSILON, emit_max ].min
+      if !b_is_start && b_time <= seg_limit
+        # Right-align before an existing ordinary heartbeat inside this segment
+        # so it does not gain unintended leading gap credit.
+        s_end = [ b_time - BOUNDARY_EPSILON, emit_max ].min
         s_start = [ seg_start, s_end - take ].max
         [ build_segment_ticks(s_start, s_end), take ]
       else
-        s_end = [ seg_start + take, emit_max, b - BOUNDARY_EPSILON ].min
+        s_end = [ seg_start + take, emit_max, b_time - BOUNDARY_EPSILON ].min
         [ build_segment_ticks(seg_start, s_end), take ]
       end
-    elsif b.nil?
-      lo_limit = [ seg_start, a ].max
+    elsif b_time.nil?
+      lo_limit = [ seg_start, a_time ].max
       cap = (seg_limit - lo_limit).floor
       take = [ remaining, cap ].min
       return [ [], 0 ] if take <= 0
 
-      s_start = a >= seg_start ? a + BOUNDARY_EPSILON : seg_start
+      s_start = a_time >= seg_start ? a_time + BOUNDARY_EPSILON : seg_start
       s_end = [ lo_limit + take, emit_max ].min
       [ build_segment_ticks(s_start, s_end), take ]
-    else
-      # Gap (a, b) already credits min(b - a, timeout) to b. Keep the last inserted tick
-      # at least `timeout` before b so b's existing duration and category stay untouched.
-      return [ [], 0 ] if (b - a) <= timeout
-
-      lo_limit = [ seg_start, a ].max
-      hi_limit = [ seg_limit, b - timeout.to_f ].min
+    elsif b_is_start
+      # A following `struggle_start` receives 0 incoming seconds, so no timeout
+      # buffer needs to be reserved before it when converting an earlier window.
+      lo_limit = [ seg_start, a_time ].max
+      hi_limit = [ seg_limit, b_time ].min
       cap = (hi_limit - lo_limit).floor
       take = [ remaining, cap ].min
       return [ [], 0 ] if take <= 0
 
-      s_start = a >= seg_start ? a + BOUNDARY_EPSILON : seg_start
+      s_start = a_time >= seg_start ? a_time + BOUNDARY_EPSILON : seg_start
+      s_end = [ lo_limit + take, emit_max, b_time - BOUNDARY_EPSILON ].min
+      [ build_segment_ticks(s_start, s_end), take ]
+    else
+      # Gap (a, b) already credits min(b - a, timeout) to ordinary heartbeat b. Keep the last
+      # inserted tick at least `timeout` before b so b's existing duration and category stay untouched.
+      return [ [], 0 ] if (b_time - a_time) <= timeout
+
+      lo_limit = [ seg_start, a_time ].max
+      hi_limit = [ seg_limit, b_time - timeout.to_f ].min
+      cap = (hi_limit - lo_limit).floor
+      take = [ remaining, cap ].min
+      return [ [], 0 ] if take <= 0
+
+      s_start = a_time >= seg_start ? a_time + BOUNDARY_EPSILON : seg_start
       s_end = [ lo_limit + take, hi_limit, emit_max ].min
       [ build_segment_ticks(s_start, s_end), take ]
     end

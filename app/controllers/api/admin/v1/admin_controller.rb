@@ -113,7 +113,8 @@ module Api
             WITH heartbeats_with_gaps AS (
               SELECT
                 date_trunc('day', to_timestamp("time"))::date as day,
-                "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time", id) as gap
+                CASE WHEN "type" = '#{Heartbeat::STRUGGLE_START_TYPE}' THEN 0
+                     ELSE "time" - LAG("time", 1, "time") OVER (PARTITION BY date_trunc('day', to_timestamp("time")) ORDER BY "time", id) END as gap
               FROM heartbeats
               WHERE user_id = ? AND deleted_at IS NULL AND time >= ? AND time <= ?
             )

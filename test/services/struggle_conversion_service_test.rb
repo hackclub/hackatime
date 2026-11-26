@@ -248,4 +248,57 @@ class StruggleConversionServiceTest < ActiveSupport::TestCase
     assert_equal 300, @user.heartbeats.duration_seconds
     assert_equal 300, Heartbeat.attributed_durations_by(@user.heartbeats, :category)["struggle point time"]
   end
+
+  test "window ending exactly at local midnight keeps all credited seconds on the first day" do
+    @user.update!(timezone: "UTC")
+    tz = ActiveSupport::TimeZone[@user.timezone]
+    day1_start = tz.now.beginning_of_day.to_i - 86_400
+    day2_start = tz.now.beginning_of_day.to_i
+    day3_start = day2_start + 86_400
+
+    proj = "9" * 64
+    window = create_unconverted_window(
+      project_hash: proj,
+      start_unix: day2_start - 300,
+      raw: 300,
+      convertible: 300,
+      sp: 12.0
+    )
+
+    res = StruggleConversionService.call(user: @user, project_hash: proj)
+    assert res.success?
+    assert_equal 300, res.conversion.total_credited_seconds
+    assert_equal 300, window.reload.credited_seconds
+
+    day1_hbs = @user.heartbeats.where("time >= ? AND time < ?", day1_start, day2_start)
+    day2_hbs = @user.heartbeats.where("time >= ? AND time < ?", day2_start, day3_start)
+    assert_equal 300, day1_hbs.duration_seconds
+    assert_equal 0, day2_hbs.duration_seconds
+    assert_equal 300, @user.heartbeats.duration_seconds
+  end
+
+  test "converting an earlier window after a later window does not reserve timeout before struggle_start" do
+    @user.update!(timezone: "UTC")
+    base = ActiveSupport::TimeZone["UTC"].now.beginning_of_day.to_i + 39_600 # 11:00 UTC
+
+    # Ordinary heartbeat at 11:00 UTC
+    create_coding_heartbeat(base)
+
+    proj = "8" * 64
+    earlier = create_unconverted_window(project_hash: proj, start_unix: base + 3600, raw: 300, convertible: 300, sp: 12.0) # 12:00-12:05
+    later = create_unconverted_window(project_hash: proj, start_unix: base + 3900, raw: 300, convertible: 300, sp: 12.0)   # 12:05-12:10
+
+    first_res = StruggleConversionService.call(user: @user, window_ids: [ later.id ])
+    assert first_res.success?
+    assert_equal 300, first_res.conversion.total_credited_seconds
+    assert_equal 300, later.reload.credited_seconds
+
+    second_res = StruggleConversionService.call(user: @user, window_ids: [ earlier.id ])
+    assert second_res.success?
+    assert_equal 300, second_res.conversion.total_credited_seconds
+    assert_equal 300, earlier.reload.credited_seconds
+
+    assert_equal 600, @user.heartbeats.duration_seconds
+    assert_equal 600, Heartbeat.attributed_durations_by(@user.heartbeats, :category)["struggle point time"]
+  end
 end

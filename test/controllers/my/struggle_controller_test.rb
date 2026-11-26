@@ -113,4 +113,67 @@ class My::StruggleControllerTest < ActionDispatch::IntegrationTest
     get "/api/v1/struggle_badge/#{@user.username}.svg"
     assert_response :not_found
   end
+
+  test "hides forensic integrity logs from regular users while exposing clean JSON export" do
+    @window.struggle_point_events.create!(
+      user: @user,
+      project_hash: @project_hash,
+      project_name: "hackatime-ai",
+      window_start: @window.window_start,
+      signal_code: "SIG_ARCH_STEER",
+      trigger_count: 2,
+      raw_points: 6.0,
+      awarded_points: 6.0,
+      provenance_tier: "tier_b",
+      persisted_diff_lines: 12,
+      gate_status: "awarded"
+    )
+    @window.struggle_point_events.create!(
+      user: @user,
+      project_hash: @project_hash,
+      project_name: "hackatime-ai",
+      window_start: @window.window_start,
+      signal_code: "SIG_VERIFY_EXEC",
+      trigger_count: 5,
+      raw_points: 15.0,
+      awarded_points: 0.0,
+      provenance_tier: "tier_a",
+      persisted_diff_lines: 0,
+      gate_status: "gated_autonomous_ai"
+    )
+
+    sign_in_as(@user)
+
+    get my_struggle_path, headers: { "X-Inertia" => "true" }
+    assert_response :ok
+    props = JSON.parse(response.body).fetch("props")
+    assert_equal false, props["can_view_integrity_details"]
+    assert_equal [], props["recent_point_events"]
+    assert_equal [ "SIG_ARCH_STEER" ], props["sp_breakdown"].map { |row| row["signal_code"] }
+    assert_nil props["sp_breakdown"].first["gated_windows"]
+    assert_nil props["sp_breakdown"].first["raw_points"]
+
+    get export_my_struggle_path
+    assert_response :ok
+    assert_includes response.content_type, "application/json"
+    assert_includes response.headers["Content-Disposition"], "attachment"
+    exported = JSON.parse(response.body)
+    assert_equal 1, exported["windows"].size
+    assert_nil exported["point_events"]
+    assert_nil exported["windows"].first["anomaly_flags"]
+
+    @user.update!(admin_level: :admin)
+
+    get my_struggle_path, headers: { "X-Inertia" => "true" }
+    assert_response :ok
+    admin_props = JSON.parse(response.body).fetch("props")
+    assert_equal true, admin_props["can_view_integrity_details"]
+    assert_equal 2, admin_props["recent_point_events"].size
+
+    get export_my_struggle_path
+    assert_response :ok
+    admin_exported = JSON.parse(response.body)
+    assert_equal 2, admin_exported["point_events"].size
+    assert_equal [], admin_exported["windows"].first["anomaly_flags"]
+  end
 end

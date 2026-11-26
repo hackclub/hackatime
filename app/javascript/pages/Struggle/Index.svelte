@@ -44,9 +44,9 @@
     signal_code: string;
     label: string;
     trigger_count: number;
-    raw_points: number;
+    raw_points?: number;
     awarded_points: number;
-    gated_windows: number;
+    gated_windows?: number;
     total_windows: number;
   }
 
@@ -69,6 +69,7 @@
   interface Props {
     page_title: string;
     conversion_mode: string;
+    can_view_integrity_details: boolean;
     summary: {
       unconverted_windows_count: number;
       unconverted_sp: number;
@@ -88,6 +89,7 @@
 
   let {
     page_title,
+    can_view_integrity_details,
     summary,
     project_groups,
     sp_breakdown,
@@ -96,6 +98,7 @@
   }: Props = $props();
 
   const convertPath = myStruggle.convert.path();
+  const exportPath = myStruggle.export.path();
 
   const BAR_WIDTH_CLASSES = [
     "w-0",
@@ -195,6 +198,8 @@
     </div>
 
     <div class="flex flex-wrap gap-2">
+      <Button href={exportPath} native variant="surface">Export JSON</Button>
+
       {#if selectedIds.length > 0}
         <Form
           method="post"
@@ -468,14 +473,10 @@
 
   <section class="space-y-4">
     <div>
-      <h2 class="text-lg font-semibold">
-        How You Earned Your Struggle Points (SP Ledger)
-      </h2>
+      <h2 class="text-lg font-semibold">How You Earned Your Struggle Points</h2>
       <p class="text-xs text-secondary">
-        Backed by PostgreSQL <span class="font-mono">struggle_point_events</span
-        >
-        showing every signal that contributed to your SP balance, persisted diff line
-        corroboration and any integrity gates applied.
+        Breakdown of the active engineering signals that contributed to your
+        Struggle Points balance.
       </p>
     </div>
 
@@ -506,7 +507,7 @@
               <span>
                 {row.trigger_count} triggers across {row.total_windows} windows
               </span>
-              {#if row.gated_windows > 0}
+              {#if can_view_integrity_details && (row.gated_windows ?? 0) > 0}
                 <span class="text-amber-300">
                   {row.gated_windows} gated (0 SP)
                 </span>
@@ -516,69 +517,80 @@
         {/each}
       </div>
 
-      <div
-        class="overflow-x-auto rounded-xl border border-surface-300 bg-surface-100"
-      >
-        <table class="w-full text-left text-xs">
-          <thead class="bg-surface-200/60 text-secondary">
-            <tr>
-              <th class="px-4 py-2.5">Window (UTC)</th>
-              <th class="px-4 py-2.5">Project</th>
-              <th class="px-4 py-2.5">Signal</th>
-              <th class="px-4 py-2.5">Awarded / Raw SP</th>
-              <th class="px-4 py-2.5">Diff Lines</th>
-              <th class="px-4 py-2.5">Tier</th>
-              <th class="px-4 py-2.5">Status</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-surface-300/60">
-            {#each recent_point_events as ev (ev.id)}
-              <tr class="hover:bg-surface-200/30">
-                <td class="px-4 py-2 font-mono">
-                  {ev.window_start.replace("T", " ").slice(0, 16)}
-                </td>
-                <td class="px-4 py-2 font-medium">{ev.project_name}</td>
-                <td class="px-4 py-2">
-                  <span class="font-medium">{ev.signal_label}</span>
-                  <span class="ml-1 font-mono text-[10px] text-secondary">
-                    ×{ev.trigger_count}
-                  </span>
-                </td>
-                <td class="px-4 py-2 font-mono">
-                  <span
-                    class={ev.awarded_points > 0
-                      ? "font-semibold text-emerald-400"
-                      : "text-rose-400"}
-                  >
-                    {ev.awarded_points.toFixed(1)}
-                  </span>
-                  <span class="text-secondary"
-                    >/ {ev.raw_points.toFixed(1)}</span
-                  >
-                </td>
-                <td class="px-4 py-2 font-mono">{ev.persisted_diff_lines}</td>
-                <td
-                  class="px-4 py-2 font-mono text-[10px] uppercase text-secondary"
-                >
-                  {ev.provenance_tier}
-                </td>
-                <td class="px-4 py-2">
-                  <span
-                    class="rounded px-1.5 py-0.5 text-[10px] font-medium {ev.awarded_points ===
-                    0
-                      ? 'bg-rose-500/20 text-rose-300'
-                      : ev.gate_status === 'awarded'
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'bg-amber-500/20 text-amber-300'}"
-                  >
-                    {ev.gate_label}
-                  </span>
-                </td>
-              </tr>
-            {/each}
-          </tbody>
-        </table>
-      </div>
+      {#if can_view_integrity_details && recent_point_events.length > 0}
+        <div class="space-y-2">
+          <div
+            class="text-xs font-semibold uppercase tracking-wider text-secondary"
+          >
+            Admin Integrity Event Log
+          </div>
+          <div
+            class="overflow-x-auto rounded-xl border border-surface-300 bg-surface-100"
+          >
+            <table class="w-full text-left text-xs">
+              <thead class="bg-surface-200/60 text-secondary">
+                <tr>
+                  <th class="px-4 py-2.5">Window (UTC)</th>
+                  <th class="px-4 py-2.5">Project</th>
+                  <th class="px-4 py-2.5">Signal</th>
+                  <th class="px-4 py-2.5">Awarded / Raw SP</th>
+                  <th class="px-4 py-2.5">Diff Lines</th>
+                  <th class="px-4 py-2.5">Tier</th>
+                  <th class="px-4 py-2.5">Status</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-surface-300/60">
+                {#each recent_point_events as ev (ev.id)}
+                  <tr class="hover:bg-surface-200/30">
+                    <td class="px-4 py-2 font-mono">
+                      {ev.window_start.replace("T", " ").slice(0, 16)}
+                    </td>
+                    <td class="px-4 py-2 font-medium">{ev.project_name}</td>
+                    <td class="px-4 py-2">
+                      <span class="font-medium">{ev.signal_label}</span>
+                      <span class="ml-1 font-mono text-[10px] text-secondary">
+                        ×{ev.trigger_count}
+                      </span>
+                    </td>
+                    <td class="px-4 py-2 font-mono">
+                      <span
+                        class={ev.awarded_points > 0
+                          ? "font-semibold text-emerald-400"
+                          : "text-rose-400"}
+                      >
+                        {ev.awarded_points.toFixed(1)}
+                      </span>
+                      <span class="text-secondary">
+                        / {ev.raw_points.toFixed(1)}
+                      </span>
+                    </td>
+                    <td class="px-4 py-2 font-mono"
+                      >{ev.persisted_diff_lines}</td
+                    >
+                    <td
+                      class="px-4 py-2 font-mono text-[10px] uppercase text-secondary"
+                    >
+                      {ev.provenance_tier}
+                    </td>
+                    <td class="px-4 py-2">
+                      <span
+                        class="rounded px-1.5 py-0.5 text-[10px] font-medium {ev.awarded_points ===
+                        0
+                          ? 'bg-rose-500/20 text-rose-300'
+                          : ev.gate_status === 'awarded'
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : 'bg-amber-500/20 text-amber-300'}"
+                      >
+                        {ev.gate_label}
+                      </span>
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {/if}
     {/if}
   </section>
 

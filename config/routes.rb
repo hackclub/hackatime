@@ -158,6 +158,7 @@ Rails.application.routes.draw do
   get "my/projects/:project_name", to: "my/project_repo_mappings#show", as: :my_project, constraints: { project_name: /.+/ }, export: true
   get "my/struggle", to: "my/struggle#show", as: :my_struggle, export: true
   post "my/struggle/convert", to: "my/struggle#convert", as: :convert_my_struggle, export: true
+  get "my/struggle/export", to: "my/struggle#export", as: :export_my_struggle, export: true
 
   # Namespace for current user actions
   defaults export: true do
