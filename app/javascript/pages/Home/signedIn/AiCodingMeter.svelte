@@ -17,6 +17,31 @@
   const humanPercent = $derived(
     totalSeconds > 0 ? Math.max(0, 100 - aiPercent - strugglePercent) : 0,
   );
+
+  const BAR_WIDTH_CLASSES = [
+    "w-0",
+    "w-1/12",
+    "w-2/12",
+    "w-3/12",
+    "w-4/12",
+    "w-5/12",
+    "w-6/12",
+    "w-7/12",
+    "w-8/12",
+    "w-9/12",
+    "w-10/12",
+    "w-11/12",
+    "w-full",
+  ] as const;
+
+  const struggleWidthClass = $derived(
+    BAR_WIDTH_CLASSES[
+      Math.round(
+        (Math.min(100, Math.max(0, strugglePercent)) / 100) *
+          (BAR_WIDTH_CLASSES.length - 1),
+      )
+    ],
+  );
 </script>
 
 <section
@@ -46,8 +71,7 @@
         ></div>
         {#if hasStruggle}
           <div
-            class="h-full bg-emerald-400 transition-[width] duration-300 ease-out"
-            style:width={`${strugglePercent}%`}
+            class={`h-full bg-emerald-400 transition-[width] duration-300 ease-out ${struggleWidthClass}`}
           ></div>
         {/if}
         <div

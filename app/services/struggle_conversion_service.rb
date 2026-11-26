@@ -84,7 +84,8 @@ class StruggleConversionService
   private
 
   def plan_window_allocations(windows:, timeout:)
-    timeline = existing_timeline_for(windows)
+    tz = ActiveSupport::TimeZone[@user.timezone] || Time.zone
+    timeline = existing_timeline_for(windows, tz: tz)
 
     windows.map do |window|
       desired = window.convertible_seconds.to_i
@@ -92,12 +93,17 @@ class StruggleConversionService
         { window: window, credited_seconds: 0, timestamps: [] }
       else
         w_start = window.window_start.to_f
-        w_end = w_start + WINDOW_DURATION_SECONDS
+        local_day = tz.at(w_start).to_date
+        day_start = local_day.in_time_zone(tz).beginning_of_day.to_f
+        next_day_start = (local_day + 1).in_time_zone(tz).beginning_of_day.to_f
+        w_end = [ w_start + WINDOW_DURATION_SECONDS, next_day_start - BOUNDARY_EPSILON ].min
+        same_day_timeline = timeline.select { |ts| ts >= day_start && ts < next_day_start }
+
         allocated = allocate_window_timestamps(
           window_start: w_start,
           window_end: w_end,
           desired: desired,
-          timeline: timeline,
+          timeline: same_day_timeline,
           timeout: timeout
         )
         unless allocated[:timestamps].empty?
@@ -109,21 +115,18 @@ class StruggleConversionService
     end
   end
 
-  def existing_timeline_for(windows)
-    min_start = windows.first.window_start.to_f
-    max_end = windows.last.window_start.to_f + WINDOW_DURATION_SECONDS
-    base = @user.heartbeats.with_valid_timestamps
+  def existing_timeline_for(windows, tz:)
+    first_day = tz.at(windows.first.window_start.to_f).to_date
+    last_day = tz.at(windows.last.window_start.to_f).to_date
+    range_start = first_day.in_time_zone(tz).beginning_of_day.to_f
+    range_end = (last_day + 1).in_time_zone(tz).beginning_of_day.to_f
 
-    in_range = base.where(time: min_start..max_end).order(time: :asc).pluck(:time).map(&:to_f)
-    before_min = base.where("time < ?", min_start).maximum(:time)&.to_f
-    after_max = base.where("time > ?", max_end).minimum(:time)&.to_f
-
-    timeline = []
-    timeline << before_min if before_min
-    timeline.concat(in_range)
-    timeline << after_max if after_max
-    timeline.sort!
-    timeline
+    @user.heartbeats
+      .with_valid_timestamps
+      .where("time >= ? AND time < ?", range_start, range_end)
+      .order(time: :asc)
+      .pluck(:time)
+      .map(&:to_f)
   end
 
   # Computes exact non-overlapping heartbeat timestamps within [window_start, window_end]

@@ -170,4 +170,40 @@ class StruggleConversionServiceTest < ActiveSupport::TestCase
     assert_equal 600, by_cat["struggle point time"]
     assert_equal 1200, @user.heartbeats.duration_seconds
   end
+
+  test "previous-day heartbeat does not consume today's conversion credit across midnight" do
+    @user.update!(timezone: "UTC")
+    tz = ActiveSupport::TimeZone[@user.timezone]
+    today_start = tz.now.beginning_of_day.to_i
+    next_day_start = (tz.now.to_date + 1).in_time_zone(tz).beginning_of_day.to_i
+
+    # User coded yesterday at 23:00 UTC
+    create_coding_heartbeat(today_start - 3660)
+    create_coding_heartbeat(today_start - 3600)
+
+    # Today at 00:10 UTC, user earned a 120s window (equal to heartbeat timeout)
+    # and at 00:20 UTC, a 60s window (below heartbeat timeout)
+    proj = "f" * 64
+    w1 = create_unconverted_window(project_hash: proj, start_unix: today_start + 600, raw: 120, convertible: 120, sp: 10.0)
+    w2 = create_unconverted_window(project_hash: proj, start_unix: today_start + 1200, raw: 300, convertible: 60, sp: 2.0)
+
+    res = StruggleConversionService.call(user: @user, project_hash: proj)
+    assert res.success?
+    assert_equal 180, res.conversion.total_credited_seconds
+    assert_equal 120, w1.reload.credited_seconds
+    assert_equal 60, w2.reload.credited_seconds
+
+    today_hbs = @user.heartbeats.where("time >= ? AND time < ?", today_start, next_day_start)
+    assert_equal 180, today_hbs.duration_seconds
+    assert_equal 180, Heartbeat.attributed_durations_by(today_hbs, :category)["struggle point time"]
+
+    # Every inserted struggle heartbeat must remain on today (never shifted into yesterday)
+    struggle_times = @user.heartbeats.where(category: "struggle point time").pluck(:time)
+    assert struggle_times.all? { |ts| ts >= today_start && ts < next_day_start }
+
+    summary_rows = Heartbeat.daily_activity_summary_rows(scope: @user.heartbeats, timezone: @user.timezone)
+    today_row = summary_rows.find { |r| r["local_date"].to_date == tz.now.to_date }
+    assert_not_nil today_row
+    assert_equal 180, today_row["duration"].to_i
+  end
 end
